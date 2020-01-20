@@ -2,6 +2,7 @@
 
 #define ELEMENTS_PER_NODE 8
 #define INDICES_PER_NODE 24
+
 void Octree::drawNodes()
 {
 	std::vector<vec3> elements(mNodeCount * ELEMENTS_PER_NODE);
@@ -10,7 +11,7 @@ void Octree::drawNodes()
 	Node *node = &mRootNode;
 	for (int i = 0; i < mNodeCount; i++)
 	{
-		elements.push_back();
+		//elements.push_back();
 	}
 }
 
@@ -30,4 +31,9 @@ void Octree::drawNode(Node *node, vec3 v, std::vector<vec3> &vector)
 	drawNode(node->subNodes[5], v + vec3(1, 1, -1) * halfSize, vector);
 	drawNode(node->subNodes[6], v + vec3(-1, 1, 1) * halfSize, vector);
 	drawNode(node->subNodes[7], v + vec3(1, 1, 1) * halfSize, vector);
+}
+
+std::ostream& operator<<(const std::ostream& os, const Octree& octree) {
+	
+	return os;
 }

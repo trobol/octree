@@ -1,5 +1,9 @@
 #include <vector>
 #include "vec3.h"
+
+#include <iostream>
+#include <iterator>
+
 class Octree
 {
 public:
@@ -90,3 +94,9 @@ private:
 	int mX, mY;
 	int mNodeCount = 0;
 };
+
+
+class OctreeIterator : public std::iterator<std::input_iterator_tag, Octree& octree> {
+
+};
+std::ostream& operator<<(const std::ostream& os, const Octree& octree);
