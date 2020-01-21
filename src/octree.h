@@ -4,12 +4,16 @@
 #include <iostream>
 #include <iterator>
 
+struct Point
+{
+	vec3 pos{0, 0, 0};
+	vec3 color{0, 0, 0};
+};
+
 class Octree
 {
 public:
-	Octree(int size) : mRootNode{size}
-	{
-	}
+	Octree(int size) : mRootNode{size} {};
 	struct Node
 	{
 		Node(int size, Node *parent = nullptr) : size{size}, parent{parent} {}
@@ -34,7 +38,6 @@ public:
 		*/
 
 		int size;
-		vec3 pos;
 		bool isEmpty()
 		{
 			for (int i = 0; i < 8; i++)
@@ -72,7 +75,7 @@ public:
 			if (n->subNodes[index] == nullptr)
 			{
 				n->subNodes[index] = new Node(n->size - 1, n);
-				n->subNodes[index]->pos = vec3(currentX, currentY, currentZ);
+				std::cout << "created node" << std::endl;
 				mNodeCount++;
 			}
 
@@ -82,21 +85,22 @@ public:
 	}
 	void drawNodes();
 
-	void drawNode(Node *node, vec3 v, std::vector<vec3> &vector);
+	void drawNode(Node *node, vec3 v, std::vector<Point> &vector);
 
 	int getSize()
 	{
 		return mRootNode.size;
 	}
-
-private:
 	Node mRootNode;
 	int mX, mY;
 	int mNodeCount = 0;
+
+private:
 };
 
-
-class OctreeIterator : public std::iterator<std::input_iterator_tag, Octree& octree> {
-
+class OctreeIterator
+{
+private:
+	int value_;
 };
-std::ostream& operator<<(const std::ostream& os, const Octree& octree);
+std::ostream &operator<<(std::ostream &os, const Octree::Node &node);

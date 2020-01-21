@@ -3,9 +3,11 @@
 
 #include <GL/glu.h>
 #include <GLFW/glfw3.h>
+#include "octree.h"
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <iostream>
 
 #define GL_LITE_IMPLEMENTATION
 #include "gl_lite.h"
@@ -53,6 +55,11 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
 
 int main(void)
 {
+	Octree tree(4);
+	tree.setNode(1, 1, 1);
+	tree.setNode(2, 2, 2);
+
+	std::cout << tree.mRootNode << std::endl;
 	GLFWwindow *window;
 	GLuint vertex_buffer, vertex_shader, fragment_shader, program;
 	GLint mvp_location, vpos_location, vcol_location;

@@ -5,35 +5,96 @@
 
 void Octree::drawNodes()
 {
-	std::vector<vec3> elements(mNodeCount * ELEMENTS_PER_NODE);
+	std::vector<Point> elements(mNodeCount * ELEMENTS_PER_NODE);
 	std::vector<int> indices(mNodeCount * INDICES_PER_NODE);
 	vec3 v(0, 0, 0);
 	Node *node = &mRootNode;
+	/*
+		0 1
+		0 3
+		1 2
+		2 3
+
+		0 4
+		1 5
+		3 7
+		2 6
+
+		4 5
+		4 7
+		5 6
+		6 7
+	*/
+	const int cubeIndies[INDICES_PER_NODE] = {
+		0, 1,
+		0, 3,
+		1, 2,
+		2, 3,
+
+		0, 4,
+		1, 5,
+		3, 7,
+		2, 6,
+
+		4, 5,
+		4, 7,
+		5, 6,
+		6, 7};
 	for (int i = 0; i < mNodeCount; i++)
 	{
-		//elements.push_back();
+		for (int j = 0; j < INDICES_PER_NODE; j++)
+		{
+			indices[j + (i * INDICES_PER_NODE)] = cubeIndies[j];
+		}
 	}
+	drawNode(node, v, elements);
 }
-
-void Octree::drawNode(Node *node, vec3 v, std::vector<vec3> &vector)
+char rand255()
+{
+	return rand() % 255;
+}
+void Octree::drawNode(Node *node, vec3 v, std::vector<Point> &elements)
 {
 	if (node == nullptr)
 		return;
 
 	int halfSize = node->size / 2;
+	vec3 color((float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX);
+	vec3 points[ELEMENTS_PER_NODE] = {
+		{-1, -1, 1},
+		{1, -1, 1},
+		{1, -1, -1},
+		{-1, -1, -1},
 
-	drawNode(node->subNodes[0], v + vec3(-1, -1, -1) * halfSize, vector);
-	drawNode(node->subNodes[1], v + vec3(1, -1, -1) * halfSize, vector);
-	drawNode(node->subNodes[2], v + vec3(-1, -1, 1) * halfSize, vector);
-	drawNode(node->subNodes[3], v + vec3(1, -1, 1) * halfSize, vector);
+		{-1, 1, 1},
+		{1, 1, 1},
+		{1, 1, -1},
+		{-1, 1, -1}};
+	for (int i = 0; i < ELEMENTS_PER_NODE; i++)
+	{
+		Point p;
+		p.pos = points[i] * node->size + v;
+		p.color = color;
+		elements.push_back(p);
+	}
+	drawNode(node->subNodes[0], v + vec3(-1, -1, -1) * halfSize, elements);
+	drawNode(node->subNodes[1], v + vec3(1, -1, -1) * halfSize, elements);
+	drawNode(node->subNodes[2], v + vec3(-1, -1, 1) * halfSize, elements);
+	drawNode(node->subNodes[3], v + vec3(1, -1, 1) * halfSize, elements);
 
-	drawNode(node->subNodes[4], v + vec3(-1, 1, -1) * halfSize, vector);
-	drawNode(node->subNodes[5], v + vec3(1, 1, -1) * halfSize, vector);
-	drawNode(node->subNodes[6], v + vec3(-1, 1, 1) * halfSize, vector);
-	drawNode(node->subNodes[7], v + vec3(1, 1, 1) * halfSize, vector);
+	drawNode(node->subNodes[4], v + vec3(-1, 1, -1) * halfSize, elements);
+	drawNode(node->subNodes[5], v + vec3(1, 1, -1) * halfSize, elements);
+	drawNode(node->subNodes[6], v + vec3(-1, 1, 1) * halfSize, elements);
+	drawNode(node->subNodes[7], v + vec3(1, 1, 1) * halfSize, elements);
 }
 
-std::ostream& operator<<(const std::ostream& os, const Octree& octree) {
-	
+std::ostream &operator<<(std::ostream &os, const Octree::Node &node)
+{
+	os << "[------]" << node.size << '\n';
+	for (int i = 0; i < 8; i++)
+	{
+		if (node.subNodes[i] != nullptr)
+			os << node.subNodes[i] << '\n';
+	}
 	return os;
 }
