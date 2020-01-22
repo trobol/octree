@@ -3,10 +3,11 @@
 #define ELEMENTS_PER_NODE 8
 #define INDICES_PER_NODE 24
 
-void Octree::drawNodes()
+void Octree::drawNodes(std::vector<Point> &elements, std::vector<int> &indices)
 {
-	std::vector<Point> elements(mNodeCount * ELEMENTS_PER_NODE);
-	std::vector<int> indices(mNodeCount * INDICES_PER_NODE);
+	elements.reserve(mNodeCount * ELEMENTS_PER_NODE);
+	indices.resize(mNodeCount * INDICES_PER_NODE);
+	std::cout << elements.size();
 	vec3 v(0, 0, 0);
 	Node *node = &mRootNode;
 	/*
@@ -44,15 +45,12 @@ void Octree::drawNodes()
 	{
 		for (int j = 0; j < INDICES_PER_NODE; j++)
 		{
-			indices[j + (i * INDICES_PER_NODE)] = cubeIndies[j];
+			indices[j + (i * INDICES_PER_NODE)] = cubeIndies[j] + (i * ELEMENTS_PER_NODE);
 		}
 	}
 	drawNode(node, v, elements);
 }
-char rand255()
-{
-	return rand() % 255;
-}
+
 void Octree::drawNode(Node *node, vec3 v, std::vector<Point> &elements)
 {
 	if (node == nullptr)
@@ -76,6 +74,7 @@ void Octree::drawNode(Node *node, vec3 v, std::vector<Point> &elements)
 		p.pos = points[i] * node->size + v;
 		p.color = color;
 		elements.push_back(p);
+		std::cout << elements.size() << ' ';
 	}
 	drawNode(node->subNodes[0], v + vec3(-1, -1, -1) * halfSize, elements);
 	drawNode(node->subNodes[1], v + vec3(1, -1, -1) * halfSize, elements);
@@ -88,13 +87,14 @@ void Octree::drawNode(Node *node, vec3 v, std::vector<Point> &elements)
 	drawNode(node->subNodes[7], v + vec3(1, 1, 1) * halfSize, elements);
 }
 
-std::ostream &operator<<(std::ostream &os, const Octree::Node &node)
+void printNode(Octree::Node &node, int depth)
 {
-	os << "[------]" << node.size << '\n';
+	for (int i = 0; i < depth; i++)
+		std::cout << ' ';
+	std::cout << '[' << node.size << ']' << std::endl;
 	for (int i = 0; i < 8; i++)
 	{
 		if (node.subNodes[i] != nullptr)
-			os << node.subNodes[i] << '\n';
+			printNode(*node.subNodes[i], depth + 1);
 	}
-	return os;
 }

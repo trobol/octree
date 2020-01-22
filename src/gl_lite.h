@@ -221,7 +221,8 @@ typedef ptrdiff_t GLsizeiptr;
 	GLE(void, FramebufferTexture, GLenum target, GLenum attachment, GLuint texture, GLint level)                                                                                                      \
 	GLE(void, BindImageTexture, GLuint unit, GLuint texture, GLint level, GLboolean layered, GLint layer, GLenum access, GLenum format)                                                               \
 	GLE(void, GetIntegeri_v, GLenum pname, GLuint index, GLint *data)                                                                                                                                 \
-	//	GLE(void, GetIntegerv, GLenum pname, GLint *params)                                                                                                                                               \
+	GLE(void, DetachShader, GLuint program, GLuint shader)
+//	GLE(void, GetIntegerv, GLenum pname, GLint *params)                                                                                                                                               \
 	/* end */
 
 #define GLE(ret, name, ...)                     \

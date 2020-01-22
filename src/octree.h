@@ -75,7 +75,7 @@ public:
 			if (n->subNodes[index] == nullptr)
 			{
 				n->subNodes[index] = new Node(n->size - 1, n);
-				std::cout << "created node" << std::endl;
+				std::cout << "created node size: " << n->size - 1 << std::endl;
 				mNodeCount++;
 			}
 
@@ -83,7 +83,7 @@ public:
 		}
 		return n;
 	}
-	void drawNodes();
+	void drawNodes(std::vector<Point> &elements, std::vector<int> &indices);
 
 	void drawNode(Node *node, vec3 v, std::vector<Point> &vector);
 
@@ -103,4 +103,4 @@ class OctreeIterator
 private:
 	int value_;
 };
-std::ostream &operator<<(std::ostream &os, const Octree::Node &node);
+void printNode(Octree::Node &node, int depth = 0);
