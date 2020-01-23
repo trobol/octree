@@ -10,7 +10,8 @@
 #include <iostream>
 
 #include "shader.h"
-
+#include "camera.h"
+#include <math.h>
 #define GL_LITE_IMPLEMENTATION
 #include "gl_lite.h"
 
@@ -27,10 +28,20 @@ error_callback(int error, const char *description)
 	fprintf(stderr, "Error: %s\n", description);
 }
 
+Camera camera;
+
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
+	if (key == GLFW_KEY_W)
+		camera.mTransform.position.z -= 0.2;
+	if (key == GLFW_KEY_S)
+		camera.mTransform.position.z += 0.2;
+	if (key == GLFW_KEY_D)
+		camera.mTransform.rotateAroundOrigin(0.2);
+	if (key == GLFW_KEY_A)
+		camera.mTransform.rotateAroundOrigin(-0.2);
 }
 
 Shader shader;
@@ -94,13 +105,20 @@ int main(void)
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
-	for (int i = 0; i < indices.size(); i++)
-	{
-		std::cout << indices[i] << '\n';
-	}
 	std::cout << std::endl;
 	std::cout << elements.size() << std::endl;
 	std::cout << indices.size() << std::endl;
+
+	glUseProgram(shader);
+
+	camera.mTransform.scale = vec3(1, 1, 1);
+	camera.mTransform.position = vec3(0, 0, 10.);
+	int projMatrix = glGetUniformLocation(shader, "projMatrix");
+	glUniformMatrix4fv(projMatrix, 1, GL_FALSE, camera.getProjMatrix());
+
+	int camMatrix = glGetUniformLocation(shader, "camMatrix");
+
+	glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(window))
 	{
 		float ratio;
@@ -110,9 +128,11 @@ int main(void)
 		ratio = width / (float)height;
 
 		glViewport(0, 0, width, height);
-		glClear(GL_COLOR_BUFFER_BIT);
-		glUseProgram(shader);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		vec3 pos = camera.mTransform.position;
 
+		camera.mTransform.rotation = Quaternion::AxisAngle(vec3::up, atan2(-pos.x, pos.z));
+		glUniformMatrix4fv(camMatrix, 1, GL_FALSE, camera.getTransformMatrix());
 		glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
 
 		glfwSwapBuffers(window);

@@ -1,4 +1,7 @@
 #include "transform.h"
+
+#include <math.h>
+
 mat4 Transform::ToMatrix()
 {
 	mat4 m;
@@ -13,4 +16,12 @@ mat4 Transform::ToMatrix()
 vec3 Transform::getUp()
 {
 	return rotation * vec3::forwards;
+}
+
+void Transform::rotateAroundOrigin(float angle)
+{
+	float x = position.x * cosf(angle) - position.z * sin(angle);
+	float z = position.z * cosf(angle) + position.x * sin(angle);
+	position.x = x;
+	position.z = z;
 }

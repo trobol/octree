@@ -1,4 +1,5 @@
 #version 330 core
+
 #define PI 3.1415926535897932384626433832795
 
 mat4 BuildPerspProjMat(float fov,float aspect,
@@ -42,13 +43,16 @@ float znear,float zfar)
 	0.);
 }
 
-mat4 camMatrix=BuildPerspProjMat(90.,1.,1.,1000.);
+mat4 projMatrix=BuildPerspProjMat(90.,1.,1.,1000.);
+
+uniform mat4 camMatrix;
+//uniform mat4 projMatrix
 
 layout(location=0)in vec3 vertexPosition;
 layout(location=1)in vec3 vertexColor;
 
 out vec3 mColor;
 void main(){
-	gl_Position=vec4(vertexPosition-vec3(0.,0.,2.),1.)*camMatrix;
+	gl_Position=projMatrix*inverse(camMatrix)*vec4(vertexPosition,1.);
 	mColor=vertexColor;
 }

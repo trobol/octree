@@ -10,16 +10,21 @@ public:
 	Camera(){};
 	Camera(vec3 pos, Quaternion rot, float fov) : mTransform{pos, rot}, mFov{fov} {};
 
-	float mFov;
+	float mFov = 90;
 
 	Transform mTransform;
+
+	float mAspectRatio = 1;
+	float mNearClip = 1;
+	float mFarClip = 1000;
+
 	mat4 getProjMatrix()
 	{
-		return mTransform.ToMatrix();
+		return mat4::PerspectiveProj(mFov, mAspectRatio, mNearClip, mFarClip);
 	}
 	mat4 getTransformMatrix()
 	{
-		return mat4::PerspectiveProj(mFov, aspectRatio, nearClip, farClip);
+		return mTransform.ToMatrix();
 	}
 
 private:

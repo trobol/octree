@@ -56,6 +56,10 @@ public:
 	float getDeterminant();
 
 	static const mat4 left, right, up, down;
+	operator float *()
+	{
+		return matrix;
+	};
 };
 
 #endif

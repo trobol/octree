@@ -71,7 +71,7 @@ void Octree::drawNode(Node *node, vec3 v, std::vector<Point> &elements)
 	for (int i = 0; i < ELEMENTS_PER_NODE; i++)
 	{
 		Point p;
-		p.pos = points[i] * node->size + v;
+		p.pos = points[i] * (1 + node->size) + v;
 		p.color = color;
 		elements.push_back(p);
 		std::cout << elements.size() << ' ';

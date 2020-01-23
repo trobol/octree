@@ -19,6 +19,10 @@ public:
 	vec3 getLeft();
 	vec3 getRight();
 
+	void rotateAround(vec3 point, float angle);
+	void lookAt(vec3 point);
+	void rotateAroundOrigin(float angle);
+
 private:
 };
 #endif

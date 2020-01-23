@@ -22,6 +22,8 @@ public:
 
 	vec3 operator*(const vec3 &v);
 
+	void lookAt(vec3 point);
+
 private:
 	union {
 	};
