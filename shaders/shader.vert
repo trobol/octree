@@ -49,6 +49,6 @@ layout(location=1)in vec3 vertexColor;
 
 out vec3 mColor;
 void main(){
-	gl_Position=vec4((vertexPosition/5.)-vec3(0.,0.,2.),1.)*camMatrix;
+	gl_Position=vec4(vertexPosition-vec3(0.,0.,2.),1.)*camMatrix;
 	mColor=vertexColor;
 }
