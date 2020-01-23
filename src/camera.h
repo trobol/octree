@@ -2,22 +2,24 @@
 #define _CAMERA_H
 #include "vec3.h"
 #include "mat4.h"
+
+#include "transform.h"
 class Camera
 {
 public:
-	Camera() : mPos{0, 0, 0}, mRot{0, 0, 0}, mFov{90} {};
-	Camera(vec3 pos, vec3 rot, float fov) : mPos{pos}, mRot{rot}, mFov{fov} {};
+	Camera(){};
+	Camera(vec3 pos, Quaternion rot, float fov) : mTransform{pos, rot}, mFov{fov} {};
 
-	vec3 mPos;
-	vec3 mRot;
 	float mFov;
 
+	Transform mTransform;
 	mat4 getProjMatrix()
 	{
-		mat4 result;
+		return mTransform.ToMatrix();
 	}
 	mat4 getTransformMatrix()
 	{
+		return mat4::PerspectiveProj(mFov, aspectRatio, nearClip, farClip);
 	}
 
 private:
