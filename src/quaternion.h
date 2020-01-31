@@ -20,7 +20,23 @@ public:
 	static Quaternion AxisAngle(vec3 axis, float angle);
 	static Quaternion identity;
 
-	vec3 operator*(const vec3 &v);
+	void toNormalized();
+	Quaternion normalized() const;
+
+	void operator+=(const Quaternion &q);
+	void operator-=(const Quaternion &q);
+	void operator*=(const Quaternion &q);
+	void operator/=(const Quaternion &q);
+
+	Quaternion operator+(const Quaternion &q) const;
+	Quaternion operator-(const Quaternion &q) const;
+	Quaternion operator*(const Quaternion &q) const;
+	Quaternion operator/(const Quaternion &q) const;
+
+	vec3 operator*(const vec3 &v) const;
+
+	Quaternion inverse();
+	void toInvert();
 
 	void lookAt(vec3 point);
 

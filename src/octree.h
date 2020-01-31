@@ -93,7 +93,7 @@ public:
 	}
 	Node mRootNode;
 	int mX, mY;
-	int mNodeCount = 0;
+	int mNodeCount = 1;
 
 private:
 };

@@ -73,7 +73,19 @@ Quaternion Quaternion::AxisAngle(vec3 axis, float angle)
 		cosf(a));
 }
 
-void Quaternion::normalize()
+Quaternion Quaternion::normalized() const
+{
+	if (w + x + y + z == 1)
+		return Quaternion(*this);
+
+	float n = sqrtf(x * x + y * y + z * z + w * w);
+	if (n == 0)
+		return Quaternion(*this);
+
+	return Quaternion(x / n, y / n, z / n, w / n);
+}
+
+void Quaternion::toNormalized()
 {
 	if (w + x + y + z == 1)
 		return;
@@ -87,7 +99,7 @@ void Quaternion::normalize()
 	w /= n;
 }
 
-vec3 Quaternion::operator*(const vec3 &v)
+vec3 Quaternion::operator*(const vec3 &v) const
 {
 
 	vec3 u(x, y, z);
@@ -96,3 +108,19 @@ vec3 Quaternion::operator*(const vec3 &v)
 
 	return 2.0f * vec3::dot(u, v) * u + (s * s - vec3::dot(u, u)) * v + 2.0f * s * vec3::cross(u, v);
 }
+
+/*
+Quaternion Quaternion::inverse()
+{
+	float absoluteValue = norm();
+	absoluteValue *= absoluteValue;
+	absoluteValue = 1 / absoluteValue;
+
+	R4DQuaternion conjugateValue = conjugate();
+
+	float scalar = conjugateValue.s * absoluteValue;
+	R4DVector3n imaginary = conjugateValue.v * absoluteValue;
+
+	return R4DQuaternion(scalar, imaginary);
+}
+*/

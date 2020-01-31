@@ -3,6 +3,7 @@
 #define ELEMENTS_PER_NODE 8
 #define INDICES_PER_NODE 24
 
+#include <math.h>
 void Octree::drawNodes(std::vector<Point> &elements, std::vector<int> &indices)
 {
 	elements.reserve(mNodeCount * ELEMENTS_PER_NODE);
@@ -56,7 +57,6 @@ void Octree::drawNode(Node *node, vec3 v, std::vector<Point> &elements)
 	if (node == nullptr)
 		return;
 
-	int halfSize = node->size / 2;
 	vec3 color((float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX);
 	vec3 points[ELEMENTS_PER_NODE] = {
 		{-1, -1, 1},
@@ -68,23 +68,20 @@ void Octree::drawNode(Node *node, vec3 v, std::vector<Point> &elements)
 		{1, 1, 1},
 		{1, 1, -1},
 		{-1, 1, -1}};
+	//2 to the power of node size
+	float powSize = 1 << node->size;
 	for (int i = 0; i < ELEMENTS_PER_NODE; i++)
 	{
 		Point p;
-		p.pos = points[i] * (1 + node->size) + v;
+		p.pos = points[i] * powSize + v;
 		p.color = color;
 		elements.push_back(p);
-		std::cout << elements.size() << ' ';
 	}
-	drawNode(node->subNodes[0], v + vec3(-1, -1, -1) * halfSize, elements);
-	drawNode(node->subNodes[1], v + vec3(1, -1, -1) * halfSize, elements);
-	drawNode(node->subNodes[2], v + vec3(-1, -1, 1) * halfSize, elements);
-	drawNode(node->subNodes[3], v + vec3(1, -1, 1) * halfSize, elements);
-
-	drawNode(node->subNodes[4], v + vec3(-1, 1, -1) * halfSize, elements);
-	drawNode(node->subNodes[5], v + vec3(1, 1, -1) * halfSize, elements);
-	drawNode(node->subNodes[6], v + vec3(-1, 1, 1) * halfSize, elements);
-	drawNode(node->subNodes[7], v + vec3(1, 1, 1) * halfSize, elements);
+	int halfPowSize = powSize / 2;
+	for (int i = 0; i < 8; i++)
+	{
+		drawNode(node->subNodes[i], v + points[i] * halfPowSize, elements);
+	}
 }
 
 void printNode(Octree::Node &node, int depth)

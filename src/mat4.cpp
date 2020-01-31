@@ -52,7 +52,7 @@ mat4::mat4(float m[16])
 mat4::mat4(Quaternion q)
 {
 
-	q.normalize();
+	q.toNormalized();
 
 	float xx = q.x * q.x;
 	float xy = q.x * q.y;

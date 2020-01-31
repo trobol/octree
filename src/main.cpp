@@ -51,6 +51,7 @@ int main(void)
 	Octree tree(4);
 	tree.setNode(1, 1, 1);
 	tree.setNode(2, 2, 2);
+	tree.setNode(2, 2, 4);
 
 	printNode(tree.mRootNode);
 	GLFWwindow *window;
