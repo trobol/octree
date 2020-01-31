@@ -46,6 +46,12 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
 
 Shader shader;
 
+void window_size_callback(GLFWwindow *window, int width, int height)
+{
+	camera.mAspectRatio = (float)width / height;
+	std::cout << camera.mAspectRatio << std::endl;
+}
+
 int main(void)
 {
 	Octree tree(4);
@@ -70,6 +76,7 @@ int main(void)
 		exit(EXIT_FAILURE);
 	}
 
+	glfwSetWindowSizeCallback(window, window_size_callback);
 	glfwSetKeyCallback(window, key_callback);
 
 	glfwMakeContextCurrent(window);
@@ -114,9 +121,8 @@ int main(void)
 
 	camera.mTransform.scale = vec3(1, 1, 1);
 	camera.mTransform.position = vec3(0, 0, 10.);
-	int projMatrix = glGetUniformLocation(shader, "projMatrix");
-	glUniformMatrix4fv(projMatrix, 1, GL_FALSE, camera.getProjMatrix());
 
+	int projMatrix = glGetUniformLocation(shader, "projMatrix");
 	int camMatrix = glGetUniformLocation(shader, "camMatrix");
 
 	glEnable(GL_DEPTH_TEST);
@@ -131,9 +137,10 @@ int main(void)
 		glViewport(0, 0, width, height);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		vec3 pos = camera.mTransform.position;
-
+		glUniformMatrix4fv(projMatrix, 1, GL_FALSE, camera.getProjMatrix());
 		camera.mTransform.rotation = Quaternion::AxisAngle(vec3::up, atan2(-pos.x, pos.z));
 		glUniformMatrix4fv(camMatrix, 1, GL_FALSE, camera.getTransformMatrix());
+
 		glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
 
 		glfwSwapBuffers(window);

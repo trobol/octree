@@ -216,35 +216,45 @@ void mat4::Scale(vec3 v)
 	(*this)[2][2] *= v.z;
 }
 
-mat4 mat4::PerspectiveProj(float fov, float aspectRatio, float nearClip, float farClip)
+mat4 mat4::PerspectiveProj(float fov, float aspect,
+						   float znear, float zfar)
 {
 
-	fov = degreeToRadian(fov);
+	float xymax = znear * tan(fov * PI / 360);
+	float ymin = -xymax;
+	float xmin = -xymax;
 
-	mat4 result;
-	//
-	// General form of the Projection Matrix
-	//
-	// uh = Cot( fov/2 ) == 1/Tan(fov/2)
-	// uw / uh = 1/aspect
-	//
-	//   uw         0       0       0
-	//    0        uh       0       0
-	//    0         0      f/(f-n)  1
-	//    0         0    -fn/(f-n)  0
-	//
-	// Make result to be identity first
+	float width = xymax - xmin;
+	float height = xymax - ymin;
 
-	float frustumDepth = farClip - nearClip;
-	float oneOverDepth = 1 / frustumDepth;
+	float depth = zfar - znear;
+	float q = -(zfar + znear) / depth;
+	float qn = -2 * (zfar * znear) / depth;
 
-	result[1][1] = 1.0f / tanf(0.5f * fov);
-	result[0][0] = result[1][1] / aspectRatio;
-	result[2][2] = farClip * oneOverDepth;
-	result[3][2] = (-farClip * nearClip) * oneOverDepth;
-	result[2][3] = 1;
-	result[3][3] = 0;
-	return result;
+	float w = 2 * znear / width;
+	w = w / aspect;
+	float h = 2 * znear / height;
+
+	return mat4(
+		w,
+		0.,
+		0.,
+		0.,
+
+		0.,
+		h,
+		0.,
+		0.,
+
+		0.,
+		0.,
+		q,
+		-1.,
+
+		0.,
+		0.,
+		qn,
+		0.);
 }
 
 mat4::mat4(float m0, float m1, float m2, float m3,
