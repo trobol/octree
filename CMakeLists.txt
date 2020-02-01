@@ -13,6 +13,10 @@ find_package(OpenGL REQUIRED)
 include_directories( ${OPENGL_INCLUDE_DIRS} )
 
 
+
+#add_subdirectory(benchmark)
+#target_link_libraries(octree benchmark::benchmark)
+
 add_subdirectory(glfw)
 include_directories(glfw/include)
 

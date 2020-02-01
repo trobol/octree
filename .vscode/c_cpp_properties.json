@@ -4,7 +4,8 @@
 			"name": "Linux",
 			"includePath": [
 				"${workspaceFolder}/glfw/include",
-				"${workspaceFolder}/**"
+				"${workspaceFolder}/**",
+				"${workspaceFolder}/benchmark/include"
 			],
 			"defines": [],
 			"compilerPath": "/usr/bin/gcc",
@@ -43,7 +44,8 @@
 			},
 			"includePath": [
 				"${workspaceFolder}/glfw/include/",
-				"${workspaceFolder}/**"
+				"${workspaceFolder}/**",
+				"${workspaceFolder}/benchmark/include"
 			]
 		}
 	],

@@ -44,6 +44,21 @@
 		"stdexcept": "cpp",
 		"streambuf": "cpp",
 		"cinttypes": "cpp",
-		"typeinfo": "cpp"
+		"typeinfo": "cpp",
+		"bitset": "cpp",
+		"condition_variable": "cpp",
+		"cstring": "cpp",
+		"forward_list": "cpp",
+		"list": "cpp",
+		"unordered_set": "cpp",
+		"functional": "cpp",
+		"map": "cpp",
+		"numeric": "cpp",
+		"random": "cpp",
+		"regex": "cpp",
+		"set": "cpp",
+		"iomanip": "cpp",
+		"mutex": "cpp",
+		"thread": "cpp"
 	}
 }

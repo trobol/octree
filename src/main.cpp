@@ -30,6 +30,8 @@ error_callback(int error, const char *description)
 
 Camera camera;
 
+bool drawBranches = true;
+
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
@@ -42,6 +44,8 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
 		camera.mTransform.rotateAroundOrigin(0.2);
 	if (key == GLFW_KEY_A)
 		camera.mTransform.rotateAroundOrigin(-0.2);
+	if (key == GLFW_KEY_B && action == GLFW_PRESS)
+		drawBranches = !drawBranches;
 }
 
 Shader shader;
@@ -49,17 +53,21 @@ Shader shader;
 void window_size_callback(GLFWwindow *window, int width, int height)
 {
 	camera.mAspectRatio = (float)width / height;
-	std::cout << camera.mAspectRatio << std::endl;
 }
 
 int main(void)
 {
+	VoxFile file;
+	file.load("assets/box.vox");
 	Octree tree(4);
-	tree.setNode(1, 1, 1);
-	tree.setNode(2, 2, 2);
-	tree.setNode(2, 2, 4);
+	tree.loadModel(file);
 
-	printNode(tree.mRootNode);
+	/*
+	tree.setNode(1, 1, 1);
+	tree.setNode(8, 8, -4);
+	tree.setNode(-8, -8, -4);
+	*/
+	printNode(*tree.mRootNode);
 	GLFWwindow *window;
 	glfwSetErrorCallback(error_callback);
 
@@ -91,7 +99,10 @@ int main(void)
 	std::vector<Point> elements;
 	std::vector<int> indices;
 
-	tree.drawNodes(elements, indices);
+	std::vector<int> leafIndices;
+	std::vector<Point> leafElements;
+
+	tree.drawNodes(elements, indices, leafElements, leafIndices);
 
 	unsigned int VBO, VAO, EBO;
 	glGenVertexArrays(1, &VAO);
@@ -101,10 +112,8 @@ int main(void)
 	glBindVertexArray(VAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, elements.size() * sizeof(Point), elements.data(), GL_STATIC_DRAW);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(int), indices.data(), GL_STATIC_DRAW);
 
 	// position attribute
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
@@ -141,7 +150,20 @@ int main(void)
 		camera.mTransform.rotation = Quaternion::AxisAngle(vec3::up, atan2(-pos.x, pos.z));
 		glUniformMatrix4fv(camMatrix, 1, GL_FALSE, camera.getTransformMatrix());
 
-		glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
+		//draw branches
+		if (drawBranches)
+		{
+			glBufferData(GL_ARRAY_BUFFER, elements.size() * sizeof(Point), elements.data(), GL_DYNAMIC_DRAW);
+
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(int), indices.data(), GL_DYNAMIC_DRAW);
+
+			glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
+		}
+		glBufferData(GL_ARRAY_BUFFER, leafElements.size() * sizeof(Point), leafElements.data(), GL_DYNAMIC_DRAW);
+
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, leafIndices.size() * sizeof(int), leafIndices.data(), GL_DYNAMIC_DRAW);
+
+		glDrawElements(GL_TRIANGLES, leafIndices.size(), GL_UNSIGNED_INT, 0);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
