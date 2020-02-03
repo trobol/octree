@@ -97,13 +97,11 @@ mat4::mat4(const mat4 &m)
 
 mat4 &mat4::operator=(const mat4 &m)
 {
-	if (this != &m && &m != nullptr)
-	{
-		for (int i = 0; i < 4; i++)
-			_mm_store_ps(&matrix[i * 4], m.column[i]);
 
-		return *this;
-	}
+	for (int i = 0; i < 4; i++)
+		_mm_store_ps(&matrix[i * 4], m.column[i]);
+
+	return *this;
 }
 
 void mat4::Rotate(Quaternion q)

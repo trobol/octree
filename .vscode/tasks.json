@@ -39,7 +39,15 @@
 			},
 			"problemMatcher": [
 				"$gcc"
-			]
+			],
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "dedicated",
+				"showReuseMessage": false,
+				"clear": true
+			}
 		},
 		{
 			"label": "run",

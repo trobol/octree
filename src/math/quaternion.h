@@ -11,6 +11,7 @@ public:
 	Quaternion(float q0, float q1, float q2, float q3);
 
 	Quaternion(vec3 eulerAngles);
+	Quaternion(float yaw, float pitch, float roll);
 
 	float x, y, z, w;
 
@@ -38,11 +39,9 @@ public:
 	Quaternion inverse();
 	void toInvert();
 
-	void lookAt(vec3 point);
+	static Quaternion lookRotation(vec3 const &eye, vec3 const &center, vec3 const &up);
 
 private:
-	union {
-	};
 };
 
 #endif

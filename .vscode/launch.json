@@ -23,7 +23,8 @@
 					"text": "-enable-pretty-printing",
 					"ignoreFailures": true
 				}
-			]
+			],
+			"internalConsoleOptions": "openOnFirstSessionStart"
 		}
 	]
 }

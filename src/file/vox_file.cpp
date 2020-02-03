@@ -71,8 +71,8 @@ void VoxFile::load(std::string path)
 	//std::fseek(file, 8, SEEK_CUR); //skip chunk header
 
 	mSize.x = readInt(file);
+	mSize.z = readInt(file); //the z axis is up and down for .vox
 	mSize.y = readInt(file);
-	mSize.z = readInt(file);
 
 	ASSERT_HEADER("XYZI");
 	int xyziSize = readInt(file);
@@ -88,9 +88,17 @@ void VoxFile::load(std::string path)
 	{
 		fread(buf, 4, 1, file);
 		mVoxels[i].pos.x = buf[0];
-		mVoxels[i].pos.y = buf[1];
-		mVoxels[i].pos.z = buf[2];
+		mVoxels[i].pos.z = buf[1]; //the z axis is up and down for .vox
+		mVoxels[i].pos.y = buf[2];
 		mVoxels[i].colorIndex = buf[3];
+	}
+
+	char input[4];
+	fread(input, sizeof(input[0]), 4, file);
+	std::cout << "HEADER: " << input << '\n'
+			  << std::endl;
+	if (std::strcmp(input, "RGBA"))
+	{
 	}
 
 	std::fclose(file);

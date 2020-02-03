@@ -1,9 +1,8 @@
 
-#ifndef VEC3_H
+#ifndef _MATH_VEC3_H
+#define _MATH_VEC3_H
 
-#define VEC3_H
-#pragma once
-
+#include <iostream>
 class vec2;
 
 class vec3
@@ -29,22 +28,59 @@ public:
 
 	friend vec3 operator*(const float &f, const vec3 &v);
 
-	vec3 operator*(const vec3 &v);
-	vec3 operator/(const vec3 &v);
-	vec3 operator+(const vec3 &v);
-	vec3 operator-(const vec3 &v1);
+	vec3 &operator*=(const vec3 &v1);
+	vec3 &operator/=(const vec3 &v1);
+	vec3 &operator+=(const vec3 &v1);
+	vec3 &operator-=(const vec3 &v1);
 
-	vec3 operator*(float const &f);
-	vec3 operator/(float const &f);
-	vec3 operator+(float const &f);
-	vec3 operator-(float const &f);
-
-	/*
-	vec3 operator*(int const &i);
-	vec3 operator/(int const &i);
-	vec3 operator+(int const &i);
-	vec3 operator-(int const &i);
-	*/
+	vec3 &operator*=(const float &i);
+	vec3 &operator/=(const float &i);
+	vec3 &operator+=(const float &i);
+	vec3 &operator-=(const float &i);
 };
+
+std::ostream &operator<<(std::ostream &os, const vec3 &v);
+
+inline vec3 operator*(vec3 v0, const vec3 &v1)
+{
+	v0 *= v1;
+	return v0;
+}
+inline vec3 operator/(vec3 v0, const vec3 &v1)
+{
+	v0 /= v1;
+	return v0;
+}
+inline vec3 operator+(vec3 v0, const vec3 &v1)
+{
+	v0 += v1;
+	return v0;
+}
+inline vec3 operator-(vec3 v0, const vec3 &v1)
+{
+	v0 -= v1;
+	return v0;
+}
+
+inline vec3 operator*(vec3 v, const float &i)
+{
+	v *= i;
+	return v;
+}
+inline vec3 operator/(vec3 v, const float &i)
+{
+	v /= i;
+	return v;
+}
+inline vec3 operator+(vec3 v, const float &i)
+{
+	v += i;
+	return v;
+}
+inline vec3 operator-(vec3 v, const float &i)
+{
+	v -= i;
+	return v;
+}
 
 #endif // !VEC3

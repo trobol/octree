@@ -1,6 +1,7 @@
 
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <cmath>
 
 #include "quaternion.h"
 #include "mat4.h"
@@ -17,17 +18,39 @@ Quaternion::Quaternion(float x, float y, float z, float w)
 
 Quaternion::Quaternion(vec3 eulerAngles)
 {
-	float cy = cosf(eulerAngles.z * 0.5f);
-	float sy = sinf(eulerAngles.z * 0.5f);
-	float cp = cosf(eulerAngles.y * 0.5f);
-	float sp = sinf(eulerAngles.y * 0.5f);
-	float cr = cosf(eulerAngles.x * 0.5f);
-	float sr = sinf(eulerAngles.x * 0.5f);
+	double cy = cos(eulerAngles.z * 0.5);
+	double sy = sin(eulerAngles.z * 0.5);
+	double cp = cos(eulerAngles.y * 0.5);
+	double sp = sin(eulerAngles.y * 0.5);
+	double cr = cos(eulerAngles.x * 0.5);
+	double sr = sin(eulerAngles.x * 0.5);
 
 	w = cy * cp * cr + sy * sp * sr;
 	x = cy * cp * sr - sy * sp * cr;
 	y = sy * cp * sr + cy * sp * cr;
 	z = sy * cp * cr - cy * sp * sr;
+}
+
+Quaternion::Quaternion(float yaw, float pitch, float roll)
+{
+	float halfRoll = roll * 0.5f;
+	float halfPitch = pitch * 0.5f;
+	float halfYaw = yaw * 0.5f;
+
+	float sinRoll = sin(halfRoll);
+	float cosRoll = cos(halfRoll);
+	float sinPitch = sin(halfPitch);
+	float cosPitch = cos(halfPitch);
+	float sinYaw = sin(halfYaw);
+	float cosYaw = cos(halfYaw);
+
+	float cosYawPitch = cosYaw * cosPitch;
+	float sinYawPitch = sinYaw * sinPitch;
+
+	x = (cosYaw * sinPitch * cosRoll) + (sinYaw * cosPitch * sinRoll);
+	y = (sinYaw * cosPitch * cosRoll) - (cosYaw * sinPitch * sinRoll);
+	z = (cosYawPitch * sinRoll) - (sinYawPitch * cosRoll);
+	w = (cosYawPitch * cosRoll) + (sinYawPitch * sinRoll);
 }
 
 vec3 Quaternion::EulerAngle()
@@ -106,8 +129,73 @@ vec3 Quaternion::operator*(const vec3 &v) const
 
 	float s = w;
 
-	return 2.0f * vec3::dot(u, v) * u + (s * s - vec3::dot(u, u)) * v + 2.0f * s * vec3::cross(u, v);
+	return u * vec3::dot(u, v) * 2.0f + v * (s * s - vec3::dot(u, u)) + vec3::cross(u, v) * 2.0f * s;
 }
+
+Quaternion Quaternion::operator*(const Quaternion &q2) const
+{
+	//a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x
+	//dot a.x * b.x + a.y * b.y + a.z * b.z
+	return Quaternion(
+		x * q2.w + y * q2.z - z * q2.y + w * q2.x,
+		-x * q2.z + y * q2.w + z * q2.x + w * q2.y,
+		x * q2.y - y * q2.x + z * q2.w + w * q2.z,
+		-x * q2.x - y * q2.y - z * q2.z + w * q2.w);
+}
+
+Quaternion Quaternion::operator+(const Quaternion &q) const
+{
+	return Quaternion(x + q.x, y + q.y, z + q.z, w + q.w);
+}
+
+/*
+Quaternion Quaternion::lookRotation(vec3 const &target, vec3 const &current, vec3 const &eye, vec3 const &up)
+{
+
+	// turn vectors into unit vectors
+	vec3 n1 = (current - eye).normalized();
+	vec3 n2 = (target - eye).normalized();
+	float d = vec3::dot(n1, n2);
+	// if no noticable rotation is available return zero rotation
+	// this way we avoid Cross product artifacts
+	if (d > 0.9998)
+		return Quaternion(0, 0, 1, 0);
+	// in this case there are 2 lines on the same axis
+	if (d < -0.9998)
+	{
+		n1 = n1.Rotx(0.5f);
+		// there are an infinite number of normals
+		// in this case. Anyone of these normals will be
+		// a valid rotation (180 degrees). so rotate the curr axis by 0.5 radians this way we get one of these normals
+	}
+	vec3 axis = n1;
+	vec3::cross(axis, n2);
+	sfquat pointToTarget = new sfquat(1.0 + d, axis.x, axis.y, axis.z);
+	pointToTarget.norm();
+	// now twist around the target vector, so that the 'up' vector points along the z axis
+	sfmatrix projectionMatrix = new sfmatrix();
+	double a = pointToTarget.x;
+	double b = pointToTarget.y;
+	double c = pointToTarget.z;
+	projectionMatrix.m00 = b * b + c * c;
+	projectionMatrix.m01 = -a * b;
+	projectionMatrix.m02 = -a * c;
+	projectionMatrix.m10 = -b * a;
+	projectionMatrix.m11 = a * a + c * c;
+	projectionMatrix.m12 = -b * c;
+	projectionMatrix.m20 = -c * a;
+	projectionMatrix.m21 = -c * b;
+	projectionMatrix.m22 = a * a + b * b;
+	sfvec3f upProjected = projectionMatrix.transform(up);
+	sfvec3f yaxisProjected = projectionMatrix.transform(new sfvec(0,1,0);
+    d = sfvec3f.dot(upProjected,yaxisProjected);
+    // so the axis of twist is n2 and the angle is arcos(d)
+    //convert this to quat as follows   
+	double s=Math.sqrt(1.0 - d*d);
+	sfquat twist=new sfquat(d,n2*s,n2*s,n2*s);
+	return sfquat.mul(pointToTarget,twist);
+}
+*/
 
 /*
 Quaternion Quaternion::inverse()

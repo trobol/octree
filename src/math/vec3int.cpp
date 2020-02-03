@@ -4,6 +4,11 @@
 
 vec3int::vec3int(int x, int y, int z) : x{x}, y{y}, z{z} {};
 
+vec3 vec3int::toFloat()
+{
+	return vec3((float)x, (float)y, (float)z);
+}
+
 /*
 vec3int::vec3int(vec2 v1, float z1)
 {

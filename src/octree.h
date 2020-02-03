@@ -63,7 +63,7 @@ public:
 	};
 	static Octree load(std::string path);
 	Node *setNode(int x, int y, int z);
-	Node *setNode(vec3int v);
+	Node *setNode(vec3 v);
 	void drawNodes(std::vector<Point> &elements, std::vector<int> &indices, std::vector<Point> &leafElements, std::vector<int> &leafIndices);
 
 	void drawNode(Node *node, vec3 v, std::vector<Point> &vector, std::vector<Point> &leafElements);

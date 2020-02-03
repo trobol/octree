@@ -3,44 +3,57 @@
 #define ELEMENTS_PER_NODE 8
 #define INDICES_PER_BRANCH 24
 
-#define INDICES_PER_LEAF 6 * 6
+#define INDICES_PER_LEAF 36
 
 #include <math.h>
 #include "math/math.h"
 
 const int BRANCH_INDICES[INDICES_PER_BRANCH] = {
 	0, 1,
-	0, 2,
-	1, 3,
+	1, 5,
+	5, 4,
+	4, 0,
+
 	2, 3,
+	3, 7,
+	7, 6,
+	6, 2,
 
-	4, 5,
-	4, 6,
-	5, 7,
-	6, 7,
+	2, 0,
+	3, 1,
+	7, 5,
+	6, 4};
+/*
+node layout
+x y z
+0 0 0
+0 0 1
+0 1 0
+0 1 1
+1 0 0
+1 0 1
+1 1 0
+1 1 1
 
-	0, 4,
-	1, 6,
-	2, 5,
-	3, 7};
+*/
 const int LEAF_INDICES[INDICES_PER_LEAF] = {
-	0, 1, 4,
-	6, 1, 4,
+	0, 1, 2,
+	3, 1, 2,
 
 	0, 2, 4,
-	5, 2, 4,
+	6, 2, 4,
 
-	2, 3, 5,
-	7, 3, 5,
+	2, 3, 6,
+	7, 3, 6,
 
 	5, 4, 7,
 	6, 4, 7,
 
-	6, 1, 7,
+	5, 1, 7,
 	3, 1, 7,
 
-	1, 0, 3,
-	2, 0, 3};
+	1, 0, 5,
+	4, 0, 5};
 void Octree::drawNodes(std::vector<Point> &elements, std::vector<int> &indices, std::vector<Point> &leafElements, std::vector<int> &leafIndices)
 {
 
@@ -75,30 +88,21 @@ void Octree::drawNodes(std::vector<Point> &elements, std::vector<int> &indices, 
 	drawNode(node, v, elements, leafElements);
 }
 
-//bottom back left = 000
-//bottom back right = 001
-//bottom front left = 010
-//bottom front right = 011
-//top	 back  left = 100
-//top	 back  right = 101
-//top    front left = 110
-//top    front right = 111
-
 void Octree::drawNode(Node *node, vec3 v, std::vector<Point> &elements, std::vector<Point> &leafElements)
 {
 	vec3 color((float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX);
 	vec3 points[ELEMENTS_PER_NODE] = {
-		{-1, -1, -1},
-		{1, -1, -1},
-		{-1, -1, 1},
-		{1, -1, 1},
-
-		{-1, 1, -1},
-		{-1, 1, 1},
-		{1, 1, -1},
-		{1, 1, 1}};
+		{0, 0, 0},
+		{0, 0, 1},
+		{0, 1, 0},
+		{0, 1, 1},
+		{1, 0, 0},
+		{1, 0, 1},
+		{1, 1, 0},
+		{1, 1, 1},
+	};
 	//2 to the power of node size
-	float powSize = 1 << node->size;
+	int powSize = 1 << node->size;
 	for (int i = 0; i < ELEMENTS_PER_NODE; i++)
 	{
 		Point p;
@@ -137,31 +141,46 @@ Octree Octree::load(std::string path)
 }
 Octree::Node *Octree::setNode(int x, int y, int z)
 {
-	return setNode(vec3int(x, y, z));
+	return setNode(vec3(x, y, z));
 }
 
-Octree::Node *Octree::setNode(vec3int pos)
+/*
+node layout
+x y z
+0 0 0
+0 0 1
+0 1 0
+0 1 1
+1 0 0
+1 0 1
+1 1 0
+1 1 1
+
+*/
+Octree::Node *Octree::setNode(vec3 pos)
 {
 	Node *n = mRootNode;
-	vec3int currentPos(0, 0, 0);
+	vec3 currentPos(0, 0, 0);
 	while (n->size > 0)
 	{
-		bool isRight = pos.x > currentPos.x;
-		bool isTop = pos.y > currentPos.y;
-		bool isFront = pos.z > currentPos.z;
+		float halfThisNode = (1 << n->size) / 2;
 
-		int index = (isRight << 2) | (isTop << 1) | isFront;
+		vec3 centerPos = currentPos + halfThisNode;
+		bool greaterX = !(pos.x < centerPos.x);
+		bool greaterY = !(pos.y < centerPos.y);
+		bool greaterZ = !(pos.z < centerPos.z);
+
+		int index = (greaterX << 2) | (greaterY << 1) | greaterZ;
 
 		//half width of current cube
-		int twoPowSizeMinusOne = 1 << (n->size - 1);
 
-		int twoPowHalf = twoPowSizeMinusOne >> 1;
-		currentPos += (vec3int(isRight, isTop, isFront) * twoPowSizeMinusOne) - twoPowHalf;
+		float halfNextNode = halfThisNode / 2;
+		currentPos = currentPos + vec3(greaterX, greaterY, greaterZ) * halfThisNode;
 
 		if (n->subNodes[index] == nullptr)
 		{
 			n->subNodes[index] = new Node(n->size - 1, n);
-			std::cout << "created node size: " << (n->size - 1) << " at " << currentPos << std::endl;
+
 			mNodeCount++;
 			if (n->size - 1 == 0)
 				mLeafNodeCount++;
@@ -169,6 +188,8 @@ Octree::Node *Octree::setNode(vec3int pos)
 
 		n = n->subNodes[index];
 	}
+	std::cout << pos << " -> " << currentPos << std::endl;
+
 	return n;
 }
 
@@ -182,14 +203,9 @@ void Octree::loadModel(VoxFile &file)
 	delete mRootNode;
 	mRootNode = new Node(sqrtTwoSize);
 
-	//determine offsets to center
-	vec3int offset = vec3int::one * (largetstSize / 2);
-
 	//load
 	for (int i = 0; i < file.getNumVoxels(); i++)
 	{
-		setNode(file.mVoxels[i].pos - offset);
-		std::cout << file.mVoxels[i].pos - offset << '\n';
+		setNode(file.mVoxels[i].pos.toFloat());
 	}
-	std::cout << std::flush;
 }

@@ -32,6 +32,12 @@ vec3 vec3::left = vec3(-1, 0, 0);
 vec3 vec3::forwards = vec3(0, 0, 1);
 vec3 vec3::backwards = vec3(0, 0, -1);
 
+std::ostream &operator<<(std::ostream &os, const vec3 &v)
+{
+	os << v.x << ", " << v.y << ", " << v.z;
+	return os;
+}
+
 float vec3::magnitude()
 {
 	return sqrtf(x * x + y * y + z * z);
@@ -54,65 +60,60 @@ float vec3::dot(const vec3 &a, const vec3 &b)
 	return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-vec3 operator*(const float &f, const vec3 &v)
+vec3 &vec3::operator*=(const vec3 &v)
 {
-	return vec3(f * v.x, f * v.y, f * v.z);
+	x *= v.x;
+	y *= v.y;
+	z *= v.z;
+	return *this;
+}
+vec3 &vec3::operator/=(const vec3 &v)
+{
+	x /= v.x;
+	y /= v.y;
+	z /= v.z;
+	return *this;
+}
+vec3 &vec3::operator+=(const vec3 &v)
+{
+	x += v.x;
+	y += v.y;
+	z += v.z;
+	return *this;
+}
+vec3 &vec3::operator-=(const vec3 &v)
+{
+	x -= v.x;
+	y -= v.y;
+	z -= v.z;
+	return *this;
 }
 
-vec3 vec3::operator*(const vec3 &v)
+vec3 &vec3::operator*=(const float &f)
 {
-	return vec3(x * v.x, y * v.y, z * v.z);
+	x *= f;
+	y *= f;
+	z *= f;
+	return *this;
 }
-
-vec3 vec3::operator/(vec3 const &v)
+vec3 &vec3::operator/=(const float &f)
 {
-	return vec3(x / v.x, y / v.y, z / v.z);
+	x /= f;
+	y /= f;
+	z /= f;
+	return *this;
 }
-
-vec3 vec3::operator+(vec3 const &v)
+vec3 &vec3::operator+=(const float &f)
 {
-	return vec3(x + v.x, y + v.y, z + v.z);
+	x += f;
+	y += f;
+	z += f;
+	return *this;
 }
-
-vec3 vec3::operator-(vec3 const &v)
+vec3 &vec3::operator-=(const float &f)
 {
-	return vec3(x - v.x, y - v.y, z - v.z);
+	x -= f;
+	y -= f;
+	z -= f;
+	return *this;
 }
-
-vec3 vec3::operator*(float const &f)
-{
-	return vec3(x * f, y * f, z * f);
-}
-
-vec3 vec3::operator/(float const &f)
-{
-	return vec3(x / f, y / f, z / f);
-}
-vec3 vec3::operator+(float const &f)
-{
-	return vec3(x + f, y + f, z + f);
-}
-vec3 vec3::operator-(float const &f)
-{
-	return vec3(x - f, y - f, z - f);
-}
-
-/*
-vec3 vec3::operator*(int const &i)
-{
-	return vec3(x * i, y * i, z * i);
-}
-
-vec3 vec3::operator/(int const &i)
-{
-	return vec3(x / i, y / i, z / i);
-}
-vec3 vec3::operator+(int const &i)
-{
-	return vec3(x + i, y + i, z + i);
-}
-vec3 vec3::operator-(int const &i)
-{
-	return vec3(x - i, y - i, z - i);
-}
-*/

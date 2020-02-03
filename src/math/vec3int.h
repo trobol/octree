@@ -3,6 +3,7 @@
 #define _MATH_VEC3_INT_H
 
 #include <iostream>
+#include "vec3.h"
 
 struct vec3int
 {
@@ -24,6 +25,8 @@ public:
 
 	float magnitude();
 	vec3int normalized();
+
+	vec3 toFloat();
 
 	vec3int &operator*=(const vec3int &v1);
 	vec3int &operator/=(const vec3int &v1);
