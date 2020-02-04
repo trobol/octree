@@ -9,4 +9,5 @@ unsigned int nextPowerOf2(unsigned int n);
 
 unsigned int nearestSqrt(unsigned int n);
 int max(int a, int b);
+float maxf(float a, float b);
 #endif

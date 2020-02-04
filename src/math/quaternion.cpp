@@ -31,27 +31,7 @@ Quaternion::Quaternion(vec3 eulerAngles)
 	z = sy * cp * cr - cy * sp * sr;
 }
 
-Quaternion::Quaternion(float yaw, float pitch, float roll)
-{
-	float halfRoll = roll * 0.5f;
-	float halfPitch = pitch * 0.5f;
-	float halfYaw = yaw * 0.5f;
-
-	float sinRoll = sin(halfRoll);
-	float cosRoll = cos(halfRoll);
-	float sinPitch = sin(halfPitch);
-	float cosPitch = cos(halfPitch);
-	float sinYaw = sin(halfYaw);
-	float cosYaw = cos(halfYaw);
-
-	float cosYawPitch = cosYaw * cosPitch;
-	float sinYawPitch = sinYaw * sinPitch;
-
-	x = (cosYaw * sinPitch * cosRoll) + (sinYaw * cosPitch * sinRoll);
-	y = (sinYaw * cosPitch * cosRoll) - (cosYaw * sinPitch * sinRoll);
-	z = (cosYawPitch * sinRoll) - (sinYawPitch * cosRoll);
-	w = (cosYawPitch * cosRoll) + (sinYawPitch * sinRoll);
-}
+Quaternion::Quaternion(float pitch, float yaw, float roll) : Quaternion(vec3(pitch, yaw, roll)) {}
 
 vec3 Quaternion::EulerAngle()
 {

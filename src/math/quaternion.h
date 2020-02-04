@@ -11,7 +11,7 @@ public:
 	Quaternion(float q0, float q1, float q2, float q3);
 
 	Quaternion(vec3 eulerAngles);
-	Quaternion(float yaw, float pitch, float roll);
+	Quaternion(float pitch, float yaw, float roll);
 
 	float x, y, z, w;
 
