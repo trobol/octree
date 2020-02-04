@@ -28,6 +28,8 @@ public:
 
 	friend vec3 operator*(const float &f, const vec3 &v);
 
+	bool operator!=(const vec3 &v);
+
 	vec3 &operator*=(const vec3 &v1);
 	vec3 &operator/=(const vec3 &v1);
 	vec3 &operator+=(const vec3 &v1);

@@ -15,13 +15,13 @@ std::string LoadFile(std::string path)
 	if (inputFile)
 	{
 		return std::string((std::istreambuf_iterator<char>(inputFile)),
-						   std::istreambuf_iterator<char>());
+			std::istreambuf_iterator<char>());
 	}
 	std::cout << "Unable to load: " << path << std::endl;
 	return std::string();
 }
 
-Shader Shader::Load(const char *vertex_file_path, const char *fragment_file_path)
+Shader Shader::Load(const char* vertex_file_path, const char* fragment_file_path)
 {
 	// Create the shaders
 	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
@@ -39,7 +39,7 @@ Shader Shader::Load(const char *vertex_file_path, const char *fragment_file_path
 	}
 	else
 	{
-		printf("Impossible to open %s. Are you in the right directory ? Don't forget to read the FAQ !\n", vertex_file_path);
+		printf("Unable to open %s!\n", vertex_file_path);
 		getchar();
 		return 0;
 	}
@@ -60,7 +60,7 @@ Shader Shader::Load(const char *vertex_file_path, const char *fragment_file_path
 
 	// Compile Vertex Shader
 	printf("Compiling shader : %s\n", vertex_file_path);
-	char const *VertexSourcePointer = VertexShaderCode.c_str();
+	char const* VertexSourcePointer = VertexShaderCode.c_str();
 	glShaderSource(VertexShaderID, 1, &VertexSourcePointer, NULL);
 	glCompileShader(VertexShaderID);
 
@@ -76,7 +76,7 @@ Shader Shader::Load(const char *vertex_file_path, const char *fragment_file_path
 
 	// Compile Fragment Shader
 	printf("Compiling shader : %s\n", fragment_file_path);
-	char const *FragmentSourcePointer = FragmentShaderCode.c_str();
+	char const* FragmentSourcePointer = FragmentShaderCode.c_str();
 	glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer, NULL);
 	glCompileShader(FragmentShaderID);
 

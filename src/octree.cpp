@@ -188,7 +188,8 @@ Octree::Node *Octree::setNode(vec3 pos)
 
 		n = n->subNodes[index];
 	}
-	std::cout << pos << " -> " << currentPos << std::endl;
+	if (currentPos != pos)
+		std::cout << pos << " -> " << currentPos << std::endl;
 
 	return n;
 }

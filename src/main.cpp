@@ -1,6 +1,7 @@
 #pragma comment(lib, "opengl32.lib")
 #pragma comment(lib, "glu32.lib")
 
+#include <Windows.h>
 #include <GL/glu.h>
 #include <GLFW/glfw3.h>
 #include "octree.h"
@@ -14,11 +15,12 @@
 #include <math.h>
 #define GL_LITE_IMPLEMENTATION
 #include "gl_lite.h"
+#include "files/filesystem.h"
 
 #include <time.h> /* time */
 
 static void
-error_callback(int error, const char *description)
+error_callback(int error, const char* description)
 {
 	fprintf(stderr, "Error: %s\n", description);
 }
@@ -29,7 +31,7 @@ vec3 center = vec3(0, 0, 0);
 bool drawBranches = true;
 bool drawLeafs = true;
 
-static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
+static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -53,8 +55,8 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
 
 Shader shader;
 
-void drawFile(std::vector<Point> &elements, std::vector<int> &indices, VoxFile &file);
-void window_size_callback(GLFWwindow *window, int width, int height)
+void drawFile(std::vector<Point>& elements, std::vector<int>& indices, VoxFile& file);
+void window_size_callback(GLFWwindow* window, int width, int height)
 {
 	camera.mAspectRatio = (float)width / height;
 }
@@ -64,13 +66,15 @@ int main(void)
 	srand(time(NULL));
 	VoxFile file;
 	//file.load("assets/teapot.vox");
-	file.load("assets/box.vox");
+	std::string filepath = filesystem::fileSelect("../../assets", ".vox");
+	file.load(filepath);
+	//file.load("../../assets/box.vox");
 	Octree tree(4);
 	tree.loadModel(file);
 
 	//tree.setNode(0, 0, 0);
 	//tree.setNode(0, 1, 0);
-	GLFWwindow *window;
+	GLFWwindow* window;
 	glfwSetErrorCallback(error_callback);
 
 	if (!glfwInit())
@@ -95,7 +99,7 @@ int main(void)
 
 	// NOTE: OpenGL error checks have been omitted for brevity
 
-	shader = Shader::Load("shaders/shader.vert", "shaders/shader.frag");
+	shader = Shader::Load("../../shaders/shader.vert", "../../shaders/shader.frag");
 	glUseProgram(shader);
 
 	std::vector<Point> elements;
@@ -118,10 +122,10 @@ int main(void)
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
 	// position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 	// color attribute
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
 	glUseProgram(shader);
@@ -187,7 +191,7 @@ vec3 points[8] = {
 	{-1, 1, -1},
 	{-1, 1, 1},
 	{1, 1, -1},
-	{1, 1, 1}};
+	{1, 1, 1} };
 const int LEAF_INDICES[36] = {
 	0, 1, 4,
 	6, 1, 4,
@@ -205,8 +209,8 @@ const int LEAF_INDICES[36] = {
 	3, 1, 7,
 
 	1, 0, 3,
-	2, 0, 3};
-void drawFile(std::vector<Point> &elements, std::vector<int> &indices, VoxFile &file)
+	2, 0, 3 };
+void drawFile(std::vector<Point>& elements, std::vector<int>& indices, VoxFile& file)
 {
 	elements.reserve(file.getNumVoxels() * 8);
 	indices.resize(file.getNumVoxels() * 36);

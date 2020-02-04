@@ -18,6 +18,11 @@ vec3::vec3(vec2 v1, float z1)
 }
 */
 
+bool vec3::operator!=(const vec3 &v)
+{
+	return x != v.x || y != v.y || z != v.z;
+}
+
 vec3::vec3(const vec3 &v1)
 {
 	x = v1.x;
