@@ -7,15 +7,15 @@
 class Shader
 {
 public:
-	Shader(){};
-	static Shader Load(const char *vertex_file_path, const char *fragment_file_path);
+	Shader() {};
+	static Shader Load(std::string& vertex_file_path, std::string& fragment_file_path);
 	operator unsigned int()
 	{
 		return mId;
 	}
 
 private:
-	Shader(GLuint id) : mId{id} {};
+	Shader(GLuint id) : mId{ id } {};
 	GLuint mId = 0;
 };
 

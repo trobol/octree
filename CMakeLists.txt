@@ -12,6 +12,7 @@ add_executable(octree ${SOURCE_FILES})
 find_package(OpenGL REQUIRED)
 include_directories( ${OPENGL_INCLUDE_DIRS} )
 
+add_definitions(-DASSET_PATH="${CMAKE_SOURCE_DIR}/assets")
 
 include_directories(include)
 

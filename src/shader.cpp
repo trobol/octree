@@ -21,7 +21,8 @@ std::string LoadFile(std::string path)
 	return std::string();
 }
 
-Shader Shader::Load(const char* vertex_file_path, const char* fragment_file_path)
+
+Shader Shader::Load(std::string& vertex_file_path, std::string& fragment_file_path)
 {
 	// Create the shaders
 	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
@@ -39,7 +40,7 @@ Shader Shader::Load(const char* vertex_file_path, const char* fragment_file_path
 	}
 	else
 	{
-		printf("Unable to open %s!\n", vertex_file_path);
+		printf("Unable to open %s\n", vertex_file_path);
 		getchar();
 		return 0;
 	}
@@ -107,8 +108,8 @@ Shader Shader::Load(const char* vertex_file_path, const char* fragment_file_path
 		printf("%s\n", &ProgramErrorMessage[0]);
 	}
 
-	glDetachShader(ProgramID, VertexShaderID);
-	glDetachShader(ProgramID, FragmentShaderID);
+	//glDetachShader(ProgramID, VertexShaderID);
+	//glDetachShader(ProgramID, FragmentShaderID);
 
 	glDeleteShader(VertexShaderID);
 	glDeleteShader(FragmentShaderID);
