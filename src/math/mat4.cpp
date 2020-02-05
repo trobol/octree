@@ -13,7 +13,7 @@ mat4::mat4()
 
 // linear combination:
 // a[0] * B.row[0] + a[1] * B.row[1] + a[2] * B.row[2] + a[3] * B.row[3]
-static inline __m128 lincomb_SSE(const mat4 &A, const __m128 &b)
+static inline __m128 lincomb_SSE(const mat4& A, const __m128& b)
 {
 	__m128 result;
 	result = _mm_mul_ps(_mm_shuffle_ps(b, b, 0x00), A.column[0]);
@@ -25,7 +25,7 @@ static inline __m128 lincomb_SSE(const mat4 &A, const __m128 &b)
 
 // this is the right approach for SSE ... SSE4.2
 // out = A * B
-static inline void matmult_SSE(mat4 &out, const mat4 &A, const mat4 &B)
+static inline void matmult_SSE(mat4& out, const mat4& A, const mat4& B)
 {
 	// out_ij = sum_k a_ik b_kj
 	// => out_0j = a_00 * b_0j + a_01 * b_1j + a_02 * b_2j + a_03 * b_3j
@@ -46,6 +46,29 @@ mat4::mat4(float m[16])
 	{
 		matrix[i] = m[i];
 	}
+}
+
+mat4 mat4::lookAt(vec3 const& eye, vec3 const& center, vec3 const& up)
+{
+	vec3  f = (center - eye).normalized();
+	vec3  u = up.normalized();
+	vec3  s = vec3::cross(f, u).normalized();
+	u = vec3::cross(s, f);
+
+	mat4 Result;
+	Result[0][0] = s.x;
+	Result[1][0] = s.y;
+	Result[2][0] = s.z;
+	Result[0][1] = u.x;
+	Result[1][1] = u.y;
+	Result[2][1] = u.z;
+	Result[0][2] = -f.x;
+	Result[1][2] = -f.y;
+	Result[2][2] = -f.z;
+	Result[3][0] = -vec3::dot(s, eye);
+	Result[3][1] = -vec3::dot(u, eye);
+	Result[3][2] = vec3::dot(f, eye);
+	return Result;
 }
 
 //https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/index.htm
@@ -88,14 +111,14 @@ mat4::mat4(Quaternion q)
 	matrix[15] = 1;
 }
 
-mat4::mat4(const mat4 &m)
+mat4::mat4(const mat4& m)
 {
 
 	for (int i = 0; i < 4; i++)
 		column[i] = m.column[i];
 }
 
-mat4 &mat4::operator=(const mat4 &m)
+mat4& mat4::operator=(const mat4& m)
 {
 
 	for (int i = 0; i < 4; i++)
@@ -120,7 +143,7 @@ float identityMat[16] = {
 	1, 0, 0, 0,
 	0, 1, 0, 0,
 	0, 0, 1, 0,
-	0, 0, 0, 1};
+	0, 0, 0, 1 };
 
 const mat4 mat4::identity = mat4(identityMat);
 
@@ -133,7 +156,7 @@ float mat4::GetValue(int i, int j)
 	return matrix[i * 4 + j];
 }
 
-mat4 mat4::operator*(const mat4 &m)
+mat4 mat4::operator*(const mat4& m)
 {
 
 	mat4 result;
@@ -141,7 +164,7 @@ mat4 mat4::operator*(const mat4 &m)
 	return result;
 }
 
-mat4 &mat4::operator*=(const mat4 &m)
+mat4& mat4::operator*=(const mat4& m)
 {
 
 	mat4 m2 = m;
@@ -161,7 +184,7 @@ mat4 &mat4::operator*=(const mat4 &m)
 	return *this;
 }
 
-float *mat4::operator[](int i)
+float* mat4::operator[](int i)
 {
 	return &matrix[i * 4];
 }
@@ -215,7 +238,7 @@ void mat4::Scale(vec3 v)
 }
 
 mat4 mat4::PerspectiveProj(float fov, float aspect,
-						   float znear, float zfar)
+	float znear, float zfar)
 {
 
 	float xymax = znear * tan(fov * PI / 360);
@@ -256,9 +279,9 @@ mat4 mat4::PerspectiveProj(float fov, float aspect,
 }
 
 mat4::mat4(float m0, float m1, float m2, float m3,
-		   float m4, float m5, float m6, float m7,
-		   float m8, float m9, float m10, float m11,
-		   float m12, float m13, float m14, float m15)
+	float m4, float m5, float m6, float m7,
+	float m8, float m9, float m10, float m11,
+	float m12, float m13, float m14, float m15)
 {
 
 	/*
@@ -293,22 +316,22 @@ const mat4 mat4::left = {
 	0, 0, -1, 0,
 	0, 1, 0, 0,
 	1, 0, 0, 0,
-	0, 0, 0, 1};
+	0, 0, 0, 1 };
 
 const mat4 mat4::right = {
 	0, 0, 1, 0,
 	0, 1, 0, 0,
 	-1, 0, 0, 0,
-	0, 0, 0, 1};
+	0, 0, 0, 1 };
 
 const mat4 mat4::up = {
 	1, 0, 0, 0,
 	0, 0, -1, 0,
 	0, 1, 0, 0,
-	0, 0, 0, 1};
+	0, 0, 0, 1 };
 
 const mat4 mat4::down = {
 	1, 0, 0, 0,
 	0, 0, 1, 0,
 	0, -1, 0, 0,
-	0, 0, 0, 1};
+	0, 0, 0, 1 };

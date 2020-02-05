@@ -7,8 +7,8 @@
 class Camera
 {
 public:
-	Camera(){};
-	Camera(vec3 pos, Quaternion rot, float fov) : mTransform{pos, rot}, mFov{fov} {};
+	Camera() {};
+	Camera(vec3 pos, Quaternion rot, float fov) : mTransform{ pos, rot }, mFov{ fov } {};
 
 	float mFov = 90;
 

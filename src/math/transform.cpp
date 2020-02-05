@@ -42,14 +42,13 @@ void Transform::lookAt(vec3 point)
 		y yaw
 		z roll
 	*/
-	vec3 forward = (point-position).normalized();
+	vec3 forward = (point - position).normalized();
 	vec3 zeroRight = vec3::cross(vec3::up, forward).normalized();
 	vec3 zeroUp = vec3::cross(forward, zeroRight);
-	
-	forward.x *= -1;
+
 	float pitch = asin(-forward.y);
-	float yaw = -atan2(forward.z, forward.x);
-	
+	float yaw = atan2(forward.x, forward.z);
+
 	vec3 right = vec3::cross(vec3(0, 1, 0), forward).normalized();
 	vec3 orthonormalUp = vec3::cross(forward, right);
 
@@ -62,7 +61,8 @@ void Transform::lookAt(vec3 point)
 		else {
 			largestRight = right.y;
 		}
-	} else {
+	}
+	else {
 		if (fabs(right.z) > fabs(right.y)) {
 			largestRight = right.z;
 		}
@@ -73,7 +73,7 @@ void Transform::lookAt(vec3 point)
 	float sinThetaZ = (zeroUp.x * cosThetaZ - orthonormalUp.x) / largestRight;
 	float roll = asin(sinThetaZ);
 
-	
+
 	rotation = Quaternion(0, yaw, 0);
 	//rotation =	rightRot *(inverse oldRot * worldRot) * oldRot
 	//atan2(dist.y, abs(dist.z)); //atan2(dist.y, sqrt(dist.y * dist.y + dist.y * dist.y));

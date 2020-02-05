@@ -7,18 +7,19 @@
 class VoxFile
 {
 private:
+
 	struct Voxel
 	{
-		vec3int pos;
-		int colorIndex;
+		char x, z, y;
+		char colorIndex;
 	};
 	int mVersion;
 	vec3int mSize;
 
-	int mNumVoxels;
+	unsigned int mNumVoxels;
 
 public:
-	Voxel *mVoxels;
+	Voxel* mVoxels;
 	~VoxFile();
 	void load(std::string path);
 	vec3int getSize() { return mSize; };

@@ -1,7 +1,5 @@
 #version 330 core
 
-#define PI 3.1415926535897932384626433832795
-
 uniform mat4 camMatrix;
 uniform mat4 projMatrix;
 
@@ -10,6 +8,6 @@ layout(location=1)in vec3 vertexColor;
 
 out vec3 mColor;
 void main(){
-	gl_Position=projMatrix*inverse(camMatrix)*vec4(vertexPosition,1.);
+	gl_Position=projMatrix*camMatrix *vec4(vertexPosition,1.);
 	mColor=vertexColor;
 }

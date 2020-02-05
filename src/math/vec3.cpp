@@ -18,12 +18,12 @@ vec3::vec3(vec2 v1, float z1)
 }
 */
 
-bool vec3::operator!=(const vec3 &v)
+bool vec3::operator!=(const vec3& v)
 {
 	return x != v.x || y != v.y || z != v.z;
 }
 
-vec3::vec3(const vec3 &v1)
+vec3::vec3(const vec3& v1)
 {
 	x = v1.x;
 	y = v1.y;
@@ -37,56 +37,56 @@ vec3 vec3::left = vec3(-1, 0, 0);
 vec3 vec3::forwards = vec3(0, 0, 1);
 vec3 vec3::backwards = vec3(0, 0, -1);
 
-std::ostream &operator<<(std::ostream &os, const vec3 &v)
+std::ostream& operator<<(std::ostream& os, const vec3& v)
 {
 	os << v.x << ", " << v.y << ", " << v.z;
 	return os;
 }
 
-float vec3::magnitude()
+float vec3::magnitude() const
 {
 	return sqrtf(x * x + y * y + z * z);
 }
 
-vec3 vec3::normalized()
+vec3 vec3::normalized() const
 {
 	float m = magnitude();
 	return (*this) / m;
 }
 
-vec3 vec3::cross(const vec3 &a, const vec3 &b)
+vec3 vec3::cross(const vec3& a, const vec3& b)
 {
 
 	return vec3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
 }
 
-float vec3::dot(const vec3 &a, const vec3 &b)
+float vec3::dot(const vec3& a, const vec3& b)
 {
 	return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-vec3 &vec3::operator*=(const vec3 &v)
+vec3& vec3::operator*=(const vec3& v)
 {
 	x *= v.x;
 	y *= v.y;
 	z *= v.z;
 	return *this;
 }
-vec3 &vec3::operator/=(const vec3 &v)
+vec3& vec3::operator/=(const vec3& v)
 {
 	x /= v.x;
 	y /= v.y;
 	z /= v.z;
 	return *this;
 }
-vec3 &vec3::operator+=(const vec3 &v)
+vec3& vec3::operator+=(const vec3& v)
 {
 	x += v.x;
 	y += v.y;
 	z += v.z;
 	return *this;
 }
-vec3 &vec3::operator-=(const vec3 &v)
+vec3& vec3::operator-=(const vec3& v)
 {
 	x -= v.x;
 	y -= v.y;
@@ -94,28 +94,28 @@ vec3 &vec3::operator-=(const vec3 &v)
 	return *this;
 }
 
-vec3 &vec3::operator*=(const float &f)
+vec3& vec3::operator*=(const float& f)
 {
 	x *= f;
 	y *= f;
 	z *= f;
 	return *this;
 }
-vec3 &vec3::operator/=(const float &f)
+vec3& vec3::operator/=(const float& f)
 {
 	x /= f;
 	y /= f;
 	z /= f;
 	return *this;
 }
-vec3 &vec3::operator+=(const float &f)
+vec3& vec3::operator+=(const float& f)
 {
 	x += f;
 	y += f;
 	z += f;
 	return *this;
 }
-vec3 &vec3::operator-=(const float &f)
+vec3& vec3::operator-=(const float& f)
 {
 	x -= f;
 	y -= f;

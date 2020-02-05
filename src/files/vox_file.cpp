@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cassert>
 #include <cstdio>
+#include <iomanip>
 
 #define ASSERT_HEADER(str)                                             \
 	if (!checkHeader(file, str))                                       \
@@ -12,15 +13,14 @@
 		std::cout << path << " was not a valid vox file" << std::endl; \
 	}
 
-bool checkHeader(FILE *file, const char header[4])
+bool checkHeader(FILE* file, const char header[4])
 {
 	char input[4];
 	fread(input, sizeof(input[0]), 4, file);
-	std::cout << "HEADER: " << input << std::endl;
 	return std::strcmp(input, header);
 }
 
-int readInt(FILE *file)
+int readInt(FILE* file)
 {
 
 	int32_t num;
@@ -38,15 +38,33 @@ int readInt(FILE *file)
 	return n;
 }
 
+int readUInt(FILE* file)
+{
+
+	int32_t num;
+	fread(&num, 4, 1, file);
+	union {
+		uint8_t b[4];
+		uint32_t n;
+	};
+
+	b[0] = (uint8_t)(num >> 0u);
+	b[1] = (uint8_t)(num >> 8u);
+	b[2] = (uint8_t)(num >> 16u);
+	b[3] = (uint8_t)(num >> 24u);
+
+	return n;
+}
+
 void VoxFile::load(std::string path)
 {
-	FILE *file = std::fopen(path.c_str(), "r");
+	FILE* file = std::fopen(path.c_str(), "rb");
 	if (!file)
 	{
 		std::cout << "File " << path << " was not found" << std::endl;
 		throw;
 	}
-
+	
 	//VOX followed by a space
 	ASSERT_HEADER("VOX ");
 
@@ -55,20 +73,11 @@ void VoxFile::load(std::string path)
 	ASSERT_HEADER("MAIN");
 	int chunkSize = readInt(file);
 	int chunkCount = readInt(file);
-	//std::fseek(file, 8, SEEK_CUR); //skip chunk header
 
-	/*
-	if (checkHeader(file, "PACK"))
-	{
-		std::cout << "Files with multiple models are not supported yet" << std::endl;
-		throw;
-	}
-	*/
 
 	ASSERT_HEADER("SIZE");
 	int sizeSize = readInt(file);
 	int sizeChunks = readInt(file);
-	//std::fseek(file, 8, SEEK_CUR); //skip chunk header
 
 	mSize.x = readInt(file);
 	mSize.z = readInt(file); //the z axis is up and down for .vox
@@ -82,21 +91,17 @@ void VoxFile::load(std::string path)
 
 	mVoxels = new Voxel[mNumVoxels];
 
-	assert(mVoxels);
-	char buf[4];
-	for (int i = 0; i < mNumVoxels; i++)
-	{
-		fread(buf, 4, 1, file);
-		mVoxels[i].pos.x = buf[0];
-		mVoxels[i].pos.z = buf[1]; //the z axis is up and down for .vox
-		mVoxels[i].pos.y = buf[2];
-		mVoxels[i].colorIndex = buf[3];
-	}
+	if (!mVoxels)
+		std::cout << "Failed to create array" << std::endl;
+
+	int result = fread(mVoxels, sizeof(Voxel), mNumVoxels, file);
+	if (result != mNumVoxels) { std::cout << "Didnt read all the voxels" << std::endl; }
+
 
 	char input[4];
 	fread(input, sizeof(input[0]), 4, file);
 	std::cout << "HEADER: " << input << '\n'
-			  << std::endl;
+		<< std::endl;
 	if (std::strcmp(input, "RGBA"))
 	{
 	}

@@ -19,7 +19,7 @@ public:
 	mat4(float m[16]);
 
 	//copy constructor
-	mat4(const mat4 &m);
+	mat4(const mat4& m);
 
 	union {
 		__m128 column[4];
@@ -27,7 +27,7 @@ public:
 			1, 0, 0, 0,
 			0, 1, 0, 0,
 			0, 0, 1, 0,
-			0, 0, 0, 1};
+			0, 0, 0, 1 };
 		struct
 		{
 			float m00, m01, m02, m03,
@@ -54,16 +54,18 @@ public:
 	static mat4 EulerAngle(vec3 v);
 	static mat4 PerspectiveProj(float fov, float aspectRatio, float nearClip, float farClip);
 
-	mat4 operator*(const mat4 &m);
-	mat4 &operator*=(const mat4 &m);
+	static mat4 lookAt(vec3 const& eye, vec3 const& center, vec3 const& up);
 
-	mat4 &operator=(const mat4 &m);
-	float *operator[](int i);
+	mat4 operator*(const mat4& m);
+	mat4& operator*=(const mat4& m);
+
+	mat4& operator=(const mat4& m);
+	float* operator[](int i);
 
 	float getDeterminant();
 
 	static const mat4 left, right, up, down;
-	operator float *()
+	operator float* ()
 	{
 		return matrix;
 	};

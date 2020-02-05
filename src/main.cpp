@@ -37,16 +37,20 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
 	if (key == GLFW_KEY_W)
 		camera.mTransform.position += camera.mTransform.position.normalized() * vec3(0.2, 0, 0.2);
+
 	if (key == GLFW_KEY_S)
 		camera.mTransform.position -= camera.mTransform.position.normalized() * vec3(0.2, 0, 0.2);
+
 	if (key == GLFW_KEY_SPACE)
 		camera.mTransform.position.y += 0.2;
 	if (key == GLFW_KEY_LEFT_SHIFT)
 		camera.mTransform.position.y -= 0.2;
 	if (key == GLFW_KEY_D)
 		camera.mTransform.rotateAround(center, 0.2);
+
 	if (key == GLFW_KEY_A)
 		camera.mTransform.rotateAround(center, -0.2);
+
 	if (key == GLFW_KEY_B && action == GLFW_PRESS)
 		drawBranches = !drawBranches;
 	if (key == GLFW_KEY_L && action == GLFW_PRESS)
@@ -151,8 +155,8 @@ int main(void)
 
 		glUniformMatrix4fv(projMatrix, 1, GL_FALSE, camera.getProjMatrix());
 
-		camera.mTransform.lookAt(center);
-		glUniformMatrix4fv(camMatrix, 1, GL_FALSE, camera.getTransformMatrix());
+
+		glUniformMatrix4fv(camMatrix, 1, GL_FALSE, mat4::lookAt(camera.mTransform.position, center, vec3::up));
 
 		//draw branches
 
@@ -222,14 +226,15 @@ void drawFile(std::vector<Point>& elements, std::vector<int>& indices, VoxFile& 
 			indices[j + (i * 36)] = LEAF_INDICES[j] + (i * 8);
 		}
 		vec3 color((float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX);
+		vec3 pos = vec3(file.mVoxels[i].x, file.mVoxels[i].y, file.mVoxels[i].z);
 		for (int k = 0; k < 8; k++)
 		{
 			Point p;
-			p.pos = file.mVoxels[i].pos.toFloat() + (points[k] * 0.5f);
+			p.pos = pos + (points[k] * 0.5f);
 			p.color = color;
 
 			elements.push_back(p);
 		}
-		std::cout << file.mVoxels[i].pos << '\n';
+		std::cout << pos << '\n';
 	}
 }

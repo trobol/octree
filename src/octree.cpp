@@ -22,7 +22,7 @@ const int BRANCH_INDICES[INDICES_PER_BRANCH] = {
 	2, 0,
 	3, 1,
 	7, 5,
-	6, 4};
+	6, 4 };
 /*
 node layout
 x y z
@@ -53,13 +53,13 @@ const int LEAF_INDICES[INDICES_PER_LEAF] = {
 	3, 1, 7,
 
 	1, 0, 5,
-	4, 0, 5};
-void Octree::drawNodes(std::vector<Point> &elements, std::vector<int> &indices, std::vector<Point> &leafElements, std::vector<int> &leafIndices)
+	4, 0, 5 };
+void Octree::drawNodes(std::vector<Point>& elements, std::vector<int>& indices, std::vector<Point>& leafElements, std::vector<int>& leafIndices)
 {
 
 	std::cout << elements.size();
 	vec3 v(0, 0, 0);
-	Node *node = mRootNode;
+	Node* node = mRootNode;
 
 	const int branchCount = mNodeCount - mLeafNodeCount;
 	const int leafCount = mNodeCount - branchCount;
@@ -88,7 +88,7 @@ void Octree::drawNodes(std::vector<Point> &elements, std::vector<int> &indices, 
 	drawNode(node, v, elements, leafElements);
 }
 
-void Octree::drawNode(Node *node, vec3 v, std::vector<Point> &elements, std::vector<Point> &leafElements)
+void Octree::drawNode(Node* node, vec3 v, std::vector<Point>& elements, std::vector<Point>& leafElements)
 {
 	vec3 color((float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX);
 	vec3 points[ELEMENTS_PER_NODE] = {
@@ -121,7 +121,7 @@ void Octree::drawNode(Node *node, vec3 v, std::vector<Point> &elements, std::vec
 	}
 }
 
-void printNode(Octree::Node &node, int depth)
+void printNode(Octree::Node& node, int depth)
 {
 	for (int i = 0; i < depth; i++)
 		std::cout << ' ';
@@ -139,7 +139,7 @@ Octree Octree::load(std::string path)
 
 	return Octree(1);
 }
-Octree::Node *Octree::setNode(int x, int y, int z)
+Octree::Node* Octree::setNode(int x, int y, int z)
 {
 	return setNode(vec3(x, y, z));
 }
@@ -157,9 +157,9 @@ x y z
 1 1 1
 
 */
-Octree::Node *Octree::setNode(vec3 pos)
+Octree::Node* Octree::setNode(vec3 pos)
 {
-	Node *n = mRootNode;
+	Node* n = mRootNode;
 	vec3 currentPos(0, 0, 0);
 	while (n->size > 0)
 	{
@@ -194,7 +194,7 @@ Octree::Node *Octree::setNode(vec3 pos)
 	return n;
 }
 
-void Octree::loadModel(VoxFile &file)
+void Octree::loadModel(VoxFile& file)
 {
 	//get sqrt of nearest power of 2 size
 	vec3int size = file.getSize();
@@ -207,6 +207,6 @@ void Octree::loadModel(VoxFile &file)
 	//load
 	for (int i = 0; i < file.getNumVoxels(); i++)
 	{
-		setNode(file.mVoxels[i].pos.toFloat());
+		setNode(vec3(file.mVoxels[i].x, file.mVoxels[i].y, file.mVoxels[i].z));
 	}
 }
