@@ -20,7 +20,7 @@
 #include <time.h> /* time */
 
 static void
-error_callback(int error, const char* description)
+error_callback(int error, const char *description)
 {
 	fprintf(stderr, "Error: %s\n", description);
 }
@@ -31,25 +31,28 @@ vec3 center = vec3(0, 0, 0);
 bool drawBranches = true;
 bool drawLeafs = true;
 
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+float speed = 0.2;
+
+static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
+	vec3 forward = (center - camera.mTransform.position).normalized();
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
 	if (key == GLFW_KEY_W)
-		camera.mTransform.position += camera.mTransform.position.normalized() * vec3(0.2, 0, 0.2);
+		camera.mTransform.position += forward * speed;
 
 	if (key == GLFW_KEY_S)
-		camera.mTransform.position -= camera.mTransform.position.normalized() * vec3(0.2, 0, 0.2);
+		camera.mTransform.position -= forward * speed;
 
 	if (key == GLFW_KEY_SPACE)
-		camera.mTransform.position.y += 0.2;
+		camera.mTransform.position.y += speed;
 	if (key == GLFW_KEY_LEFT_SHIFT)
-		camera.mTransform.position.y -= 0.2;
+		camera.mTransform.position.y -= speed;
 	if (key == GLFW_KEY_D)
-		camera.mTransform.rotateAround(center, 0.2);
+		camera.mTransform.rotateAround(center, speed);
 
 	if (key == GLFW_KEY_A)
-		camera.mTransform.rotateAround(center, -0.2);
+		camera.mTransform.rotateAround(center, -speed);
 
 	if (key == GLFW_KEY_B && action == GLFW_PRESS)
 		drawBranches = !drawBranches;
@@ -57,10 +60,14 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		drawLeafs = !drawLeafs;
 }
 
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
+{
+	speed += yoffset * 0.05;
+}
 Shader shader;
 
-void drawFile(std::vector<Point>& elements, std::vector<int>& indices, VoxFile& file);
-void window_size_callback(GLFWwindow* window, int width, int height)
+void drawFile(std::vector<Point> &elements, std::vector<int> &indices, VoxFile &file);
+void window_size_callback(GLFWwindow *window, int width, int height)
 {
 	camera.mAspectRatio = (float)width / height;
 }
@@ -70,7 +77,7 @@ int main(void)
 	srand(time(NULL));
 	VoxFile file;
 	//file.load("assets/teapot.vox");
-	std::string filepath = filesystem::fileSelect("../../assets", ".vox");
+	std::string filepath = filesystem::fileSelect("./assets/", ".vox");
 	file.load(filepath);
 	//file.load("../../assets/box.vox");
 	Octree tree(4);
@@ -78,7 +85,7 @@ int main(void)
 
 	//tree.setNode(0, 0, 0);
 	//tree.setNode(0, 1, 0);
-	GLFWwindow* window;
+	GLFWwindow *window;
 	glfwSetErrorCallback(error_callback);
 
 	if (!glfwInit())
@@ -93,7 +100,7 @@ int main(void)
 		glfwTerminate();
 		exit(EXIT_FAILURE);
 	}
-
+	glfwSetScrollCallback(window, scroll_callback);
 	glfwSetWindowSizeCallback(window, window_size_callback);
 	glfwSetKeyCallback(window, key_callback);
 
@@ -103,7 +110,7 @@ int main(void)
 
 	// NOTE: OpenGL error checks have been omitted for brevity
 
-	shader = Shader::Load("../../shaders/shader.vert", "../../shaders/shader.frag");
+	shader = Shader::Load("./shaders/shader.vert", "./shaders/shader.frag");
 	glUseProgram(shader);
 
 	std::vector<Point> elements;
@@ -126,10 +133,10 @@ int main(void)
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
 	// position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
 	glEnableVertexAttribArray(0);
 	// color attribute
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
 	glUseProgram(shader);
@@ -154,7 +161,6 @@ int main(void)
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glUniformMatrix4fv(projMatrix, 1, GL_FALSE, camera.getProjMatrix());
-
 
 		glUniformMatrix4fv(camMatrix, 1, GL_FALSE, mat4::lookAt(camera.mTransform.position, center, vec3::up));
 
@@ -195,7 +201,7 @@ vec3 points[8] = {
 	{-1, 1, -1},
 	{-1, 1, 1},
 	{1, 1, -1},
-	{1, 1, 1} };
+	{1, 1, 1}};
 const int LEAF_INDICES[36] = {
 	0, 1, 4,
 	6, 1, 4,
@@ -213,8 +219,8 @@ const int LEAF_INDICES[36] = {
 	3, 1, 7,
 
 	1, 0, 3,
-	2, 0, 3 };
-void drawFile(std::vector<Point>& elements, std::vector<int>& indices, VoxFile& file)
+	2, 0, 3};
+void drawFile(std::vector<Point> &elements, std::vector<int> &indices, VoxFile &file)
 {
 	elements.reserve(file.getNumVoxels() * 8);
 	indices.resize(file.getNumVoxels() * 36);

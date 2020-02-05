@@ -5,7 +5,8 @@
 			"includePath": [
 				"${workspaceFolder}/glfw/include",
 				"${workspaceFolder}/**",
-				"${workspaceFolder}/benchmark/include"
+				"${workspaceFolder}/benchmark/include",
+				"${workspaceFolder}/include"
 			],
 			"defines": [],
 			"compilerPath": "/usr/bin/gcc",
@@ -45,7 +46,8 @@
 			"includePath": [
 				"${workspaceFolder}/glfw/include/",
 				"${workspaceFolder}/**",
-				"${workspaceFolder}/benchmark/include"
+				"${workspaceFolder}/benchmark/include",
+				"${workspaceFolder}/include"
 			]
 		}
 	],
