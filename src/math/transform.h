@@ -20,8 +20,10 @@ public:
 	vec3 getRight();
 
 	void rotateAround(vec3 point, float angle);
-	void lookAt(vec3 point);
 	void rotateAroundOrigin(float angle);
+	void rotateAroundDistance(vec3 point, float distance);
+	void lookAt(vec3 point);
+	
 
 private:
 };

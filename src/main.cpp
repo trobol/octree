@@ -52,10 +52,10 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 	if (key == GLFW_KEY_LEFT_SHIFT)
 		camera.mTransform.position.y -= speed;
 	if (key == GLFW_KEY_D)
-		camera.mTransform.rotateAround(center, speed);
+		camera.mTransform.rotateAroundDistance(center, speed);
 
 	if (key == GLFW_KEY_A)
-		camera.mTransform.rotateAround(center, -speed);
+		camera.mTransform.rotateAroundDistance(center, -speed);
 
 	if (key == GLFW_KEY_B && action == GLFW_PRESS)
 		drawBranches = !drawBranches;
@@ -65,7 +65,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-	speed += yoffset * 0.05;
+	speed = max(0, speed + yoffset * 0.05);
 }
 Shader shader;
 
