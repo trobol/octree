@@ -13,11 +13,45 @@
 		std::cout << path << " was not a valid vox file" << std::endl; \
 	}
 
+
+int32_t getHeader(FILE* file) {
+	union {
+		int8_t input_char[4] = { 0, 0, 0, 0 };
+		int32_t input_int;
+	};
+	fread(input_char, sizeof(input_char[0]), 4, file);
+	std::cout << input_int << " " << input_char << std::endl;
+	return input_int;
+}
+
+void VoxFile::Chunk_MAIN::read(FILE* file) {
+
+}
+
+void VoxFile::Chunk_SIZE::read(FILE* file) {
+
+}
+
+void VoxFile::Chunk_XYZI::read(FILE* file) {
+
+}
+
+void VoxFile::Chunk_RGBA::read(FILE* file) {
+
+}
+
+void VoxFile::Chunk_UNKNOWN::read(FILE* file) {
+
+}
+
+
 bool checkHeader(FILE* file, const char header[4])
 {
-	char input[4];
-	fread(input, sizeof(input[0]), 4, file);
-	return std::strcmp(input, header);
+	int32_t header_int = *((int32_t*)header);
+
+
+
+	return getHeader(file) == header_int;
 }
 
 int readInt(FILE* file)
@@ -64,7 +98,7 @@ void VoxFile::load(std::string path)
 		std::cout << "File " << path << " was not found" << std::endl;
 		throw;
 	}
-	
+
 	//VOX followed by a space
 	ASSERT_HEADER("VOX ");
 
@@ -74,38 +108,27 @@ void VoxFile::load(std::string path)
 	int chunkSize = readInt(file);
 	int chunkCount = readInt(file);
 
-
-	ASSERT_HEADER("SIZE");
-	int sizeSize = readInt(file);
-	int sizeChunks = readInt(file);
-
-	mSize.x = readInt(file);
-	mSize.z = readInt(file); //the z axis is up and down for .vox
-	mSize.y = readInt(file);
-
-	ASSERT_HEADER("XYZI");
-	int xyziSize = readInt(file);
-	int xyziChunks = readInt(file);
-
-	mNumVoxels = readInt(file);
-
-	mVoxels = new Voxel[mNumVoxels];
-
-	if (!mVoxels)
-		std::cout << "Failed to create array" << std::endl;
-
-	int result = fread(mVoxels, sizeof(Voxel), mNumVoxels, file);
-	if (result != mNumVoxels) { std::cout << "Didnt read all the voxels" << std::endl; }
-
-
-	char input[4];
-	fread(input, sizeof(input[0]), 4, file);
-	std::cout << "HEADER: " << input << '\n'
-		<< std::endl;
-	if (std::strcmp(input, "RGBA"))
-	{
+	while (feof(file)) {
+		CHUNK_TYPE type = (CHUNK_TYPE)getHeader(file);
+		Chunk* chunk;
+		switch (type)
+		{
+		case MAIN:
+			chunk = new Chunk_MAIN();
+			break;
+		case SIZE:
+			chunk = new Chunk_SIZE();
+			break;
+		case XYZI:
+			chunk = new Chunk_XYZI();
+			break;
+		case RGBA:
+			chunk = new Chunk_RGBA();
+			break;
+		default:
+			break;
+		}
 	}
-
 	std::fclose(file);
 }
 

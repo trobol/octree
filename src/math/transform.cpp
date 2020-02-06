@@ -36,15 +36,15 @@ void Transform::rotateAround(vec3 point, float angle)
 }
 
 void Transform::rotateAroundDistance(vec3 point, float distance) {
-	
+
 	vec3 diff = position - point;
 	float halfDist = distance / 2;
 
-	float radius = sqrt(diff.x * diff.x + diff.y * diff.y);
-	
+	float radius = sqrt(diff.x * diff.x + diff.z * diff.z);
+
 	if (radius == 0) return;
 	float angle = asin(halfDist / radius);
-	rotateAround(point, angle);
+	rotateAround(point, angle*2);
 }
 
 void Transform::lookAt(vec3 point)

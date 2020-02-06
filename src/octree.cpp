@@ -70,17 +70,17 @@ void Octree::drawNodes(std::vector<Point>& elements, std::vector<int>& indices, 
 	indices.resize(branchCount * INDICES_PER_BRANCH);
 	leafIndices.resize(leafCount * INDICES_PER_LEAF);
 
-	for (int i = 0; i < branchCount; i++)
+	for (size_t i = 0; i < branchCount; i++)
 	{
-		for (int j = 0; j < INDICES_PER_BRANCH; j++)
+		for (size_t j = 0; j < INDICES_PER_BRANCH; j++)
 		{
 			indices[j + (i * INDICES_PER_BRANCH)] = BRANCH_INDICES[j] + (i * ELEMENTS_PER_NODE);
 		}
 	}
 
-	for (int i = 0; i < leafCount; i++)
+	for (size_t i = 0; i < leafCount; i++)
 	{
-		for (int j = 0; j < INDICES_PER_LEAF; j++)
+		for (size_t j = 0; j < INDICES_PER_LEAF; j++)
 		{
 			leafIndices[j + (i * INDICES_PER_LEAF)] = LEAF_INDICES[j] + (i * ELEMENTS_PER_NODE);
 		}
