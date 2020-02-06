@@ -20,11 +20,12 @@ public:
 	{
 		mRootNode = new Node(size);
 	}
+
 	struct Node
 	{
-		Node(int size, Node* parent = nullptr) : size{ size }, parent{ parent } {}
-		Node* parent;
+		Node(int size) : size{ size } {}
 		Node* subNodes[8] = { nullptr };
+		unsigned char nodeMask = 0;
 		/*
 			top down
 			top 4 5    bottom 0 1
@@ -55,15 +56,19 @@ public:
 		}
 		~Node()
 		{
+			if (size == 0) return;
 			for (int i = 0; i < 8; i++)
 			{
 				delete subNodes[i];
 			}
 		}
 	};
+
+
 	static Octree load(std::string path);
-	Node* setNode(int x, int y, int z);
-	Node* setNode(vec3 v);
+	void Octree::drawLeaf(uint32_t color, vec3 v, std::vector<Point>& leafElements);
+	Node* setNode(int x, int y, int z, uint32_t color);
+	Node* setNode(vec3 v, uint32_t color);
 	void drawNodes(std::vector<Point>& elements, std::vector<int>& indices, std::vector<Point>& leafElements, std::vector<int>& leafIndices);
 
 	void drawNode(Node* node, vec3 v, std::vector<Point>& vector, std::vector<Point>& leafElements);

@@ -88,10 +88,8 @@ void Octree::drawNodes(std::vector<Point>& elements, std::vector<int>& indices, 
 	drawNode(node, v, elements, leafElements);
 }
 
-void Octree::drawNode(Node* node, vec3 v, std::vector<Point>& elements, std::vector<Point>& leafElements)
-{
-	vec3 color((float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX);
-	vec3 points[ELEMENTS_PER_NODE] = {
+
+vec3 CUBE_POINTS[ELEMENTS_PER_NODE] = {
 		{0, 0, 0},
 		{0, 0, 1},
 		{0, 1, 0},
@@ -100,24 +98,55 @@ void Octree::drawNode(Node* node, vec3 v, std::vector<Point>& elements, std::vec
 		{1, 0, 1},
 		{1, 1, 0},
 		{1, 1, 1},
-	};
+};
+
+void Octree::drawNode(Node* node, vec3 v, std::vector<Point>& elements, std::vector<Point>& leafElements)
+{
+	vec3 color((float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX);
+	
 	//2 to the power of node size
 	int powSize = 1 << node->size;
 	for (int i = 0; i < ELEMENTS_PER_NODE; i++)
 	{
 		Point p;
-		p.pos = points[i] * powSize + v;
+		p.pos = CUBE_POINTS[i] * powSize + v;
+		
 		p.color = color;
-		if (node->size > 0)
-			elements.push_back(p);
-		else
-			leafElements.push_back(p);
+		elements.push_back(p);
+			
 	}
 	int halfPowSize = powSize / 2;
 	for (int i = 0; i < 8; i++)
 	{
-		if (node->subNodes[i])
-			drawNode(node->subNodes[i], v + points[i] * halfPowSize, elements, leafElements);
+		if (node->size > 1) {
+			if (node->subNodes[i])
+				drawNode(node->subNodes[i], v + CUBE_POINTS[i] * halfPowSize, elements, leafElements);
+		}
+		else {
+			if (node->nodeMask >> i & 1) drawLeaf((uint32_t)node->subNodes[i], v + CUBE_POINTS[i] * halfPowSize, leafElements);
+
+		}
+		
+	}
+}
+
+void Octree::drawLeaf(uint32_t color, vec3 v, std::vector<Point>& leafElements) {
+	union {
+		char color_char[4] = { 0, 0, 0, 0 };
+		uint32_t color_int;
+	};
+	color_int = color;
+	for (int i = 0; i < ELEMENTS_PER_NODE; i++)
+	{
+		Point p;
+		p.pos = CUBE_POINTS[i] + v;
+
+		p.color.x = (float)color_char[0] / 255;
+		p.color.y = (float)color_char[1] / 255;
+		p.color.z = (float)color_char[2] / 255;
+
+		leafElements.push_back(p);
+
 	}
 }
 
@@ -139,9 +168,9 @@ Octree Octree::load(std::string path)
 
 	return Octree(1);
 }
-Octree::Node* Octree::setNode(int x, int y, int z)
+Octree::Node* Octree::setNode(int x, int y, int z, uint32_t color)
 {
-	return setNode(vec3(x, y, z));
+	return setNode(vec3(x, y, z), color);
 }
 
 /*
@@ -157,11 +186,11 @@ x y z
 1 1 1
 
 */
-Octree::Node* Octree::setNode(vec3 pos)
+Octree::Node* Octree::setNode(vec3 pos, uint32_t color)
 {
 	Node* n = mRootNode;
 	vec3 currentPos(0, 0, 0);
-	while (n->size > 0)
+	for(int size = mRootNode->size; size != 0; size--)
 	{
 		float halfThisNode = (1 << n->size) / 2;
 
@@ -179,7 +208,11 @@ Octree::Node* Octree::setNode(vec3 pos)
 
 		if (n->subNodes[index] == nullptr)
 		{
-			n->subNodes[index] = new Node(n->size - 1, n);
+			n->nodeMask = n->nodeMask | (1 << index);
+			if (n->size > 1)
+				n->subNodes[index] = new Node(n->size - 1);
+			else
+				n->subNodes[index] = (Node*)color;
 
 			mNodeCount++;
 			if (n->size - 1 == 0)
@@ -204,9 +237,10 @@ void Octree::loadModel(VoxFile& file)
 	delete mRootNode;
 	mRootNode = new Node(sqrtTwoSize);
 
+	uint32_t* palette = file.getPalette();
 	//load
 	for (int i = 0; i < file.getNumVoxels(); i++)
 	{
-		setNode(vec3(file.mVoxels[i].x, file.mVoxels[i].y, file.mVoxels[i].z));
+		setNode(vec3(file.mVoxels[i].x, file.mVoxels[i].y, file.mVoxels[i].z), palette[file.mVoxels[i].colorIndex-1]);
 	}
 }
