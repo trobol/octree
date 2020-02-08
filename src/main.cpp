@@ -13,11 +13,15 @@
 #include "shader.h"
 #include "camera.h"
 #include <math.h>
-#define GL_LITE_IMPLEMENTATION
-#include "gl_lite.h"
+
 #include "files/filesystem.h"
 
 #include <time.h> /* time */
+
+#include "graphics/buffer.h"
+
+#define GL_LITE_IMPLEMENTATION
+#include "gl_lite.h"
 
 const std::string ASSET_PATH_STR = ASSET_PATH;
 
@@ -124,17 +128,19 @@ int main(void)
 	std::vector<Point> leafElements;
 
 	tree.drawNodes(elements, indices, leafElements, leafIndices);
-	//drawFile(leafElements, leafIndices, file);
-	unsigned int VBO, VAO, EBO;
+
+	Buffer VBO = Buffer::Generate();
+	Buffer EBO = Buffer::Generate();
+
+
+	unsigned int VAO;
 	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
+
 	// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
 	glBindVertexArray(VAO);
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	VBO.bind(GL_ARRAY_BUFFER);
+	EBO.bind(GL_ELEMENT_ARRAY_BUFFER);
 
 	// position attribute
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);

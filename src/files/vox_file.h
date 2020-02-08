@@ -6,7 +6,6 @@
 
 #include "../math/vec3int.h"
 
-constexpr int32_t strToInt(const char[4]);
 
 class VoxFile
 {
@@ -14,11 +13,11 @@ private:
 	static uint32_t DEFAULT_VOX_PALETTE[256];
 
 
-	uint32_t *mPalette = nullptr;
+	uint32_t* mPalette = nullptr;
 	struct Voxel
 	{
 		char x, z, y;
-		char colorIndex;
+		unsigned char colorIndex;
 	};
 	int mVersion;
 	vec3int mSize;
@@ -29,13 +28,13 @@ private:
 	void readChunk_PACK(FILE* file, int size);
 public:
 	std::vector<Voxel> mVoxels;
-	
+
 	~VoxFile();
 	void load(std::string path);
 	vec3int getSize() { return mSize; };
 	int getNumVoxels() { return mVoxels.size(); };
-	unsigned int *getPalette() { if (mPalette != nullptr) return mPalette; else return (unsigned int *)DEFAULT_VOX_PALETTE; };
-	
+	unsigned int* getPalette() { if (mPalette != nullptr) return mPalette; else return (unsigned int*)DEFAULT_VOX_PALETTE; };
+
 
 	enum CHUNK_TYPE : int32_t {
 		VOX = 542658390,
@@ -45,7 +44,7 @@ public:
 		RGBA = 1094862674,
 		UNKNOWN = 0
 	};
-	
+
 
 
 

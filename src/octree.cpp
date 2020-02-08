@@ -103,17 +103,17 @@ vec3 CUBE_POINTS[ELEMENTS_PER_NODE] = {
 void Octree::drawNode(Node* node, vec3 v, std::vector<Point>& elements, std::vector<Point>& leafElements)
 {
 	vec3 color((float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX);
-	
+
 	//2 to the power of node size
 	int powSize = 1 << node->size;
 	for (int i = 0; i < ELEMENTS_PER_NODE; i++)
 	{
 		Point p;
 		p.pos = CUBE_POINTS[i] * powSize + v;
-		
+
 		p.color = color;
 		elements.push_back(p);
-			
+
 	}
 	int halfPowSize = powSize / 2;
 	for (int i = 0; i < 8; i++)
@@ -126,13 +126,13 @@ void Octree::drawNode(Node* node, vec3 v, std::vector<Point>& elements, std::vec
 			if (node->nodeMask >> i & 1) drawLeaf((uint32_t)node->subNodes[i], v + CUBE_POINTS[i] * halfPowSize, leafElements);
 
 		}
-		
+
 	}
 }
 
 void Octree::drawLeaf(uint32_t color, vec3 v, std::vector<Point>& leafElements) {
 	union {
-		char color_char[4] = { 0, 0, 0, 0 };
+		uint8_t color_char[4] = { 0, 0, 0, 0 };
 		uint32_t color_int;
 	};
 	color_int = color;
@@ -190,7 +190,7 @@ Octree::Node* Octree::setNode(vec3 pos, uint32_t color)
 {
 	Node* n = mRootNode;
 	vec3 currentPos(0, 0, 0);
-	for(int size = mRootNode->size; size != 0; size--)
+	for (int size = mRootNode->size; size != 0; size--)
 	{
 		float halfThisNode = (1 << n->size) / 2;
 
@@ -241,6 +241,8 @@ void Octree::loadModel(VoxFile& file)
 	//load
 	for (int i = 0; i < file.getNumVoxels(); i++)
 	{
-		setNode(vec3(file.mVoxels[i].x, file.mVoxels[i].y, file.mVoxels[i].z), palette[file.mVoxels[i].colorIndex-1]);
+		std::cout << +file.mVoxels[i].colorIndex << '\n';
+		setNode(vec3(file.mVoxels[i].x, file.mVoxels[i].y, file.mVoxels[i].z), palette[file.mVoxels[i].colorIndex - 1]);
 	}
+	std::cout << std::flush;
 }
