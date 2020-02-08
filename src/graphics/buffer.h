@@ -1,7 +1,7 @@
 #ifndef _GRAPHICS_BUFFER_H
 #define _GRAPHICS_BUFFER_H
 
-#include "../gl_lite.h"
+#include "gl_lite.h"
 
 class Buffer {
 public:
@@ -12,8 +12,14 @@ public:
 	}
 	operator GLuint() { return mId; };
 	void bind(GLenum target) { glBindBuffer(target, mId); };
+	void unbind() {
+		if (bindingPoint) {
+			glBindBuffer(bindingPoint, 0);
+		}
+	}
 private:
-	unsigned int mId;
+	GLuint mId;
+	GLenum bindingPoint = NULL;
 };
 
 #endif

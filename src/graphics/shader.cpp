@@ -57,10 +57,10 @@ Shader Shader::Load(std::string& vertex_file_path, std::string& fragment_file_pa
 	}
 
 	GLint Result = GL_FALSE;
-	int InfoLogLength;
+	GLsizei InfoLogLength;
 
 	// Compile Vertex Shader
-	printf("Compiling shader : %s\n", vertex_file_path);
+	printf((const char*)"Compiling shader : %s\n", vertex_file_path);
 	char const* VertexSourcePointer = VertexShaderCode.c_str();
 	glShaderSource(VertexShaderID, 1, &VertexSourcePointer, NULL);
 	glCompileShader(VertexShaderID);

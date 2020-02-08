@@ -79,8 +79,8 @@ public:
 	}
 	void loadModel(VoxFile& file);
 	Node* mRootNode;
-	int mLeafNodeCount = 0;
-	int mNodeCount = 1;
+	size_t mLeafNodeCount = 0;
+	size_t mNodeCount = 1;
 	~Octree()
 	{
 		delete mRootNode;

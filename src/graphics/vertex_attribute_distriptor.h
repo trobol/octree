@@ -1,19 +1,22 @@
 #ifndef _GRAPHICS_VERTEX_ATTRIBUTE_DISTRIPTOR_H
 #define _GRAPHICS_VERTEX_ATTRIBUTE_DISTRIPTOR_H
 
-#include "../gl_lite.h"
+#include "gl_lite.h"
+
+#include <cassert>
 
 #include <vector>
 
 class VertexAttributeDiscriptor {
 public:
 	struct VertexAttribute {
+
 		GLint size;
 		GLenum type;
 		GLboolean normalized;
 		size_t typeSize; //size of the attribute in bytes
 	};
-	void add(GLuint size, GLenum type, GLboolean normalized) {
+	void add(GLuint size, GLenum type, GLboolean normalized = GL_FALSE) {
 		size_t typeSize;
 		switch (type)
 		{
@@ -29,17 +32,19 @@ public:
 			throw "invalid gl type";
 		}
 		mStride += typeSize * size;
-		mAttributes.push_back(VertexAttribute(size, type, normalized, typeSize));
+		VertexAttribute attr{ size, type, normalized, typeSize };
+		mAttributes.push_back(attr);
 	}
-	void finish() {
+	void apply() {
 		GLsizei ptr = 0;
 		for (int i = 0; i < mAttributes.size(); i++) {
 			VertexAttribute attr = mAttributes[i];
 
-			glVertexAttribPointer(i, attr.size, attr.type, attr.normalized, mStride, ptr);
+			glVertexAttribPointer(i, attr.size, attr.type, attr.normalized, mStride, (GLvoid*)ptr);
 			glEnableVertexAttribArray(i);
 			ptr += attr.typeSize * attr.size;
 		}
+		_ASSERT(ptr == mStride, "End pointer location did not match stride");
 	}
 private:
 	std::vector<VertexAttribute> mAttributes;

@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <iostream>
 
-#include "shader.h"
+#include "graphics/shader.h"
 #include "camera.h"
 #include <math.h>
 
@@ -19,9 +19,13 @@
 #include <time.h> /* time */
 
 #include "graphics/buffer.h"
+#include "graphics/vertex_attribute_distriptor.h"
+
+#include "graphics/uniform.h"
+#include "graphics/vertex_array.h"
 
 #define GL_LITE_IMPLEMENTATION
-#include "gl_lite.h"
+#include "graphics/gl_lite.h"
 
 const std::string ASSET_PATH_STR = ASSET_PATH;
 
@@ -129,34 +133,75 @@ int main(void)
 
 	tree.drawNodes(elements, indices, leafElements, leafIndices);
 
-	Buffer VBO = Buffer::Generate();
-	Buffer EBO = Buffer::Generate();
 
-
-	unsigned int VAO;
-	glGenVertexArrays(1, &VAO);
-
-	// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-	glBindVertexArray(VAO);
-
-	VBO.bind(GL_ARRAY_BUFFER);
-	EBO.bind(GL_ELEMENT_ARRAY_BUFFER);
+	VertexAttributeDiscriptor discriptor;
 
 	// position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
+	discriptor.add(3, GL_FLOAT);
 	// color attribute
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
+	discriptor.add(3, GL_FLOAT);
 
-	glUseProgram(shader);
+
+	VertexArray branchVertexArray = VertexArray::Generate();
+	Buffer branchVertexBuffer = Buffer::Generate();
+	Buffer branchElementBuffer = Buffer::Generate();
+
+
+
+
+	// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+	branchVertexArray.bind();
+	branchVertexBuffer.bind(GL_ARRAY_BUFFER);
+	branchElementBuffer.bind(GL_ELEMENT_ARRAY_BUFFER);
+
+
+	discriptor.apply();
+
+
+	glBufferData(GL_ARRAY_BUFFER, elements.size() * sizeof(Point), elements.data(), GL_DYNAMIC_DRAW);
+
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(int), indices.data(), GL_DYNAMIC_DRAW);
+
+
+	branchVertexArray.unbind();
+	branchVertexBuffer.unbind();
+	branchElementBuffer.unbind();
+
+
+	VertexArray leafVertexArray = VertexArray::Generate();
+	Buffer leafVertexBuffer = Buffer::Generate();
+	Buffer leafElementBuffer = Buffer::Generate();
+
+	leafVertexArray.bind();
+	leafVertexBuffer.bind(GL_ARRAY_BUFFER);
+	leafElementBuffer.bind(GL_ELEMENT_ARRAY_BUFFER);
+
+	discriptor.apply();
+
+	glBufferData(GL_ARRAY_BUFFER, leafElements.size() * sizeof(Point), leafElements.data(), GL_DYNAMIC_DRAW);
+
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, leafIndices.size() * sizeof(int), leafIndices.data(), GL_DYNAMIC_DRAW);
+
+	leafVertexArray.unbind();
+	leafVertexBuffer.unbind();
+	leafElementBuffer.unbind();
+
+
+	/*
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
+	*/
+	shader.use();
+
 
 	camera.mTransform.scale = vec3(1, 1, 1);
 	camera.mTransform.position = vec3(0, 0, 10.);
 
 	center = file.getSize().toFloat() / 2;
-	int projMatrix = glGetUniformLocation(shader, "projMatrix");
-	int camMatrix = glGetUniformLocation(shader, "camMatrix");
+
+	UniformMatrix4f projMatrix(shader, "projMatrix");
+	UniformMatrix4f camMatrix(shader, "camMatrix");
 
 	glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(window))
@@ -170,25 +215,20 @@ int main(void)
 		glViewport(0, 0, width, height);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glUniformMatrix4fv(projMatrix, 1, GL_FALSE, camera.getProjMatrix());
-
-		glUniformMatrix4fv(camMatrix, 1, GL_FALSE, mat4::lookAt(camera.mTransform.position, center, vec3::up));
+		projMatrix = camera.getProjMatrix();
+		camMatrix = mat4::lookAt(camera.mTransform.position, center, vec3::up);
 
 		//draw branches
 
 		if (drawBranches)
 		{
-			glBufferData(GL_ARRAY_BUFFER, elements.size() * sizeof(Point), elements.data(), GL_DYNAMIC_DRAW);
-
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(int), indices.data(), GL_DYNAMIC_DRAW);
+			branchVertexArray.bind();
 
 			glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
 		}
 		if (drawLeafs)
 		{
-			glBufferData(GL_ARRAY_BUFFER, leafElements.size() * sizeof(Point), leafElements.data(), GL_DYNAMIC_DRAW);
-
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, leafIndices.size() * sizeof(int), leafIndices.data(), GL_DYNAMIC_DRAW);
+			leafVertexArray.bind();
 
 			glDrawElements(GL_TRIANGLES, leafIndices.size(), GL_UNSIGNED_INT, 0);
 		}

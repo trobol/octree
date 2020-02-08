@@ -61,8 +61,8 @@ void Octree::drawNodes(std::vector<Point>& elements, std::vector<int>& indices, 
 	vec3 v(0, 0, 0);
 	Node* node = mRootNode;
 
-	const int branchCount = mNodeCount - mLeafNodeCount;
-	const int leafCount = mNodeCount - branchCount;
+	const size_t branchCount = mNodeCount - mLeafNodeCount;
+	const size_t leafCount = mNodeCount - branchCount;
 
 	elements.reserve(branchCount * ELEMENTS_PER_NODE);
 	leafElements.reserve(leafCount * ELEMENTS_PER_NODE);

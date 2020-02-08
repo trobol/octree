@@ -3,6 +3,7 @@
 
 #include "gl_lite.h"
 #include <string>
+#include "uniform.h"
 
 class Shader
 {
@@ -13,6 +14,9 @@ public:
 	{
 		return mId;
 	}
+	void use() { glUseProgram(mId); }
+
+
 
 private:
 	Shader(GLuint id) : mId{ id } {};
