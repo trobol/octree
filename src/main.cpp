@@ -11,7 +11,7 @@
 #include <iostream>
 
 #include "graphics/shader.h"
-#include "camera.h"
+
 #include <math.h>
 
 #include "files/filesystem.h"
@@ -24,16 +24,11 @@
 #include "graphics/uniform.h"
 #include "graphics/vertex_array.h"
 
-#define GL_LITE_IMPLEMENTATION
-#include "graphics/gl_lite.h"
+#include "systems/window.h"
+#include "camera.h"
+
 
 const std::string ASSET_PATH_STR = ASSET_PATH;
-
-static void
-error_callback(int error, const char* description)
-{
-	fprintf(stderr, "Error: %s\n", description);
-}
 
 Camera camera;
 
@@ -42,7 +37,7 @@ vec3 center = vec3(0, 0, 0);
 bool drawBranches = true;
 bool drawLeafs = true;
 
-float speed = 0.2;
+float speed = 0.2f;
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -77,11 +72,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 }
 Shader shader;
 
-void drawFile(std::vector<Point>& elements, std::vector<int>& indices, VoxFile& file);
-void window_size_callback(GLFWwindow* window, int width, int height)
-{
-	camera.mAspectRatio = (float)width / height;
-}
+Window& window = Window::getInstance();
 
 int main(void)
 {
@@ -94,32 +85,11 @@ int main(void)
 	Octree tree(4);
 	tree.loadModel(file);
 
-	GLFWwindow* window;
 
-	glfwSetErrorCallback(error_callback);
-
-	if (!glfwInit())
-		exit(EXIT_FAILURE);
-
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-
-	window = glfwCreateWindow(640, 480, "Octree render", NULL, NULL);
-	if (!window)
-	{
-		glfwTerminate();
-		exit(EXIT_FAILURE);
-	}
-	glfwSetScrollCallback(window, scroll_callback);
-	glfwSetWindowSizeCallback(window, window_size_callback);
-	glfwSetKeyCallback(window, key_callback);
-
-	glfwMakeContextCurrent(window);
-	gl_lite_init();
-	glfwSwapInterval(1);
-
+	window.open();
 	// NOTE: OpenGL error checks have been omitted for brevity
-
+	window.setKeyCallback(key_callback);
+	window.setScrollCallback(scroll_callback);
 
 	shader = Shader::Load(ASSET_PATH_STR + "/shaders/shader.vert", ASSET_PATH_STR + "/shaders/shader.frag");
 
@@ -204,15 +174,10 @@ int main(void)
 	UniformMatrix4f camMatrix(shader, "camMatrix");
 
 	glEnable(GL_DEPTH_TEST);
-	while (!glfwWindowShouldClose(window))
+	while (!window.shouldClose())
 	{
-		float ratio;
-		int width, height;
 
-		glfwGetFramebufferSize(window, &width, &height);
-		ratio = width / (float)height;
 
-		glViewport(0, 0, width, height);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		projMatrix = camera.getProjMatrix();
@@ -232,65 +197,12 @@ int main(void)
 
 			glDrawElements(GL_TRIANGLES, leafIndices.size(), GL_UNSIGNED_INT, 0);
 		}
-		glfwSwapBuffers(window);
+		window.swapBuffers();
 		glfwPollEvents();
 	}
 
-	glfwDestroyWindow(window);
+	window.close();
 
 	glfwTerminate();
 	exit(EXIT_SUCCESS);
-}
-
-vec3 points[8] = {
-	{-1, -1, -1},
-	{1, -1, -1},
-	{-1, -1, 1},
-	{1, -1, 1},
-
-	{-1, 1, -1},
-	{-1, 1, 1},
-	{1, 1, -1},
-	{1, 1, 1} };
-const int LEAF_INDICES[36] = {
-	0, 1, 4,
-	6, 1, 4,
-
-	0, 2, 4,
-	5, 2, 4,
-
-	2, 3, 5,
-	7, 3, 5,
-
-	5, 4, 7,
-	6, 4, 7,
-
-	6, 1, 7,
-	3, 1, 7,
-
-	1, 0, 3,
-	2, 0, 3 };
-void drawFile(std::vector<Point>& elements, std::vector<int>& indices, VoxFile& file)
-{
-	elements.reserve(file.getNumVoxels() * 8);
-	indices.resize(file.getNumVoxels() * 36);
-	for (int i = 0; i < file.getNumVoxels(); i++)
-	{
-
-		for (int j = 0; j < 36; j++)
-		{
-			indices[j + (i * 36)] = LEAF_INDICES[j] + (i * 8);
-		}
-		vec3 color((float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX);
-		vec3 pos = vec3(file.mVoxels[i].x, file.mVoxels[i].y, file.mVoxels[i].z);
-		for (int k = 0; k < 8; k++)
-		{
-			Point p;
-			p.pos = pos + (points[k] * 0.5f);
-			p.color = color;
-
-			elements.push_back(p);
-		}
-		std::cout << pos << '\n';
-	}
 }

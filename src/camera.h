@@ -4,6 +4,7 @@
 #include "math/mat4.h"
 
 #include "math/transform.h"
+
 class Camera
 {
 public:
@@ -14,13 +15,12 @@ public:
 
 	Transform mTransform;
 
-	float mAspectRatio = 1;
 	float mNearClip = 1;
 	float mFarClip = 1000;
 
 	mat4 getProjMatrix()
 	{
-		return mat4::PerspectiveProj(mFov, mAspectRatio, mNearClip, mFarClip);
+		return mat4::PerspectiveProj(mFov, Window::getInstance().getAspectRatio(), mNearClip, mFarClip);
 	}
 	mat4 getTransformMatrix()
 	{

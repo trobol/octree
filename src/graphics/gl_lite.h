@@ -45,10 +45,10 @@
 #define _WIN32
 #endif /* _WIN32 */
 
-/* In order for extension support to be portable, we need to define an
-  * OpenGL function call method. We use the keyword APIENTRY, which is
-  * defined for Win32. (Note: Windows also needs this for <GL/gl.h>)
-  */
+ /* In order for extension support to be portable, we need to define an
+   * OpenGL function call method. We use the keyword APIENTRY, which is
+   * defined for Win32. (Note: Windows also needs this for <GL/gl.h>)
+   */
 #ifndef APIENTRY
 #ifdef _WIN32
 #define APIENTRY __stdcall
@@ -58,12 +58,12 @@
 #define GL_APIENTRY_DEFINED
 #endif /* APIENTRY */
 
-/* The following three defines are here solely to make some Windows-based
-   * <GL/gl.h> files happy. Theoretically we could include <windows.h>, but
-   * it has the major drawback of severely polluting our namespace.
-   */
+   /* The following three defines are here solely to make some Windows-based
+	  * <GL/gl.h> files happy. Theoretically we could include <windows.h>, but
+	  * it has the major drawback of severely polluting our namespace.
+	  */
 
-/* Under Windows, we need WINGDIAPI defined */
+	  /* Under Windows, we need WINGDIAPI defined */
 #if !defined(WINGDIAPI) && defined(_WIN32)
 #if defined(_MSC_VER) || defined(__BORLANDC__) || defined(__POCC__)
 /* Microsoft Visual C++, Borland C++ Builder and Pelles C */
@@ -222,8 +222,11 @@ typedef ptrdiff_t GLsizeiptr;
 	GLE(void, BindImageTexture, GLuint unit, GLuint texture, GLint level, GLboolean layered, GLint layer, GLenum access, GLenum format)                                                               \
 	GLE(void, GetIntegeri_v, GLenum pname, GLuint index, GLint *data)                                                                                                                                 \
 	GLE(void, DetachShader, GLuint program, GLuint shader)
-//	GLE(void, GetIntegerv, GLenum pname, GLint *params)                                                                                                                                               \
-	/* end */
+//	GLE(void, GetIntegerv, GLenum pname, GLint *params)                                                                                                                                               
+
+
+
+/* end */
 
 #define GLE(ret, name, ...)                     \
 	typedef ret GLDECL name##proc(__VA_ARGS__); \
@@ -249,7 +252,7 @@ bool gl_lite_init()
 {
 #if defined(__linux__)
 
-	void *libGL = dlopen("libGL.so", RTLD_LAZY);
+	void* libGL = dlopen("libGL.so", RTLD_LAZY);
 	if (!libGL)
 	{
 		printf("ERROR: libGL.so couldn't be loaded\n");
@@ -275,8 +278,8 @@ bool gl_lite_init()
 		OutputDebugStringA("opengl32.dll not found.\n");
 		return false;
 	}
-	wglGetProcAddressproc *wglGetProcAddress =
-		(wglGetProcAddressproc *)GetProcAddress(dll, "wglGetProcAddress");
+	wglGetProcAddressproc* wglGetProcAddress =
+		(wglGetProcAddressproc*)GetProcAddress(dll, "wglGetProcAddress");
 
 #define GLE(ret, name, ...)                                                                \
 	gl##name = (name##proc *)wglGetProcAddress("gl" #name);                                \
@@ -286,7 +289,7 @@ bool gl_lite_init()
 		return false;                                                                      \
 	}
 	PAPAYA_GL_LIST
-	PAPAYA_GL_LIST_WIN32
+		PAPAYA_GL_LIST_WIN32
 #undef GLE
 
 #else

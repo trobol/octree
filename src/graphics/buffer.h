@@ -2,6 +2,8 @@
 #define _GRAPHICS_BUFFER_H
 
 #include "gl_lite.h"
+#include <vector>
+
 
 class Buffer {
 public:
@@ -17,6 +19,14 @@ public:
 			glBindBuffer(bindingPoint, 0);
 		}
 	}
+
+	template <typename T>
+	void bufferData(std::vector<T>& data, GLenum usage) {
+		if (bindingPoint) {
+			glBufferData(bindingPoint, data.size() * sizeof(T), data.data(), usage);
+		}
+	}
+
 private:
 	GLuint mId;
 	GLenum bindingPoint = NULL;
