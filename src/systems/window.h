@@ -4,18 +4,18 @@
 #include <Windows.h>
 #include <GL/glu.h>
 #include <GLFW/glfw3.h>
+#include "system.h"
 
-class Window {
+
+class Window : public System<Window> {
 public:
-	static Window& getInstance() {
-		static Window instance;
-		return instance;
-	}
-	void open();
-	void open(int width, int height);
-	void close();
+	
+	void startup();
+	
+	void shutdown();
 
 	float getAspectRatio() { return mAspectRatio; };
+	void setSize(int width, int height);
 
 	void setKeyCallback(GLFWkeyfun key_callback) {
 		glfwSetKeyCallback(mWindow, key_callback);
@@ -33,6 +33,12 @@ public:
 
 	void swapBuffers() {
 		glfwSwapBuffers(mWindow);
+	}
+	void Update(float dt) {
+
+	}
+	~Window() {
+
 	}
 private:
 	GLFWwindow* mWindow;
