@@ -3,8 +3,8 @@
 #include <math.h>
 #include <cmath>
 
-#include "quaternion.h"
-#include "mat4.h"
+#include <math/quaternion.h>
+#include <math/mat4.h>
 
 Quaternion Quaternion::identity = Quaternion(0, 0, 0, 1);
 
@@ -67,7 +67,7 @@ Quaternion::Quaternion()
 Quaternion Quaternion::AxisAngle(vec3 axis, float angle)
 {
 	float a = angle / 2,
-		  sa = sin(a);
+		sa = sin(a);
 	axis.normalized();
 	return Quaternion(
 		axis.x * sa,
@@ -102,7 +102,7 @@ void Quaternion::toNormalized()
 	w /= n;
 }
 
-vec3 Quaternion::operator*(const vec3 &v) const
+vec3 Quaternion::operator*(const vec3& v) const
 {
 
 	vec3 u(x, y, z);
@@ -112,7 +112,7 @@ vec3 Quaternion::operator*(const vec3 &v) const
 	return u * vec3::dot(u, v) * 2.0f + v * (s * s - vec3::dot(u, u)) + vec3::cross(u, v) * 2.0f * s;
 }
 
-Quaternion Quaternion::operator*(const Quaternion &q2) const
+Quaternion Quaternion::operator*(const Quaternion& q2) const
 {
 	//a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x
 	//dot a.x * b.x + a.y * b.y + a.z * b.z
@@ -123,7 +123,7 @@ Quaternion Quaternion::operator*(const Quaternion &q2) const
 		-x * q2.x - y * q2.y - z * q2.z + w * q2.w);
 }
 
-Quaternion Quaternion::operator+(const Quaternion &q) const
+Quaternion Quaternion::operator+(const Quaternion& q) const
 {
 	return Quaternion(x + q.x, y + q.y, z + q.z, w + q.w);
 }
@@ -168,9 +168,9 @@ Quaternion Quaternion::lookRotation(vec3 const &target, vec3 const &current, vec
 	projectionMatrix.m22 = a * a + b * b;
 	sfvec3f upProjected = projectionMatrix.transform(up);
 	sfvec3f yaxisProjected = projectionMatrix.transform(new sfvec(0,1,0);
-    d = sfvec3f.dot(upProjected,yaxisProjected);
-    // so the axis of twist is n2 and the angle is arcos(d)
-    //convert this to quat as follows   
+	d = sfvec3f.dot(upProjected,yaxisProjected);
+	// so the axis of twist is n2 and the angle is arcos(d)
+	//convert this to quat as follows
 	double s=Math.sqrt(1.0 - d*d);
 	sfquat twist=new sfquat(d,n2*s,n2*s,n2*s);
 	return sfquat.mul(pointToTarget,twist);

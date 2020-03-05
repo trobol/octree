@@ -1,8 +1,10 @@
 #ifndef _SYSTEMS_WINDOW_H
 #define _SYSTEMS_WINDOW_H
 
-#include <Windows.h>
-#include <GL/glu.h>
+#include <core/isystem.h>
+
+#include <graphics/gl_lite.h>
+
 #include <GLFW/glfw3.h>
 
 class Window {
@@ -35,9 +37,9 @@ public:
 		glfwSwapBuffers(mWindow);
 	}
 private:
-	GLFWwindow* mWindow;
-	float mAspectRatio;
-	int mWidth = 640,
+	GLFWwindow* mWindow = nullptr;
+	float mAspectRatio = 0;
+	int mWidth = 1500,
 		mHeight = 480;
 
 	static void windowSizeCallback(GLFWwindow* window, int width, int height);

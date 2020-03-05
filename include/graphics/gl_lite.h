@@ -25,125 +25,19 @@
 	recognized, you are granted a perpetual, irrevocable license to copy,
 	distribute, and modify this file as you see fit.
 */
-
 #ifndef GL_LITE_H
 #define GL_LITE_H
 
-/* ------------------- BEGIN SYSTEM/COMPILER SPECIFIC -------------------- */
-
-/* Please report any probles that you find with your compiler, which may
- * be solved in this section! There are several compilers that I have not
- * been able to test this file with yet.
- *
- * First: If we are we on Windows, we want a single define for it (_WIN32)
- * (Note: For Cygwin the compiler flag -mwin32 should be used, but to
- * make sure that things run smoothly for Cygwin users, we add __CYGWIN__
- * to the list of "valid Win32 identifiers", which removes the need for
- * -mwin32)
- */
-#if !defined(_WIN32) && (defined(__WIN32__) || defined(WIN32) || defined(__CYGWIN__))
-#define _WIN32
-#endif /* _WIN32 */
-
- /* In order for extension support to be portable, we need to define an
-   * OpenGL function call method. We use the keyword APIENTRY, which is
-   * defined for Win32. (Note: Windows also needs this for <GL/gl.h>)
-   */
-#ifndef APIENTRY
-#ifdef _WIN32
-#define APIENTRY __stdcall
-#else
-#define APIENTRY
-#endif
-#define GL_APIENTRY_DEFINED
-#endif /* APIENTRY */
-
-   /* The following three defines are here solely to make some Windows-based
-	  * <GL/gl.h> files happy. Theoretically we could include <windows.h>, but
-	  * it has the major drawback of severely polluting our namespace.
-	  */
-
-	  /* Under Windows, we need WINGDIAPI defined */
-#if !defined(WINGDIAPI) && defined(_WIN32)
-#if defined(_MSC_VER) || defined(__BORLANDC__) || defined(__POCC__)
-/* Microsoft Visual C++, Borland C++ Builder and Pelles C */
-#define WINGDIAPI __declspec(dllimport)
-#elif defined(__LCC__)
-/* LCC-Win32 */
-#define WINGDIAPI __stdcall
-#else
-/* Others (e.g. MinGW, Cygwin) */
-#define WINGDIAPI extern
-#endif
-#define GL_WINGDIAPI_DEFINED
-#endif /* WINGDIAPI */
-
-/* Some <GL/glu.h> files also need CALLBACK defined */
-#if !defined(CALLBACK) && defined(_WIN32)
-#if defined(_MSC_VER)
-/* Microsoft Visual C++ */
-#if (defined(_M_MRX000) || defined(_M_IX86) || defined(_M_ALPHA) || defined(_M_PPC)) && !defined(MIDL_PASS)
-#define CALLBACK __stdcall
-#else
-#define CALLBACK
-#endif
-#else
-/* Other Windows compilers */
-#define CALLBACK __stdcall
-#endif
-#define GLU_CALLBACK_DEFINED
-#endif /* CALLBACK */
-
-/* Microsoft Visual C++, Borland C++ and Pelles C <GL*glu.h> needs wchar_t */
-#if defined(_WIN32) && (defined(_MSC_VER) || defined(__BORLANDC__) || defined(__POCC__)) && !defined(_WCHAR_T_DEFINED)
-typedef unsigned short wchar_t;
-#define _WCHAR_T_DEFINED
-#endif /* _WCHAR_T_DEFINED */
-
-/* ---------------- GLFW related system specific defines ----------------- */
-
-#if defined(_WIN32) && defined(GLFW_BUILD_DLL)
-
-/* We are building a Win32 DLL */
-#define GLFWAPI __declspec(dllexport)
-#define GLFWAPIENTRY __stdcall
-#define GLFWCALL __stdcall
-
-#elif defined(_WIN32) && defined(GLFW_DLL)
-
-/* We are calling a Win32 DLL */
-#if defined(__LCC__)
-#define GLFWAPI extern
-#else
-#define GLFWAPI __declspec(dllimport)
-#endif
-#define GLFWAPIENTRY __stdcall
-#define GLFWCALL __stdcall
-
-#else
-
-/* We are either building/calling a static lib or we are non-win32 */
-#define GLFWAPIENTRY
-#define GLFWAPI
-#define GLFWCALL
-
-#endif
-
-/* -------------------- END SYSTEM/COMPILER SPECIFIC --------------------- */
-
 #if defined(__linux__)
-#include <dlfcn.h>
-#define GLDECL				 // Empty define
+#define GLDECL // Empty define
 #define PAPAYA_GL_LIST_WIN32 // Empty define
-#endif						 // __linux__
+#endif // __linux__
 
 #if defined(_WIN32)
-//#define NOMINMAX
+#define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
-
-#include <stddef.h>
-
-#define GLDECL __stdcall
+#include <windows.h>
+#define GLDECL WINAPI
 
 #include "gl_defines.h"
 
@@ -151,15 +45,16 @@ typedef char GLchar;
 typedef ptrdiff_t GLintptr;
 typedef ptrdiff_t GLsizeiptr;
 
-#define PAPAYA_GL_LIST_WIN32                 \
-	/* ret, name, params */                  \
-	GLE(void, BlendEquation, GLenum mode)    \
-	GLE(void, ActiveTexture, GLenum texture) \
-	/* end */
+#define PAPAYA_GL_LIST_WIN32 \
+    /* ret, name, params */ \
+    GLE(void,      BlendEquation,           GLenum mode) \
+    GLE(void,      ActiveTexture,           GLenum texture) \
+    /* end */
 
 #endif // _WIN32
 
-#include <GL/gl.h>
+
+#include <GL/glu.h>
 
 #define PAPAYA_GL_LIST                                                                                                                                                                                \
 	/* ret, name, params */                                                                                                                                                                           \
@@ -242,6 +137,7 @@ bool gl_lite_init();
 // =============================================================================
 
 #ifdef GL_LITE_IMPLEMENTATION
+
 
 #define GLE(ret, name, ...) name##proc *gl##name;
 PAPAYA_GL_LIST

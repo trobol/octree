@@ -1,55 +1,55 @@
 {
-	"configurations": [
-		{
-			"name": "Linux",
-			"includePath": [
-				"${workspaceFolder}/glfw/include",
-				"${workspaceFolder}/**",
-				"${workspaceFolder}/benchmark/include",
-				"${workspaceFolder}/include"
-			],
-			"defines": [],
-			"compilerPath": "/usr/bin/gcc",
-			"cStandard": "c11",
-			"cppStandard": "c++17",
-			"intelliSenseMode": "gcc-x86",
-			"compilerArgs": [],
-			"browse": {
-				"path": [
-					"${workspaceFolder}/src",
-					"${workspaceFolder}/glfw/include/"
-				],
-				"limitSymbolsToIncludedHeaders": true
-			}
-		},
-		{
-			"name": "Win32",
-			"defines": [
-				"_DEBUG",
-				"UNICODE",
-				"_UNICODE",
-				"_WIN32"
-			],
-			"compilerPath": "C:/mingw64/bin/gcc.exe",
-			"windowsSdkVersion": "10.0.17763.0",
-			"intelliSenseMode": "gcc-x86",
-			"cStandard": "c11",
-			"cppStandard": "c++17",
-			"compilerArgs": [],
-			"browse": {
-				"limitSymbolsToIncludedHeaders": true,
-				"path": [
-					"${workspaceFolder}/src",
-					"${workspaceFolder}/glfw/include/"
-				]
-			},
-			"includePath": [
-				"${workspaceFolder}/glfw/include/",
-				"${workspaceFolder}/**",
-				"${workspaceFolder}/benchmark/include",
-				"${workspaceFolder}/include"
-			]
-		}
-	],
-	"version": 4
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/glfw/include",
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/benchmark/include",
+                "${workspaceFolder}/include"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-x86",
+            "compilerArgs": [],
+            "browse": {
+                "path": [
+                    "${workspaceFolder}/src",
+                    "${workspaceFolder}/glfw/include/"
+                ],
+                "limitSymbolsToIncludedHeaders": true
+            }
+        },
+        {
+            "name": "Win32",
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "_WIN32"
+            ],
+            "compilerPath": "C:/mingw64/bin/gcc.exe",
+            "windowsSdkVersion": "10.0.17763.0",
+            "intelliSenseMode": "gcc-x86",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "compilerArgs": [],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "${workspaceFolder}/src",
+                    "${workspaceFolder}/glfw/include/"
+                ]
+            },
+            "includePath": [
+                "${workspaceFolder}/glfw/include/",
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/benchmark/include",
+                "${workspaceFolder}/include"
+            ]
+        }
+    ],
+    "version": 4
 }

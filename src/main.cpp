@@ -14,7 +14,7 @@
 
 #include <math.h>
 
-#include "files/filesystem.h"
+#include <core/files/filesystem.h>
 
 #include <time.h> /* time */
 
@@ -24,7 +24,7 @@
 #include "graphics/uniform.h"
 #include "graphics/vertex_array.h"
 
-#include "systems/window.h"
+#include <systems/window.h>
 #include "camera.h"
 
 

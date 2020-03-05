@@ -1,9 +1,9 @@
-#include "window.h"
+#include <systems/window.h>
 #include <iostream>
 
 
 #define GL_LITE_IMPLEMENTATION
-#include "../graphics/gl_lite.h"
+#include <graphics/gl_lite.h>
 
 
 static void error_callback(int error, const char* description)
@@ -43,9 +43,13 @@ void Window::open() {
 	glfwSetWindowSizeCallback(mWindow, Window::windowSizeCallback);
 	glfwSetFramebufferSizeCallback(mWindow, framebuffer_size_callback);
 
+	mAspectRatio = mWidth / mHeight;
+
 	glfwMakeContextCurrent(mWindow);
 	gl_lite_init();
 	glfwSwapInterval(1);
+
+
 }
 
 

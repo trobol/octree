@@ -1,4 +1,4 @@
-#include "vox_file.h"
+#include <core/files/vox_file.h>
 
 #include <fstream>
 #include <cstring>
@@ -91,6 +91,12 @@ bool checkHeader(FILE* file, const char header[4])
 	return getHeader(file) == header_int;
 }
 
+/*
+TODO:
+Currently this will leak memory if there is an exeption
+"file" should have a destructor
+
+*/
 void VoxFile::load(std::string path)
 {
 	FILE* file = std::fopen(path.c_str(), "rb");
@@ -114,7 +120,7 @@ void VoxFile::load(std::string path)
 		int32_t type = getHeader(file);
 		int size = readInt(file);
 		int children = readInt(file);
-		
+
 		switch (type)
 		{
 		case 0: break;

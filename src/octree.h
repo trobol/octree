@@ -5,7 +5,7 @@
 #include <iostream>
 #include <iterator>
 
-#include "files/vox_file.h"
+#include <core/files/vox_file.h>
 
 struct Point
 {

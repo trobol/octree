@@ -38,7 +38,7 @@
 				"isDefault": true
 			},
 			"problemMatcher": [
-				"$gcc"
+				"$msCompile"
 			],
 			"presentation": {
 				"echo": true,

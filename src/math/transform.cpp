@@ -1,5 +1,5 @@
-#include "transform.h"
-#include "../math/math.h"
+#include <math/transform.h>
+#include <math/math.h>
 #include <math.h>
 
 mat4 Transform::ToMatrix()
@@ -44,7 +44,7 @@ void Transform::rotateAroundDistance(vec3 point, float distance) {
 
 	if (radius == 0) return;
 	float angle = asin(halfDist / radius);
-	rotateAround(point, angle*2);
+	rotateAround(point, angle * 2);
 }
 
 void Transform::lookAt(vec3 point)

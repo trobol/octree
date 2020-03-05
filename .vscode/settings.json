@@ -60,5 +60,6 @@
 		"iomanip": "cpp",
 		"mutex": "cpp",
 		"thread": "cpp"
-	}
+	},
+	"cmake.generator": "Visual Studio"
 }
