@@ -12,7 +12,7 @@ static void error_callback(int error, const char* description)
 }
 
 void Window::windowSizeCallback(GLFWwindow* window, int width, int height) {
-	Window& instance = getInstance();
+	Window instance;
 	instance.mAspectRatio = (float)width / height;
 	instance.mWidth = width;
 	instance.mHeight = height;
@@ -23,7 +23,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	glViewport(0, 0, width, height);
 }
 
-void Window::open() {
+void Window::startup() {
 
 	glfwSetErrorCallback(error_callback);
 
@@ -53,13 +53,13 @@ void Window::open() {
 }
 
 
-void Window::open(int width, int height) {
+void Window::setSize(int width, int height) {
 	mWidth = width;
 	mHeight = height;
-	open();
+	mAspectRatio = width / height;
 }
 
 
-void Window::close() {
+void Window::shutdown() {
 	glfwDestroyWindow(mWindow);
 }

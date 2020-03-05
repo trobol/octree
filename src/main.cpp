@@ -86,7 +86,7 @@ int main(void)
 	tree.loadModel(file);
 
 
-	window.open();
+	window.startup();
 	// NOTE: OpenGL error checks have been omitted for brevity
 	window.setKeyCallback(key_callback);
 	window.setScrollCallback(scroll_callback);
@@ -201,7 +201,7 @@ int main(void)
 		glfwPollEvents();
 	}
 
-	window.close();
+	window.shutdown();
 
 	glfwTerminate();
 	exit(EXIT_SUCCESS);
