@@ -12,7 +12,7 @@ static void error_callback(int error, const char* description)
 }
 
 void Window::windowSizeCallback(GLFWwindow* window, int width, int height) {
-	Window instance;
+	Window& instance = getInstance();
 	instance.mAspectRatio = (float)width / height;
 	instance.mWidth = width;
 	instance.mHeight = height;

@@ -6,14 +6,18 @@
 #include <graphics/gl_lite.h>
 
 #include <GLFW/glfw3.h>
-#include "system.h"
 
 
-class Window : public System<Window> {
+class Window {
 public:
-	
+
+	static Window& getInstance() {
+		static Window instance;
+		return instance;
+	}
+
 	void startup();
-	
+
 	void shutdown();
 
 	float getAspectRatio() { return mAspectRatio; };
@@ -43,6 +47,7 @@ public:
 
 	}
 private:
+	Window() = default;
 	GLFWwindow* mWindow = nullptr;
 	float mAspectRatio = 0;
 	int mWidth = 1500,

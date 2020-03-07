@@ -2,19 +2,18 @@
 #define _GRAPHICS_UNIFORM_H
 
 #include "../math/mat4.h"
-
-class Shader;
+#include <graphics/shader.h>
 
 template <typename T>
 class Uniform
 {
 public:
-	Uniform(Shader &shader, const char *name)
+	Uniform(Shader& shader, const char* name)
 	{
 		mLocation = glGetUniformLocation((GLuint)shader, name);
 	}
-	virtual void set(const T &value, GLboolean transpose = GL_FALSE) = 0;
-	Uniform &operator=(const T &value)
+	void set(const T& value, GLboolean transpose = GL_FALSE) {}
+	Uniform& operator=(const T& value)
 	{
 		set(value);
 		return *this;
@@ -24,26 +23,24 @@ protected:
 	GLint mLocation;
 };
 
-class UniformMatrix4f : public Uniform<mat4>
-{
-public:
-	using Uniform::Uniform;
-	using Uniform::operator=;
-	void set(const mat4 &value, GLboolean transpose = GL_FALSE) override
-	{
-		glUniformMatrix4fv(mLocation, 1, GL_FALSE, value.matrix);
-	}
-};
+/*
+TEMPLATE SPECIALIZATIONS
+*/
 
-class Uniform1f : public Uniform<float>
+using UniformMatrix4f = Uniform<mat4>;
+
+template<>
+void Uniform<mat4>::set(const mat4& value, GLboolean transpose) {
+	glUniformMatrix4fv(mLocation, 1, GL_FALSE, value.matrix);
+}
+
+
+
+template <>
+void Uniform<float>::set(const float& value, GLboolean transpose)
 {
-public:
-	using Uniform::operator=;
-	using Uniform::Uniform;
-	void set(const float &value, GLboolean transpose = GL_FALSE) override
-	{
-		glUniformMatrix4fv(mLocation, 1, GL_FALSE, &value);
-	}
-};
+	glUniformMatrix4fv(mLocation, 1, GL_FALSE, &value);
+}
+
 
 #endif
