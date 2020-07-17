@@ -9,8 +9,8 @@
 
 struct Point
 {
-	vec3 pos{ 0, 0, 0 };
-	vec3 color{ 0, 0, 0 };
+	vec3 pos{0, 0, 0};
+	vec3 color{0, 0, 0};
 };
 
 class Octree
@@ -23,8 +23,8 @@ public:
 
 	struct Node
 	{
-		Node(int size) : size{ size } {}
-		Node* subNodes[8] = { nullptr };
+		Node(int size) : size{size} {}
+		Node *subNodes[8] = {nullptr};
 		unsigned char nodeMask = 0;
 		/*
 			top down
@@ -56,7 +56,8 @@ public:
 		}
 		~Node()
 		{
-			if (size == 0) return;
+			if (size == 0)
+				return;
 			for (int i = 0; i < 8; i++)
 			{
 				delete subNodes[i];
@@ -64,21 +65,20 @@ public:
 		}
 	};
 
-
 	static Octree load(std::string path);
-	void Octree::drawLeaf(uint32_t color, vec3 v, std::vector<Point>& leafElements);
-	Node* setNode(int x, int y, int z, uint32_t color);
-	Node* setNode(vec3 v, uint32_t color);
-	void drawNodes(std::vector<Point>& elements, std::vector<int>& indices, std::vector<Point>& leafElements, std::vector<int>& leafIndices);
+	void drawLeaf(uint32_t color, vec3 v, std::vector<Point> &leafElements);
+	Node *setNode(int x, int y, int z, uint32_t color);
+	Node *setNode(vec3 v, uint32_t color);
+	void drawNodes(std::vector<Point> &elements, std::vector<int> &indices, std::vector<Point> &leafElements, std::vector<int> &leafIndices);
 
-	void drawNode(Node* node, vec3 v, std::vector<Point>& vector, std::vector<Point>& leafElements);
+	void drawNode(Node *node, vec3 v, std::vector<Point> &vector, std::vector<Point> &leafElements);
 
 	int getSize()
 	{
 		return mRootNode->size;
 	}
-	void loadModel(VoxFile& file);
-	Node* mRootNode;
+	void loadModel(VoxFile &file);
+	Node *mRootNode;
 	size_t mLeafNodeCount = 0;
 	size_t mNodeCount = 1;
 	~Octree()
@@ -94,4 +94,4 @@ class OctreeIterator
 private:
 	int value_;
 };
-void printNode(Octree::Node& node, int depth = 0);
+void printNode(Octree::Node &node, int depth = 0);

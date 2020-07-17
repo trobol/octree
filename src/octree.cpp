@@ -22,7 +22,7 @@ const int BRANCH_INDICES[INDICES_PER_BRANCH] = {
 	2, 0,
 	3, 1,
 	7, 5,
-	6, 4 };
+	6, 4};
 /*
 node layout
 x y z
@@ -53,13 +53,13 @@ const int LEAF_INDICES[INDICES_PER_LEAF] = {
 	3, 1, 7,
 
 	1, 0, 5,
-	4, 0, 5 };
-void Octree::drawNodes(std::vector<Point>& elements, std::vector<int>& indices, std::vector<Point>& leafElements, std::vector<int>& leafIndices)
+	4, 0, 5};
+void Octree::drawNodes(std::vector<Point> &elements, std::vector<int> &indices, std::vector<Point> &leafElements, std::vector<int> &leafIndices)
 {
 
 	std::cout << elements.size();
 	vec3 v(0, 0, 0);
-	Node* node = mRootNode;
+	Node *node = mRootNode;
 
 	const size_t branchCount = mNodeCount - mLeafNodeCount;
 	const size_t leafCount = mNodeCount - branchCount;
@@ -88,19 +88,18 @@ void Octree::drawNodes(std::vector<Point>& elements, std::vector<int>& indices, 
 	drawNode(node, v, elements, leafElements);
 }
 
-
 vec3 CUBE_POINTS[ELEMENTS_PER_NODE] = {
-		{0, 0, 0},
-		{0, 0, 1},
-		{0, 1, 0},
-		{0, 1, 1},
-		{1, 0, 0},
-		{1, 0, 1},
-		{1, 1, 0},
-		{1, 1, 1},
+	{0, 0, 0},
+	{0, 0, 1},
+	{0, 1, 0},
+	{0, 1, 1},
+	{1, 0, 0},
+	{1, 0, 1},
+	{1, 1, 0},
+	{1, 1, 1},
 };
 
-void Octree::drawNode(Node* node, vec3 v, std::vector<Point>& elements, std::vector<Point>& leafElements)
+void Octree::drawNode(Node *node, vec3 v, std::vector<Point> &elements, std::vector<Point> &leafElements)
 {
 	vec3 color((float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX);
 
@@ -113,26 +112,27 @@ void Octree::drawNode(Node* node, vec3 v, std::vector<Point>& elements, std::vec
 
 		p.color = color;
 		elements.push_back(p);
-
 	}
 	int halfPowSize = powSize / 2;
 	for (int i = 0; i < 8; i++)
 	{
-		if (node->size > 1) {
+		if (node->size > 1)
+		{
 			if (node->subNodes[i])
 				drawNode(node->subNodes[i], v + CUBE_POINTS[i] * halfPowSize, elements, leafElements);
 		}
-		else {
-			if (node->nodeMask >> i & 1) drawLeaf((uint32_t)node->subNodes[i], v + CUBE_POINTS[i] * halfPowSize, leafElements);
-
+		else
+		{
+			if (node->nodeMask >> i & 1)
+				drawLeaf(static_cast<uint32_t>((size_t)node->subNodes[i]), v + CUBE_POINTS[i] * halfPowSize, leafElements);
 		}
-
 	}
 }
 
-void Octree::drawLeaf(uint32_t color, vec3 v, std::vector<Point>& leafElements) {
+void Octree::drawLeaf(uint32_t color, vec3 v, std::vector<Point> &leafElements)
+{
 	union {
-		uint8_t color_char[4] = { 0, 0, 0, 0 };
+		uint8_t color_char[4] = {0, 0, 0, 0};
 		uint32_t color_int;
 	};
 	color_int = color;
@@ -146,11 +146,10 @@ void Octree::drawLeaf(uint32_t color, vec3 v, std::vector<Point>& leafElements) 
 		p.color.z = (float)color_char[2] / 255;
 
 		leafElements.push_back(p);
-
 	}
 }
 
-void printNode(Octree::Node& node, int depth)
+void printNode(Octree::Node &node, int depth)
 {
 	for (int i = 0; i < depth; i++)
 		std::cout << ' ';
@@ -168,7 +167,7 @@ Octree Octree::load(std::string path)
 
 	return Octree(1);
 }
-Octree::Node* Octree::setNode(int x, int y, int z, uint32_t color)
+Octree::Node *Octree::setNode(int x, int y, int z, uint32_t color)
 {
 	return setNode(vec3(x, y, z), color);
 }
@@ -186,9 +185,9 @@ x y z
 1 1 1
 
 */
-Octree::Node* Octree::setNode(vec3 pos, uint32_t color)
+Octree::Node *Octree::setNode(vec3 pos, uint32_t color)
 {
-	Node* n = mRootNode;
+	Node *n = mRootNode;
 	vec3 currentPos(0, 0, 0);
 	for (int size = mRootNode->size; size != 0; size--)
 	{
@@ -212,7 +211,7 @@ Octree::Node* Octree::setNode(vec3 pos, uint32_t color)
 			if (n->size > 1)
 				n->subNodes[index] = new Node(n->size - 1);
 			else
-				n->subNodes[index] = (Node*)color;
+				n->subNodes[index] = (Node *)color;
 
 			mNodeCount++;
 			if (n->size - 1 == 0)
@@ -227,7 +226,7 @@ Octree::Node* Octree::setNode(vec3 pos, uint32_t color)
 	return n;
 }
 
-void Octree::loadModel(VoxFile& file)
+void Octree::loadModel(VoxFile &file)
 {
 	//get sqrt of nearest power of 2 size
 	vec3int size = file.getSize();
@@ -237,7 +236,7 @@ void Octree::loadModel(VoxFile& file)
 	delete mRootNode;
 	mRootNode = new Node(sqrtTwoSize);
 
-	uint32_t* palette = file.getPalette();
+	uint32_t *palette = file.getPalette();
 	//load
 	for (int i = 0; i < file.getNumVoxels(); i++)
 	{
