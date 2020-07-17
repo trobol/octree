@@ -1,2 +1,2 @@
 ##  ComponentDependancy
-	other components will sometimes rely on eachother
+	other components will sometimes rely on each other

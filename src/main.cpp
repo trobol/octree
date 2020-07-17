@@ -11,6 +11,7 @@
 #include <iostream>
 
 #include "graphics/shader.h"
+#include "math/math.h"
 
 #include <math.h>
 
@@ -27,11 +28,9 @@
 #include <systems/window.h>
 #include "camera.h"
 
-
-const std::string ASSET_PATH_STR = ASSET_PATH;
+std::string ASSET_PATH_STR = ASSET_PATH;
 
 Camera camera;
-
 
 vec3 center = vec3(0, 0, 0);
 bool drawBranches = true;
@@ -39,7 +38,7 @@ bool drawLeafs = true;
 
 float speed = 0.2f;
 
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
 	vec3 forward = (center - camera.mTransform.position).normalized();
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
@@ -66,13 +65,13 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		drawLeafs = !drawLeafs;
 }
 
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
 {
 	speed = max(0, speed + yoffset * 0.05);
 }
 Shader shader;
 
-Window& window = Window::getInstance();
+Window &window = Window::getInstance();
 
 int main(void)
 {
@@ -82,9 +81,8 @@ int main(void)
 	std::string filepath = filesystem::fileSelect(ASSET_PATH_STR + "/models/", ".vox");
 	file.load(filepath);
 	//file.load("../../assets/box.vox");
-	Octree tree(4);
+	Octree tree(4, 4);
 	tree.loadModel(file);
-
 
 	window.startup();
 	// NOTE: OpenGL error checks have been omitted for brevity
@@ -103,7 +101,6 @@ int main(void)
 
 	tree.drawNodes(elements, indices, leafElements, leafIndices);
 
-
 	VertexAttributeDiscriptor discriptor;
 
 	// position attribute
@@ -111,32 +108,24 @@ int main(void)
 	// color attribute
 	discriptor.add(3, GL_FLOAT);
 
-
 	VertexArray branchVertexArray = VertexArray::Generate();
 	Buffer branchVertexBuffer = Buffer::Generate();
 	Buffer branchElementBuffer = Buffer::Generate();
-
-
-
 
 	// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
 	branchVertexArray.bind();
 	branchVertexBuffer.bind(GL_ARRAY_BUFFER);
 	branchElementBuffer.bind(GL_ELEMENT_ARRAY_BUFFER);
 
-
 	discriptor.apply();
-
 
 	glBufferData(GL_ARRAY_BUFFER, elements.size() * sizeof(Point), elements.data(), GL_DYNAMIC_DRAW);
 
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(int), indices.data(), GL_DYNAMIC_DRAW);
 
-
 	branchVertexArray.unbind();
 	branchVertexBuffer.unbind();
 	branchElementBuffer.unbind();
-
 
 	VertexArray leafVertexArray = VertexArray::Generate();
 	Buffer leafVertexBuffer = Buffer::Generate();
@@ -156,14 +145,12 @@ int main(void)
 	leafVertexBuffer.unbind();
 	leafElementBuffer.unbind();
 
-
 	/*
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
 	*/
 	shader.use();
-
 
 	camera.mTransform.scale = vec3(1, 1, 1);
 	camera.mTransform.position = vec3(0, 0, 10.);
@@ -176,7 +163,6 @@ int main(void)
 	glEnable(GL_DEPTH_TEST);
 	while (!window.shouldClose())
 	{
-
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

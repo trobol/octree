@@ -48,7 +48,8 @@
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/benchmark/include",
                 "${workspaceFolder}/include"
-            ]
+            ],
+            "configurationProvider": "vector-of-bool.cmake-tools"
         }
     ],
     "version": 4
