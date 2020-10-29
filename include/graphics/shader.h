@@ -7,8 +7,8 @@
 class Shader
 {
 public:
-	Shader() {};
-	static Shader Load(std::string& vertex_file_path, std::string& fragment_file_path);
+	Shader(){};
+	static Shader Load(std::string vertex_file_path, std::string fragment_file_path);
 	operator GLuint()
 	{
 		return mId;
@@ -16,7 +16,7 @@ public:
 	void use() { glUseProgram(mId); }
 
 private:
-	Shader(GLuint id) : mId{ id } {};
+	Shader(GLuint id) : mId{id} {};
 	GLuint mId = 0;
 };
 

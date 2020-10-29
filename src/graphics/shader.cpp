@@ -15,26 +15,26 @@ std::string LoadFile(std::string path)
 	if (inputFile)
 	{
 		return std::string((std::istreambuf_iterator<char>(inputFile)),
-			std::istreambuf_iterator<char>());
+						   std::istreambuf_iterator<char>());
 	}
 	std::cout << "Unable to load: " << path << std::endl;
 	return std::string();
 }
 
-
-void printErrorMessage(GLuint id) {
+void printErrorMessage(GLuint id)
+{
 	GLsizei infoLogLength;
 	glGetShaderiv(id, GL_INFO_LOG_LENGTH, &infoLogLength);
 	if (infoLogLength > 0)
 	{
-		char* errorMessage = new char[(size_t)infoLogLength + 1];
+		char *errorMessage = new char[(size_t)infoLogLength + 1];
 		glGetShaderInfoLog(id, infoLogLength, NULL, errorMessage);
 		std::cout << &errorMessage[0] << '\n';
 		delete[] errorMessage;
 	}
 }
 
-Shader Shader::Load(std::string& vertex_file_path, std::string& fragment_file_path)
+Shader Shader::Load(std::string vertex_file_path, std::string fragment_file_path)
 {
 	// Create the shaders
 	GLuint vertexShaderId = glCreateShader(GL_VERTEX_SHADER);
@@ -66,7 +66,8 @@ Shader Shader::Load(std::string& vertex_file_path, std::string& fragment_file_pa
 		fragmentShaderCode = sstr.str();
 		fragmentShaderStream.close();
 	}
-	else {
+	else
+	{
 		std::cout << "Unable to open " << fragment_file_path << '\n';
 		return 0;
 	}
@@ -75,7 +76,7 @@ Shader Shader::Load(std::string& vertex_file_path, std::string& fragment_file_pa
 	GLsizei infoLogLength;
 
 	// Compile Vertex Shader
-	char const* vertexSourcePointer = vertexShaderCode.c_str();
+	char const *vertexSourcePointer = vertexShaderCode.c_str();
 	glShaderSource(vertexShaderId, 1, &vertexSourcePointer, NULL);
 	glCompileShader(vertexShaderId);
 
@@ -84,7 +85,7 @@ Shader Shader::Load(std::string& vertex_file_path, std::string& fragment_file_pa
 	printErrorMessage(vertexShaderId);
 
 	// Compile Fragment Shader
-	char const* fragmentSourcePointer = fragmentShaderCode.c_str();
+	char const *fragmentSourcePointer = fragmentShaderCode.c_str();
 	glShaderSource(fragmentShaderId, 1, &fragmentSourcePointer, NULL);
 	glCompileShader(fragmentShaderId);
 

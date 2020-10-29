@@ -11,6 +11,7 @@
 #include <iostream>
 
 #include "graphics/shader.h"
+#include "math/math.h"
 
 #include <math.h>
 #include "./math/math.h"
@@ -80,8 +81,8 @@ int main(void)
 
 	std::string filepath = filesystem::fileSelect(ASSET_PATH_STR + "/models/", ".vox");
 	file.load(filepath);
-
-	Octree tree(4);
+	//file.load("../../assets/box.vox");
+	Octree tree(4, 4);
 	tree.loadModel(file);
 
 	window.startup();

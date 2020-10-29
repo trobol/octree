@@ -185,7 +185,7 @@ x y z
 1 1 1
 
 */
-Octree::Node *Octree::setNode(vec3 pos, uint32_t color)
+Node *Octree::setNode(vec3 pos, uint32_t color)
 {
 	Node *n = mRootNode;
 	vec3 currentPos(0, 0, 0);
