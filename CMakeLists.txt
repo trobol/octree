@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.6)
 project(octree)
 
-set(CMAKE_CXX_STANDARD 17)  # for c++17
+set(CMAKE_CXX_STANDARD 14)  # for c++17
 
 
 file(GLOB_RECURSE SOURCE_FILES "src/*.cpp")

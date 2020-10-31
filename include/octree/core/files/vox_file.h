@@ -4,7 +4,7 @@
 #include <vector>
 
 
-#include <math/vec3int.h>
+#include <octree/math/vec3int.h>
 
 
 class VoxFile

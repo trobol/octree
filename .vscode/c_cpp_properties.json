@@ -4,8 +4,6 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/glfw/include",
-                "${workspaceFolder}/**",
-                "${workspaceFolder}/benchmark/include",
                 "${workspaceFolder}/include"
             ],
             "defines": [],
@@ -30,26 +28,23 @@
                 "_UNICODE",
                 "_WIN32"
             ],
-            "compilerPath": "C:/mingw64/bin/gcc.exe",
-            "windowsSdkVersion": "10.0.17763.0",
+            "compilerPath": "C:/mingw64/bin/g++.exe",
             "intelliSenseMode": "gcc-x86",
             "cStandard": "c11",
             "cppStandard": "c++17",
-            "compilerArgs": [],
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
-                    "${workspaceFolder}/src",
-                    "${workspaceFolder}/glfw/include/"
-                ]
+                    "${workspaceRoot}/src",
+                    "${workspaceRoot}/glfw/include/"
+                ],
+                "databaseFilename": ""
             },
             "includePath": [
                 "${workspaceFolder}/glfw/include/",
-                "${workspaceFolder}/**",
-                "${workspaceFolder}/benchmark/include",
-                "${workspaceFolder}/include"
-            ],
-            "configurationProvider": "vector-of-bool.cmake-tools"
+                "${workspaceFolder}\\include",
+                "${workspaceFolder}/**"
+            ]
         }
     ],
     "version": 4

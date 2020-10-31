@@ -1,6 +1,6 @@
 
-#include <math/math.h>
-#include <math/mat4.h>
+#include <octree/math/math.h>
+#include <octree/math/mat4.h>
 #include <math.h>
 
 //SSE and AVX from https://gist.github.com/rygorous/4172889

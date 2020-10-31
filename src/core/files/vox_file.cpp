@@ -1,4 +1,4 @@
-#include <core/files/vox_file.h>
+#include <octree/core/files/vox_file.h>
 
 #include <fstream>
 #include <cstring>

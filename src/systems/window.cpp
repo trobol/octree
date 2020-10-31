@@ -1,9 +1,9 @@
-#include <systems/window.h>
+#include <octree/systems/window.h>
 #include <iostream>
 
 
 #define GL_LITE_IMPLEMENTATION
-#include <graphics/gl_lite.h>
+#include <octree/graphics/gl_lite.h>
 
 
 static void error_callback(int error, const char* description)

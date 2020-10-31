@@ -2,7 +2,7 @@
 #define _GRAPHICS_UNIFORM_H
 
 #include "../math/mat4.h"
-#include <graphics/shader.h>
+#include <octree/graphics/shader.h>
 
 template <typename T>
 class Uniform

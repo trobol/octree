@@ -3,8 +3,8 @@
 #include <math.h>
 #include <cmath>
 
-#include <math/quaternion.h>
-#include <math/mat4.h>
+#include <octree/math/quaternion.h>
+#include <octree/math/mat4.h>
 
 Quaternion Quaternion::identity = Quaternion(0, 0, 0, 1);
 

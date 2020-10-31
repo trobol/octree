@@ -1,4 +1,4 @@
-#include <math/vec3.h>
+#include <octree/math/vec3.h>
 
 #include <math.h>
 

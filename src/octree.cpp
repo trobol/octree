@@ -1,155 +1,52 @@
-#include "octree.h"
+#include <octree/octree.h>
 
-#define ELEMENTS_PER_NODE 8
-#define INDICES_PER_BRANCH 24
 
-#define INDICES_PER_LEAF 36
 
 #include <math.h>
-#include "math/math.h"
+#include <octree/math/math.h>
+#include <octree/octree_chunk.h>
 
-const int BRANCH_INDICES[INDICES_PER_BRANCH] = {
-	0, 1,
-	1, 5,
-	5, 4,
-	4, 0,
+Octree::Octree(uint32_t width, uint32_t height, uint32_t depth) :
+	m_width{ width }, m_height{ height }, m_depth{ depth } {
+	m_chunk_width = (width / 32) + 1;
+	m_chunk_height = (height / 32) + 1;
+	m_chunk_depth = (depth / 32) + 1;
 
-	2, 3,
-	3, 7,
-	7, 6,
-	6, 2,
+	uint32_t chunk_count = m_chunk_width * m_chunk_height * m_chunk_depth;
+	m_chunks.resize(chunk_count);
 
-	2, 0,
-	3, 1,
-	7, 5,
-	6, 4};
+	for (uint32_t i = 0; i < chunk_count; i++) {
+		m_chunks[i] = new OctreeChunk(32);
+	}
+
+}
+
+OctreeChunk* Octree::getChunk(uint32_t x, uint32_t y, uint32_t z) {
+	uint32_t a = m_chunk_width * m_chunk_height;
+	return m_chunks[(z * a) + (y * m_chunk_height) + x];
+}
+
+void Octree::setChunk(OctreeChunk* chunk, uint32_t x, uint32_t y, uint32_t z) {
+	uint32_t a = m_chunk_width * m_chunk_height;
+	m_chunks[(z * a) + (y * m_chunk_height) + x] = chunk;
+}
+
+void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafElements)
+{
+	for (uint32_t x = 0; x < m_chunk_width; x++) {
+		for (uint32_t y = 0; y < m_chunk_height; y++) {
+			for (uint32_t z = 0; z < m_chunk_depth; z++) {
+				OctreeChunk* chunk = getChunk(x, y, z);
+				vec3 center = (vec3(x, y, z) * 32) + vec3(16, 16, 16);
+
+				chunk->drawNodes(center, elements, leafElements);
+			}
+		}
+	}
+}
+
 /*
-node layout
-x y z
-0 0 0
-0 0 1
-0 1 0
-0 1 1
-1 0 0
-1 0 1
-1 1 0
-1 1 1
-
-*/
-const int LEAF_INDICES[INDICES_PER_LEAF] = {
-	0, 1, 2,
-	3, 1, 2,
-
-	0, 2, 4,
-	6, 2, 4,
-
-	2, 3, 6,
-	7, 3, 6,
-
-	5, 4, 7,
-	6, 4, 7,
-
-	5, 1, 7,
-	3, 1, 7,
-
-	1, 0, 5,
-	4, 0, 5};
-void Octree::drawNodes(std::vector<Point> &elements, std::vector<int> &indices, std::vector<Point> &leafElements, std::vector<int> &leafIndices)
-{
-
-	std::cout << elements.size();
-	vec3 v(0, 0, 0);
-	Node *node = mRootNode;
-
-	const size_t branchCount = mNodeCount - mLeafNodeCount;
-	const size_t leafCount = mNodeCount - branchCount;
-
-	elements.reserve(branchCount * ELEMENTS_PER_NODE);
-	leafElements.reserve(leafCount * ELEMENTS_PER_NODE);
-
-	indices.resize(branchCount * INDICES_PER_BRANCH);
-	leafIndices.resize(leafCount * INDICES_PER_LEAF);
-
-	for (size_t i = 0; i < branchCount; i++)
-	{
-		for (size_t j = 0; j < INDICES_PER_BRANCH; j++)
-		{
-			indices[j + (i * INDICES_PER_BRANCH)] = BRANCH_INDICES[j] + (i * ELEMENTS_PER_NODE);
-		}
-	}
-
-	for (size_t i = 0; i < leafCount; i++)
-	{
-		for (size_t j = 0; j < INDICES_PER_LEAF; j++)
-		{
-			leafIndices[j + (i * INDICES_PER_LEAF)] = LEAF_INDICES[j] + (i * ELEMENTS_PER_NODE);
-		}
-	}
-	drawNode(node, v, elements, leafElements);
-}
-
-vec3 CUBE_POINTS[ELEMENTS_PER_NODE] = {
-	{0, 0, 0},
-	{0, 0, 1},
-	{0, 1, 0},
-	{0, 1, 1},
-	{1, 0, 0},
-	{1, 0, 1},
-	{1, 1, 0},
-	{1, 1, 1},
-};
-
-void Octree::drawNode(Node *node, vec3 v, std::vector<Point> &elements, std::vector<Point> &leafElements)
-{
-	vec3 color((float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX);
-
-	//2 to the power of node size
-	int powSize = 1 << node->size;
-	for (int i = 0; i < ELEMENTS_PER_NODE; i++)
-	{
-		Point p;
-		p.pos = CUBE_POINTS[i] * powSize + v;
-
-		p.color = color;
-		elements.push_back(p);
-	}
-	int halfPowSize = powSize / 2;
-	for (int i = 0; i < 8; i++)
-	{
-		if (node->size > 1)
-		{
-			if (node->subNodes[i])
-				drawNode(node->subNodes[i], v + CUBE_POINTS[i] * halfPowSize, elements, leafElements);
-		}
-		else
-		{
-			if (node->nodeMask >> i & 1)
-				drawLeaf(static_cast<uint32_t>((size_t)node->subNodes[i]), v + CUBE_POINTS[i] * halfPowSize, leafElements);
-		}
-	}
-}
-
-void Octree::drawLeaf(uint32_t color, vec3 v, std::vector<Point> &leafElements)
-{
-	union {
-		uint8_t color_char[4] = {0, 0, 0, 0};
-		uint32_t color_int;
-	};
-	color_int = color;
-	for (int i = 0; i < ELEMENTS_PER_NODE; i++)
-	{
-		Point p;
-		p.pos = CUBE_POINTS[i] + v;
-
-		p.color.x = (float)color_char[0] / 255;
-		p.color.y = (float)color_char[1] / 255;
-		p.color.z = (float)color_char[2] / 255;
-
-		leafElements.push_back(p);
-	}
-}
-
-void printNode(Octree::Node &node, int depth)
+void printNode(Node &node, int depth)
 {
 	for (int i = 0; i < depth; i++)
 		std::cout << ' ';
@@ -160,16 +57,19 @@ void printNode(Octree::Node &node, int depth)
 			printNode(*node.subNodes[i], depth + 1);
 	}
 }
+*/
 
+/*
 //https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox.txt
 Octree Octree::load(std::string path)
 {
-
 	return Octree(1);
 }
-Octree::Node *Octree::setNode(int x, int y, int z, uint32_t color)
+*/
+
+Node* Octree::setNode(int x, int y, int z, uint32_t color)
 {
-	return setNode(vec3(x, y, z), color);
+	return setNode(vec3int(x, y, z), color);
 }
 
 /*
@@ -185,63 +85,55 @@ x y z
 1 1 1
 
 */
-Node *Octree::setNode(vec3 pos, uint32_t color)
+
+
+Node* Octree::setNode(vec3int pos, uint16_t color)
 {
-	Node *n = mRootNode;
-	vec3 currentPos(0, 0, 0);
-	for (int size = mRootNode->size; size != 0; size--)
-	{
-		float halfThisNode = (1 << n->size) / 2;
+	// find correct chunk
+	vec3int offset = pos / vec3int(32, 32, 32);
 
-		vec3 centerPos = currentPos + halfThisNode;
-		bool greaterX = !(pos.x < centerPos.x);
-		bool greaterY = !(pos.y < centerPos.y);
-		bool greaterZ = !(pos.z < centerPos.z);
+	OctreeChunk* chunk = getChunk(offset.x, offset.y, offset.z);
 
-		int index = (greaterX << 2) | (greaterY << 1) | greaterZ;
+	// calculate position relative to chunk
+	vec3int relative_pos = vec3int(32, 32, 32) * offset;
 
-		//half width of current cube
-
-		float halfNextNode = halfThisNode / 2;
-		currentPos = currentPos + vec3(greaterX, greaterY, greaterZ) * halfThisNode;
-
-		if (n->subNodes[index] == nullptr)
-		{
-			n->nodeMask = n->nodeMask | (1 << index);
-			if (n->size > 1)
-				n->subNodes[index] = new Node(n->size - 1);
-			else
-				n->subNodes[index] = (Node *)color;
-
-			mNodeCount++;
-			if (n->size - 1 == 0)
-				mLeafNodeCount++;
-		}
-
-		n = n->subNodes[index];
-	}
-	if (currentPos != pos)
-		std::cout << pos << " -> " << currentPos << std::endl;
-
-	return n;
+	// call func on chunk
+	return (chunk->add_node(relative_pos, color));
 }
 
-void Octree::loadModel(VoxFile &file)
+Octree Octree::loadModel(VoxFile& file)
 {
+
 	//get sqrt of nearest power of 2 size
 	vec3int size = file.getSize();
-	int largetstSize = max(size.x, max(size.y, size.z));
-	int sqrtTwoSize = nearestSqrt(largetstSize);
 
-	delete mRootNode;
-	mRootNode = new Node(sqrtTwoSize);
+	Octree octree(size.x, size.y, size.z);
 
-	uint32_t *palette = file.getPalette();
+	union {
+		uint16_t color : 15;
+		struct {
+			uint8_t r : 5;
+			uint8_t g : 5;
+			uint8_t b : 5;
+		} colorRGB;
+	};
+	union {
+		uint32_t color32;
+		uint8_t color32split[4];
+	};
+
+	uint32_t* palette = file.getPalette();
 	//load
 	for (int i = 0; i < file.getNumVoxels(); i++)
 	{
 		std::cout << +file.mVoxels[i].colorIndex << '\n';
-		setNode(vec3(file.mVoxels[i].x, file.mVoxels[i].y, file.mVoxels[i].z), palette[file.mVoxels[i].colorIndex - 1]);
+		color32 = palette[file.mVoxels[i].colorIndex - 1];
+		colorRGB.r = color32split[0];
+		colorRGB.g = color32split[1];
+		colorRGB.b = color32split[2];
+		octree.setNode(vec3int(file.mVoxels[i].x, file.mVoxels[i].y, file.mVoxels[i].z), color);
 	}
 	std::cout << std::flush;
+
+	return octree;
 }

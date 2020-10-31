@@ -1,9 +1,9 @@
 #ifndef _SYSTEMS_WINDOW_H
 #define _SYSTEMS_WINDOW_H
 
-#include <core/isystem.h>
+#include <octree/core/isystem.h>
 
-#include <graphics/gl_lite.h>
+#include <octree/graphics/gl_lite.h>
 
 #include <GLFW/glfw3.h>
 

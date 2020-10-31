@@ -4,30 +4,31 @@
 #include <Windows.h>
 #include <GL/glu.h>
 #include <GLFW/glfw3.h>
-#include "octree.h"
+#include <octree/octree.h>
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
 
-#include "graphics/shader.h"
-#include "math/math.h"
+#include <octree/graphics/shader.h>
+#include <octree/math/math.h>
+#include <octree/math/vec3.h>
 
 #include <math.h>
-#include "./math/math.h"
 
-#include <core/files/filesystem.h>
+#include <octree/core/files/filesystem.h>
 
 #include <time.h> /* time */
 
-#include "graphics/buffer.h"
-#include "graphics/vertex_attribute_distriptor.h"
+#include <octree/graphics/buffer.h>
+#include <octree/graphics/vertex_attribute_distriptor.h>
 
-#include "graphics/uniform.h"
-#include "graphics/vertex_array.h"
+#include <octree/graphics/uniform.h>
+#include <octree/graphics/vertex_array.h>
 
-#include <systems/window.h>
-#include "camera.h"
+#include <octree/systems/window.h>
+#include <octree/camera.h>
+#include "defines.h"
 
 const std::string ASSET_PATH_STR = ASSET_PATH;
 
@@ -39,7 +40,7 @@ bool drawLeafs = true;
 
 float speed = 1;
 
-static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
+static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	vec3 forward = (center - camera.mTransform.position).normalized();
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
@@ -66,13 +67,13 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
 		drawLeafs = !drawLeafs;
 }
 
-void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	//speed = max(0, speed + yoffset * 0.05);
 }
 Shader shader;
 
-Window &window = Window::getInstance();
+Window& window = Window::getInstance();
 
 int main(void)
 {
@@ -82,8 +83,7 @@ int main(void)
 	std::string filepath = filesystem::fileSelect(ASSET_PATH_STR + "/models/", ".vox");
 	file.load(filepath);
 	//file.load("../../assets/box.vox");
-	Octree tree(4, 4);
-	tree.loadModel(file);
+	Octree tree = Octree::loadModel(file);
 
 	window.startup();
 	// NOTE: OpenGL error checks have been omitted for brevity
@@ -96,39 +96,59 @@ int main(void)
 
 	glUseProgram(shader);
 
-	std::vector<Point> elements;
-	std::vector<int> indices;
+	std::vector<Cube> instances;
+	std::vector<Cube> leafInstances;
 
-	std::vector<int> leafIndices;
-	std::vector<Point> leafElements;
+	// Set up element and index arrays
 
-	tree.drawNodes(elements, indices, leafElements, leafIndices);
 
-	VertexAttributeDiscriptor discriptor;
 
-	// position attribute
-	discriptor.add(3, GL_FLOAT);
-	// color attribute
-	discriptor.add(3, GL_FLOAT);
+	tree.drawNodes(instances, leafInstances);
+
+	Buffer branchInstanceBuffer = Buffer::Generate();
+	branchInstanceBuffer.bind(GL_ARRAY_BUFFER);
+	branchInstanceBuffer.bufferVector(instances, GL_STATIC_DRAW);
+	branchInstanceBuffer.unbind();
 
 	VertexArray branchVertexArray = VertexArray::Generate();
 	Buffer branchVertexBuffer = Buffer::Generate();
 	Buffer branchElementBuffer = Buffer::Generate();
+
 
 	// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
 	branchVertexArray.bind();
 	branchVertexBuffer.bind(GL_ARRAY_BUFFER);
 	branchElementBuffer.bind(GL_ELEMENT_ARRAY_BUFFER);
 
+	branchVertexBuffer.bufferArray(CUBE_POINTS, ELEMENTS_PER_CUBE, GL_STATIC_DRAW);
+	branchElementBuffer.bufferArray(LEAF_INDICES, INDICES_PER_BRANCH, GL_STATIC_DRAW);
+
+
+	VertexAttributeDiscriptor discriptor;
+	discriptor.add(3, GL_FLOAT); // position attribute
 	discriptor.apply();
 
-	glBufferData(GL_ARRAY_BUFFER, elements.size() * sizeof(Point), elements.data(), GL_DYNAMIC_DRAW);
+	//instanced attributes
+	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
+	branchInstanceBuffer.bind(GL_ARRAY_BUFFER);
 
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(int), indices.data(), GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)(3 * sizeof(float)));
+	branchInstanceBuffer.unbind();
+	glVertexAttribDivisor(1, 1);
+	glVertexAttribDivisor(2, 1); // tell OpenGL this is an instanced vertex attribute.
 
 	branchVertexArray.unbind();
 	branchVertexBuffer.unbind();
 	branchElementBuffer.unbind();
+
+	Buffer leafInstanceBuffer = Buffer::Generate();
+	leafInstanceBuffer.bind(GL_ARRAY_BUFFER);
+	leafInstanceBuffer.bufferVector(leafInstances, GL_STATIC_DRAW);
+	leafInstanceBuffer.unbind();
 
 	VertexArray leafVertexArray = VertexArray::Generate();
 	Buffer leafVertexBuffer = Buffer::Generate();
@@ -138,11 +158,23 @@ int main(void)
 	leafVertexBuffer.bind(GL_ARRAY_BUFFER);
 	leafElementBuffer.bind(GL_ELEMENT_ARRAY_BUFFER);
 
+	leafVertexBuffer.bufferArray(CUBE_POINTS, ELEMENTS_PER_CUBE, GL_STATIC_DRAW);
+	leafElementBuffer.bufferArray(LEAF_INDICES, INDICES_PER_LEAF, GL_STATIC_DRAW);
+
 	discriptor.apply();
 
-	glBufferData(GL_ARRAY_BUFFER, leafElements.size() * sizeof(Point), leafElements.data(), GL_DYNAMIC_DRAW);
+	//instanced attributes
+	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
+	leafInstanceBuffer.bind(GL_ARRAY_BUFFER);
 
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, leafIndices.size() * sizeof(int), leafIndices.data(), GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)(3 * sizeof(float)));
+	leafInstanceBuffer.unbind();
+	glVertexAttribDivisor(1, 1);
+	glVertexAttribDivisor(2, 1); // tell OpenGL this is an instanced vertex attribute.
 
 	leafVertexArray.unbind();
 	leafVertexBuffer.unbind();
@@ -178,13 +210,13 @@ int main(void)
 		{
 			branchVertexArray.bind();
 
-			glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
+			glDrawElementsInstanced(GL_LINES, INDICES_PER_BRANCH, GL_UNSIGNED_INT, 0, instances.size());
 		}
 		if (drawLeafs)
 		{
 			leafVertexArray.bind();
 
-			glDrawElements(GL_TRIANGLES, leafIndices.size(), GL_UNSIGNED_INT, 0);
+			glDrawElementsInstanced(GL_TRIANGLES, INDICES_PER_LEAF, GL_UNSIGNED_INT, 0, leafInstances.size());
 		}
 		window.swapBuffers();
 		glfwPollEvents();
