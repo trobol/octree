@@ -1,7 +1,7 @@
 
 #include <octree/math/math.h>
 #include <octree/math/mat4.h>
-#include <math.h>
+#include <ctgmath>
 
 //SSE and AVX from https://gist.github.com/rygorous/4172889
 

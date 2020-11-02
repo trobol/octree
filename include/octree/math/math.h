@@ -1,5 +1,5 @@
-#ifndef _MATH_H
-#define _MATH_H
+#ifndef _OCTREE_MATH_H
+#define _OCTREE_MATH_H
 
 #define PI 3.14159265359
 

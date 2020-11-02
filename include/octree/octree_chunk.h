@@ -27,6 +27,7 @@ struct Cube
 {
 	vec3 pos{0, 0, 0};
 	vec3 color{0, 0, 0};
+	float size;
 };
 
 struct Node

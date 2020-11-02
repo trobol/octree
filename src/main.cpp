@@ -1,7 +1,5 @@
-#pragma comment(lib, "opengl32.lib")
-#pragma comment(lib, "glu32.lib")
 
-#include <Windows.h>
+//#include <Windows.h>
 #include <GL/glu.h>
 #include <GLFW/glfw3.h>
 #include <octree/octree.h>
@@ -14,7 +12,6 @@
 #include <octree/math/math.h>
 #include <octree/math/vec3.h>
 
-#include <math.h>
 
 #include <octree/core/files/filesystem.h>
 
@@ -94,21 +91,63 @@ int main(void)
 	std::string fragPath = ASSET_PATH_STR + "/shaders/shader.frag";
 	shader = Shader::Load(vertPath, fragPath);
 
-	glUseProgram(shader);
+	shader.use();
 
 	std::vector<Cube> instances;
 	std::vector<Cube> leafInstances;
 
-	// Set up element and index arrays
-
-
-
 	tree.drawNodes(instances, leafInstances);
 
-	Buffer branchInstanceBuffer = Buffer::Generate();
-	branchInstanceBuffer.bind(GL_ARRAY_BUFFER);
-	branchInstanceBuffer.bufferVector(instances, GL_STATIC_DRAW);
-	branchInstanceBuffer.unbind();
+
+	std::vector<uint32_t> branchIndices(instances.size() * INDICES_PER_BRANCH);
+	std::vector<Point> branchElements(instances.size() * ELEMENTS_PER_CUBE);
+
+	for (size_t i = 0; i < instances.size(); i++)
+	{
+		for (size_t j = 0; j < INDICES_PER_BRANCH; j++)
+		{
+			uint32_t offset = (i * INDICES_PER_BRANCH);
+			branchIndices[j + offset] = BRANCH_INDICES[j] + offset;
+		}
+	}
+	for (size_t i = 0; i < instances.size(); i++)
+	{
+		Cube c = instances[i];
+		for (int j = 0; j < ELEMENTS_PER_CUBE; j++)
+		{
+			Point p;
+			p.pos = (CUBE_POINTS[i] * c.size) + c.pos;
+			p.color = c.color;
+			branchElements.push_back(p);
+		}
+	}
+
+
+
+	std::vector<uint32_t> leafIndices(leafInstances.size() * INDICES_PER_LEAF);
+	std::vector<Point> leafElements(leafInstances.size() * ELEMENTS_PER_CUBE);
+
+
+	for (size_t i = 0; i < leafInstances.size(); i++)
+	{
+		for (size_t j = 0; j < INDICES_PER_LEAF; j++)
+		{
+			leafIndices[j + (i * INDICES_PER_LEAF)] = LEAF_INDICES[j] + (i * INDICES_PER_LEAF);
+		}
+	}
+	for (size_t i = 0; i < leafInstances.size(); i++)
+	{
+		Cube c = leafInstances[i];
+		for (int j = 0; j < ELEMENTS_PER_CUBE; j++)
+		{
+			Point p;
+			p.pos = (CUBE_POINTS[i] * c.size) + c.pos;
+			p.color = c.color;
+			leafElements.push_back(p);
+		}
+	}
+
+
 
 	VertexArray branchVertexArray = VertexArray::Generate();
 	Buffer branchVertexBuffer = Buffer::Generate();
@@ -120,35 +159,18 @@ int main(void)
 	branchVertexBuffer.bind(GL_ARRAY_BUFFER);
 	branchElementBuffer.bind(GL_ELEMENT_ARRAY_BUFFER);
 
-	branchVertexBuffer.bufferArray(CUBE_POINTS, ELEMENTS_PER_CUBE, GL_STATIC_DRAW);
-	branchElementBuffer.bufferArray(LEAF_INDICES, INDICES_PER_BRANCH, GL_STATIC_DRAW);
+	branchVertexBuffer.bufferVector(branchIndices, GL_DYNAMIC_DRAW);
+	branchElementBuffer.bufferVector(branchElements, GL_DYNAMIC_DRAW);
 
 
 	VertexAttributeDiscriptor discriptor;
 	discriptor.add(3, GL_FLOAT); // position attribute
+	discriptor.add(3, GL_FLOAT);
 	discriptor.apply();
-
-	//instanced attributes
-	glEnableVertexAttribArray(1);
-	glEnableVertexAttribArray(2);
-	branchInstanceBuffer.bind(GL_ARRAY_BUFFER);
-
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-
-
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)(3 * sizeof(float)));
-	branchInstanceBuffer.unbind();
-	glVertexAttribDivisor(1, 1);
-	glVertexAttribDivisor(2, 1); // tell OpenGL this is an instanced vertex attribute.
 
 	branchVertexArray.unbind();
 	branchVertexBuffer.unbind();
 	branchElementBuffer.unbind();
-
-	Buffer leafInstanceBuffer = Buffer::Generate();
-	leafInstanceBuffer.bind(GL_ARRAY_BUFFER);
-	leafInstanceBuffer.bufferVector(leafInstances, GL_STATIC_DRAW);
-	leafInstanceBuffer.unbind();
 
 	VertexArray leafVertexArray = VertexArray::Generate();
 	Buffer leafVertexBuffer = Buffer::Generate();
@@ -158,23 +180,10 @@ int main(void)
 	leafVertexBuffer.bind(GL_ARRAY_BUFFER);
 	leafElementBuffer.bind(GL_ELEMENT_ARRAY_BUFFER);
 
-	leafVertexBuffer.bufferArray(CUBE_POINTS, ELEMENTS_PER_CUBE, GL_STATIC_DRAW);
-	leafElementBuffer.bufferArray(LEAF_INDICES, INDICES_PER_LEAF, GL_STATIC_DRAW);
+	leafVertexBuffer.bufferVector(leafIndices, GL_DYNAMIC_DRAW);
+	leafElementBuffer.bufferVector(leafElements, GL_DYNAMIC_DRAW);
 
 	discriptor.apply();
-
-	//instanced attributes
-	glEnableVertexAttribArray(1);
-	glEnableVertexAttribArray(2);
-	leafInstanceBuffer.bind(GL_ARRAY_BUFFER);
-
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-
-
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)(3 * sizeof(float)));
-	leafInstanceBuffer.unbind();
-	glVertexAttribDivisor(1, 1);
-	glVertexAttribDivisor(2, 1); // tell OpenGL this is an instanced vertex attribute.
 
 	leafVertexArray.unbind();
 	leafVertexBuffer.unbind();
@@ -185,7 +194,7 @@ int main(void)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
 	*/
-	shader.use();
+	
 
 	camera.mTransform.scale = vec3(1, 1, 1);
 	camera.mTransform.position = vec3(0, 0, 10.);
@@ -210,13 +219,13 @@ int main(void)
 		{
 			branchVertexArray.bind();
 
-			glDrawElementsInstanced(GL_LINES, INDICES_PER_BRANCH, GL_UNSIGNED_INT, 0, instances.size());
+			glDrawElements(GL_LINES, branchIndices.size(), GL_UNSIGNED_INT, 0);
 		}
 		if (drawLeafs)
 		{
 			leafVertexArray.bind();
 
-			glDrawElementsInstanced(GL_TRIANGLES, INDICES_PER_LEAF, GL_UNSIGNED_INT, 0, leafInstances.size());
+			glDrawElements(GL_TRIANGLES, leafIndices.size(), GL_UNSIGNED_INT, 0);
 		}
 		window.swapBuffers();
 		glfwPollEvents();

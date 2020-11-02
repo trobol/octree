@@ -31,6 +31,7 @@
 #if defined(__linux__)
 #define GLDECL // Empty define
 #define PAPAYA_GL_LIST_WIN32 // Empty define
+#include <dlfcn.h>
 #endif // __linux__
 
 #if defined(_WIN32)
@@ -99,7 +100,6 @@ typedef ptrdiff_t GLsizeiptr;
 	GLE(void, UseProgram, GLuint program)                                                                                                                                                             \
 	GLE(void, VertexAttribPointer, GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid *pointer)                                                                \
 	GLE(void, TexStorage3D, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth)                                                                       \
-	GLE(void, TexSubImage3D, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const GLvoid *pixels) \
 	GLE(void *, MapBuffer, GLenum target, GLenum access)                                                                                                                                              \
 	GLE(GLboolean, UnmapBuffer, GLenum target)                                                                                                                                                        \
 	GLE(void *, MapBufferRange, GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access)                                                                                                 \
@@ -117,6 +117,7 @@ typedef ptrdiff_t GLsizeiptr;
 	GLE(void, BindImageTexture, GLuint unit, GLuint texture, GLint level, GLboolean layered, GLint layer, GLenum access, GLenum format)                                                               \
 	GLE(void, GetIntegeri_v, GLenum pname, GLuint index, GLint *data)                                                                                                                                 \
 	GLE(void, DetachShader, GLuint program, GLuint shader)
+//	GLE(void, TexSubImage3D, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const GLvoid *pixels) \
 //	GLE(void, GetIntegerv, GLenum pname, GLint *params)                                                                                                                                               
 
 

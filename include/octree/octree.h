@@ -8,7 +8,10 @@
 
 #include <octree/core/files/vox_file.h>
 
-
+struct Point {
+	vec3 pos;
+	vec3 color;
+};
 
 class OctreeChunk;
 
