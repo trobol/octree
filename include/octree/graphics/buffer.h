@@ -13,10 +13,14 @@ public:
 		return result;
 	}
 	operator GLuint() { return mId; };
-	void bind(GLenum target) { glBindBuffer(target, mId); };
+	void bind(GLenum target) {
+		bindingPoint = target;
+		glBindBuffer(target, mId);
+	};
 	void unbind() {
 		if (bindingPoint) {
 			glBindBuffer(bindingPoint, 0);
+			bindingPoint = NULL;
 		}
 	}
 

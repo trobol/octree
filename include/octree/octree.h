@@ -34,7 +34,7 @@ public:
 	static Octree load(std::string path);
 	void drawLeaf(uint32_t color, vec3 v, std::vector<Cube>& leafInstances);
 	Node* setNode(int x, int y, int z, uint32_t color);
-	Node* setNode(vec3int v, uint16_t color);
+	Node* setNode(vec3int v, vec3 color);
 
 	OctreeChunk* getChunk(uint32_t x, uint32_t y, uint32_t z);
 	void setChunk(OctreeChunk* chunk, uint32_t x, uint32_t y, uint32_t z);

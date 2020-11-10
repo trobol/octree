@@ -69,7 +69,7 @@ Octree Octree::load(std::string path)
 
 Node* Octree::setNode(int x, int y, int z, uint32_t color)
 {
-	return setNode(vec3int(x, y, z), color);
+	return setNode(vec3int(x, y, z), vec3(0, 0, 0));
 }
 
 /*
@@ -87,7 +87,7 @@ x y z
 */
 
 
-Node* Octree::setNode(vec3int pos, uint16_t color)
+Node* Octree::setNode(vec3int pos, vec3 color)
 {
 	// find correct chunk
 	vec3int offset = pos / vec3int(32, 32, 32);
@@ -98,7 +98,7 @@ Node* Octree::setNode(vec3int pos, uint16_t color)
 	vec3int relative_pos = vec3int(32, 32, 32) * offset;
 
 	// call func on chunk
-	return (chunk->add_node(relative_pos, color));
+	return (chunk->add_node(pos, color));
 }
 
 Octree Octree::loadModel(VoxFile& file)
@@ -110,14 +110,6 @@ Octree Octree::loadModel(VoxFile& file)
 	Octree octree(size.x, size.y, size.z);
 
 	union {
-		uint16_t color : 15;
-		struct {
-			uint8_t r : 5;
-			uint8_t g : 5;
-			uint8_t b : 5;
-		} colorRGB;
-	};
-	union {
 		uint32_t color32;
 		uint8_t color32split[4];
 	};
@@ -128,9 +120,7 @@ Octree Octree::loadModel(VoxFile& file)
 	{
 		std::cout << +file.mVoxels[i].colorIndex << '\n';
 		color32 = palette[file.mVoxels[i].colorIndex - 1];
-		colorRGB.r = color32split[0];
-		colorRGB.g = color32split[1];
-		colorRGB.b = color32split[2];
+		vec3 color = vec3(color32split[0], color32split[1], color32split[2]) / 255;
 		octree.setNode(vec3int(file.mVoxels[i].x, file.mVoxels[i].y, file.mVoxels[i].z), color);
 	}
 	std::cout << std::flush;

@@ -1,5 +1,5 @@
 
-//#include <Windows.h>
+#include <Windows.h>
 #include <GL/glu.h>
 #include <GLFW/glfw3.h>
 #include <octree/octree.h>
@@ -37,11 +37,21 @@ bool drawLeafs = true;
 
 float speed = 1;
 
+bool absolute_movement = false;
+
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	vec3 forward = (center - camera.mTransform.position).normalized();
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
+	// VISUALIZATION
+	if (key == GLFW_KEY_B && action == GLFW_PRESS)
+		drawBranches = !drawBranches;
+	if (key == GLFW_KEY_L && action == GLFW_PRESS)
+		drawLeafs = !drawLeafs;
+
+
+	// MOVEMENT
 	if (key == GLFW_KEY_W)
 		camera.mTransform.position += forward * speed;
 
@@ -58,15 +68,17 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 	if (key == GLFW_KEY_A)
 		camera.mTransform.rotateAroundDistance(center, -speed);
 
-	if (key == GLFW_KEY_B && action == GLFW_PRESS)
-		drawBranches = !drawBranches;
-	if (key == GLFW_KEY_L && action == GLFW_PRESS)
-		drawLeafs = !drawLeafs;
+
+
+	if (key == GLFW_KEY_R && action == GLFW_PRESS) {
+		camera.mTransform.position = vec3(0, 0, 10);
+		camera.mTransform.rotation = Quaternion::identity;
+	}
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-	//speed = max(0, speed + yoffset * 0.05);
+	speed = max(0, speed + yoffset * 0.05);
 }
 Shader shader;
 
@@ -93,14 +105,16 @@ int main(void)
 
 	shader.use();
 
+
 	std::vector<Cube> instances;
 	std::vector<Cube> leafInstances;
 
 	tree.drawNodes(instances, leafInstances);
 
 
-	std::vector<uint32_t> branchIndices(instances.size() * INDICES_PER_BRANCH);
+	std::vector<GLint> branchIndices(instances.size() * INDICES_PER_BRANCH);
 	std::vector<Point> branchElements(instances.size() * ELEMENTS_PER_CUBE);
+
 
 	for (size_t i = 0; i < instances.size(); i++)
 	{
@@ -116,7 +130,7 @@ int main(void)
 		for (int j = 0; j < ELEMENTS_PER_CUBE; j++)
 		{
 			Point p;
-			p.pos = (CUBE_POINTS[i] * c.size) + c.pos;
+			p.pos = (CUBE_POINTS[j] * c.size) + c.pos;
 			p.color = c.color;
 			branchElements.push_back(p);
 		}
@@ -124,15 +138,15 @@ int main(void)
 
 
 
-	std::vector<uint32_t> leafIndices(leafInstances.size() * INDICES_PER_LEAF);
-	std::vector<Point> leafElements(leafInstances.size() * ELEMENTS_PER_CUBE);
+	std::vector<GLint> leafIndices(leafInstances.size() * INDICES_PER_LEAF);
+	std::vector<Point> leafElements;
 
 
 	for (size_t i = 0; i < leafInstances.size(); i++)
 	{
 		for (size_t j = 0; j < INDICES_PER_LEAF; j++)
 		{
-			leafIndices[j + (i * INDICES_PER_LEAF)] = LEAF_INDICES[j] + (i * INDICES_PER_LEAF);
+			leafIndices[j + (i * INDICES_PER_LEAF)] = LEAF_INDICES[j] + (i * ELEMENTS_PER_CUBE);
 		}
 	}
 	for (size_t i = 0; i < leafInstances.size(); i++)
@@ -141,7 +155,7 @@ int main(void)
 		for (int j = 0; j < ELEMENTS_PER_CUBE; j++)
 		{
 			Point p;
-			p.pos = (CUBE_POINTS[i] * c.size) + c.pos;
+			p.pos = (CUBE_POINTS[j]) + c.pos;
 			p.color = c.color;
 			leafElements.push_back(p);
 		}
@@ -159,8 +173,8 @@ int main(void)
 	branchVertexBuffer.bind(GL_ARRAY_BUFFER);
 	branchElementBuffer.bind(GL_ELEMENT_ARRAY_BUFFER);
 
-	branchVertexBuffer.bufferVector(branchIndices, GL_DYNAMIC_DRAW);
-	branchElementBuffer.bufferVector(branchElements, GL_DYNAMIC_DRAW);
+	branchVertexBuffer.bufferVector(branchElements, GL_DYNAMIC_DRAW);
+	branchElementBuffer.bufferVector(branchIndices, GL_DYNAMIC_DRAW);
 
 
 	VertexAttributeDiscriptor discriptor;
@@ -180,8 +194,10 @@ int main(void)
 	leafVertexBuffer.bind(GL_ARRAY_BUFFER);
 	leafElementBuffer.bind(GL_ELEMENT_ARRAY_BUFFER);
 
-	leafVertexBuffer.bufferVector(leafIndices, GL_DYNAMIC_DRAW);
-	leafElementBuffer.bufferVector(leafElements, GL_DYNAMIC_DRAW);
+
+
+	leafVertexBuffer.bufferVector(leafElements, GL_DYNAMIC_DRAW);
+	leafElementBuffer.bufferVector(leafIndices, GL_DYNAMIC_DRAW);
 
 	discriptor.apply();
 
@@ -194,12 +210,13 @@ int main(void)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
 	*/
-	
+	shader.use();
+
 
 	camera.mTransform.scale = vec3(1, 1, 1);
 	camera.mTransform.position = vec3(0, 0, 10.);
 
-	center = file.getSize().toFloat() / 2;
+	center = vec3(32, 32, 32) / 2;
 
 	UniformMatrix4f projMatrix(shader, "projMatrix");
 	UniformMatrix4f camMatrix(shader, "camMatrix");

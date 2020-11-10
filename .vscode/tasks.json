@@ -23,11 +23,11 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "make",
+			"label": "cmake",
 			"type": "shell",
 			"args": [
-				"-j",
-				"8"
+				"--build",
+				"."
 			],
 			"options": {
 				"cwd": "${workspaceRoot}/build"

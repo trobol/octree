@@ -15,11 +15,6 @@ struct NodeIndex
 	bool m_active : 1 ;
 	union {
 		uint16_t m_index : 15;
-		struct {
-			uint8_t r : 5;
-			uint8_t g : 5;
-			uint8_t b : 5;
-		} m_color;
 	};
 };
 
@@ -72,17 +67,27 @@ private:
 	std::vector<Node> m_nodes;
 	//std::vector<LeafNode> m_leaves;
 	unsigned int m_root_size;
+
+	unsigned int m_root_count;
+
+	std::vector<vec3> m_color_table;
 public:
-	OctreeChunk(unsigned int root_size) : m_root_size{root_size} {m_nodes.push_back({});}
+	OctreeChunk(unsigned int root_size) : m_root_count{0}, m_root_size{root_size} {m_nodes.push_back({});}
 	OctreeChunk(OctreeChunk&&) = default;
 	Node &get_node(uint8_t x, uint8_t y);
 	Node *add_node(uint8_t x, uint8_t y, uint8_t z);
 	
-	Node* add_node(vec3int pos, uint16_t color);
+	Node* add_node(vec3int pos, vec3 color);
 
 	Node &get_root()
 	{
 		return m_nodes.front();
+	}
+
+	size_t add_color(vec3 color) {
+		size_t index = m_color_table.size();
+		m_color_table.push_back(color);
+		return index;
 	}
 	void drawNodes(vec3 center, std::vector<Cube> &instances, std::vector<Cube>& leafInstances);
 };

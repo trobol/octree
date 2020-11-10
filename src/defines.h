@@ -47,7 +47,7 @@ x y z
 1 1 1
 
 */
-const int LEAF_INDICES[INDICES_PER_LEAF] = {
+const unsigned int LEAF_INDICES[INDICES_PER_LEAF] = {
 	0, 1, 2,
 	3, 1, 2,
 

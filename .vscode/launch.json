@@ -8,14 +8,13 @@
 			"name": "(gdb) Launch",
 			"type": "cppdbg",
 			"request": "launch",
-			"program": "${workspaceFolder}/build/octree.exe",
+			"program": "${workspaceFolder}/build/Debug/octree.exe",
 			"args": [],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
 			"environment": [],
 			"externalConsole": false,
 			"MIMode": "gdb",
-			"preLaunchTask": "${defaultBuildTask}",
 			"miDebuggerPath": "c:\\mingw64\\bin\\gdb.exe",
 			"setupCommands": [
 				{
