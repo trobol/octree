@@ -16,6 +16,7 @@ struct NodeIndex
 	union {
 		uint16_t m_index : 15;
 	};
+	NodeIndex() : m_active{false}, m_index{0} {}
 };
 
 struct Cube
@@ -79,9 +80,9 @@ public:
 	
 	Node* add_node(vec3int pos, vec3 color);
 
-	Node &get_root()
+	Node* get_root()
 	{
-		return m_nodes.front();
+		return &m_nodes[0];
 	}
 
 	size_t add_color(vec3 color) {

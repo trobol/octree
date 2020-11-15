@@ -39,6 +39,8 @@ float speed = 1;
 
 bool absolute_movement = false;
 
+void draw_axis();
+
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	vec3 forward = (center - camera.mTransform.position).normalized();
@@ -68,6 +70,10 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 	if (key == GLFW_KEY_A)
 		camera.mTransform.rotateAroundDistance(center, -speed);
 
+	if (key == GLFW_KEY_EQUAL)
+		camera.mFov -= 2;
+	if (key == GLFW_KEY_MINUS)
+		camera.mFov += 2;
 
 
 	if (key == GLFW_KEY_R && action == GLFW_PRESS) {
@@ -111,56 +117,10 @@ int main(void)
 
 	tree.drawNodes(instances, leafInstances);
 
-
-	std::vector<GLint> branchIndices(instances.size() * INDICES_PER_BRANCH);
-	std::vector<Point> branchElements(instances.size() * ELEMENTS_PER_CUBE);
-
-
-	for (size_t i = 0; i < instances.size(); i++)
-	{
-		for (size_t j = 0; j < INDICES_PER_BRANCH; j++)
-		{
-			uint32_t offset = (i * INDICES_PER_BRANCH);
-			branchIndices[j + offset] = BRANCH_INDICES[j] + offset;
-		}
-	}
-	for (size_t i = 0; i < instances.size(); i++)
-	{
-		Cube c = instances[i];
-		for (int j = 0; j < ELEMENTS_PER_CUBE; j++)
-		{
-			Point p;
-			p.pos = (CUBE_POINTS[j] * c.size) + c.pos;
-			p.color = c.color;
-			branchElements.push_back(p);
-		}
-	}
-
-
-
-	std::vector<GLint> leafIndices(leafInstances.size() * INDICES_PER_LEAF);
-	std::vector<Point> leafElements;
-
-
-	for (size_t i = 0; i < leafInstances.size(); i++)
-	{
-		for (size_t j = 0; j < INDICES_PER_LEAF; j++)
-		{
-			leafIndices[j + (i * INDICES_PER_LEAF)] = LEAF_INDICES[j] + (i * ELEMENTS_PER_CUBE);
-		}
-	}
-	for (size_t i = 0; i < leafInstances.size(); i++)
-	{
-		Cube c = leafInstances[i];
-		for (int j = 0; j < ELEMENTS_PER_CUBE; j++)
-		{
-			Point p;
-			p.pos = (CUBE_POINTS[j]) + c.pos;
-			p.color = c.color;
-			leafElements.push_back(p);
-		}
-	}
-
+	Buffer branchInstanceBuffer = Buffer::Generate();
+	branchInstanceBuffer.bind(GL_ARRAY_BUFFER);
+	branchInstanceBuffer.bufferVector(instances, GL_STATIC_DRAW);
+	branchInstanceBuffer.unbind();
 
 
 	VertexArray branchVertexArray = VertexArray::Generate();
@@ -173,18 +133,44 @@ int main(void)
 	branchVertexBuffer.bind(GL_ARRAY_BUFFER);
 	branchElementBuffer.bind(GL_ELEMENT_ARRAY_BUFFER);
 
-	branchVertexBuffer.bufferVector(branchElements, GL_DYNAMIC_DRAW);
-	branchElementBuffer.bufferVector(branchIndices, GL_DYNAMIC_DRAW);
+	branchVertexBuffer.bufferArray(CUBE_POINTS, ELEMENTS_PER_CUBE, GL_STATIC_DRAW);
+	branchElementBuffer.bufferArray(BRANCH_INDICES, INDICES_PER_BRANCH, GL_STATIC_DRAW);
+
 
 
 	VertexAttributeDiscriptor discriptor;
 	discriptor.add(3, GL_FLOAT); // position attribute
-	discriptor.add(3, GL_FLOAT);
+	//discriptor.add(3, GL_FLOAT); moved to instance
 	discriptor.apply();
+
+	//instanced attributes
+	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
+	glEnableVertexAttribArray(3);
+	branchInstanceBuffer.bind(GL_ARRAY_BUFFER);
+
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)0);
+
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(3 * sizeof(float)));
+
+	glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(6 * sizeof(float)));
+	branchInstanceBuffer.unbind();
+	glVertexAttribDivisor(1, 1);
+	glVertexAttribDivisor(2, 1);
+	glVertexAttribDivisor(3, 1); // tell OpenGL this is an instanced vertex attribute.
 
 	branchVertexArray.unbind();
 	branchVertexBuffer.unbind();
 	branchElementBuffer.unbind();
+
+
+
+	// LEAF BUFFERS
+
+	Buffer leafInstanceBuffer = Buffer::Generate();
+	leafInstanceBuffer.bind(GL_ARRAY_BUFFER);
+	leafInstanceBuffer.bufferVector(leafInstances, GL_STATIC_DRAW);
+	leafInstanceBuffer.unbind();
 
 	VertexArray leafVertexArray = VertexArray::Generate();
 	Buffer leafVertexBuffer = Buffer::Generate();
@@ -196,10 +182,29 @@ int main(void)
 
 
 
-	leafVertexBuffer.bufferVector(leafElements, GL_DYNAMIC_DRAW);
-	leafElementBuffer.bufferVector(leafIndices, GL_DYNAMIC_DRAW);
+	leafVertexBuffer.bufferArray(CUBE_POINTS, ELEMENTS_PER_CUBE, GL_STATIC_DRAW);
+	leafElementBuffer.bufferArray(LEAF_INDICES, INDICES_PER_LEAF, GL_STATIC_DRAW);
+
 
 	discriptor.apply();
+
+
+	//instanced attributes
+	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
+	glEnableVertexAttribArray(3);
+	leafInstanceBuffer.bind(GL_ARRAY_BUFFER);
+
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)0);
+
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(3 * sizeof(float)));
+
+	glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(6 * sizeof(float)));
+	leafInstanceBuffer.unbind();
+	glVertexAttribDivisor(1, 1);
+	glVertexAttribDivisor(2, 1);
+	glVertexAttribDivisor(3, 1); // tell OpenGL this is an instanced vertex attribute.
+
 
 	leafVertexArray.unbind();
 	leafVertexBuffer.unbind();
@@ -210,13 +215,38 @@ int main(void)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
 	*/
-	shader.use();
 
+	VertexArray axisVertexArray = VertexArray::Generate();
+	Buffer axisVertexBuffer = Buffer::Generate();
+
+	axisVertexArray.bind();
+	axisVertexBuffer.bind(GL_ARRAY_BUFFER);
+
+	VertexAttributeDiscriptor axisDiscriptor;
+	axisDiscriptor.add(3, GL_FLOAT); // vertex position attribute
+	axisDiscriptor.add(3, GL_FLOAT); // instance position attribute
+	axisDiscriptor.add(3, GL_FLOAT); // color attribute
+	axisDiscriptor.add(1, GL_FLOAT); // size
+	axisDiscriptor.apply();
+
+	float axisVertexData[60] = {
+		// x, y, z  r, g, b
+		0, 0, 0,	0, 0, 0,	1, 0, 0,	5,
+		1, 0, 0,	0, 0, 0,	1, 0, 0,	5,
+		0, 0, 0,	0, 0, 0,	0, 1, 0,	5,
+		0, 1, 0,	0, 0, 0,	0, 1, 0,	5,
+		0, 0, 0,	0, 0, 0,	0, 0, 1,	5,
+		0, 0, 1,	0, 0, 0,	0, 0, 1,	5,
+	};
+	
+	axisVertexBuffer.bufferArray(axisVertexData, 60, GL_STATIC_DRAW);
+	axisVertexArray.unbind();
+	axisVertexBuffer.unbind();
 
 	camera.mTransform.scale = vec3(1, 1, 1);
 	camera.mTransform.position = vec3(0, 0, 10.);
 
-	center = vec3(32, 32, 32) / 2;
+	center = vec3(0, 0, 0);
 
 	UniformMatrix4f projMatrix(shader, "projMatrix");
 	UniformMatrix4f camMatrix(shader, "camMatrix");
@@ -224,7 +254,7 @@ int main(void)
 	glEnable(GL_DEPTH_TEST);
 	while (!window.shouldClose())
 	{
-
+		shader.use();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		projMatrix = camera.getProjMatrix();
@@ -234,16 +264,23 @@ int main(void)
 
 		if (drawBranches)
 		{
-			branchVertexArray.bind();
 
-			glDrawElements(GL_LINES, branchIndices.size(), GL_UNSIGNED_INT, 0);
+			branchVertexArray.bind();
+			glLineWidth(1);
+			glDrawElementsInstanced(GL_LINES, INDICES_PER_BRANCH, GL_UNSIGNED_INT, 0, instances.size());
 		}
 		if (drawLeafs)
 		{
 			leafVertexArray.bind();
 
-			glDrawElements(GL_TRIANGLES, leafIndices.size(), GL_UNSIGNED_INT, 0);
+			glDrawElementsInstanced(GL_TRIANGLES, INDICES_PER_LEAF, GL_UNSIGNED_INT, 0, leafInstances.size());
 		}
+
+		//draw axis
+		glLineWidth(10);
+		axisVertexArray.bind();
+		glDrawArrays(GL_LINES, 0, 6);
+
 		window.swapBuffers();
 		glfwPollEvents();
 	}
@@ -253,3 +290,4 @@ int main(void)
 	glfwTerminate();
 	exit(EXIT_SUCCESS);
 }
+

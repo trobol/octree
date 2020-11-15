@@ -118,12 +118,12 @@ Octree Octree::loadModel(VoxFile& file)
 	//load
 	for (int i = 0; i < file.getNumVoxels(); i++)
 	{
-		std::cout << +file.mVoxels[i].colorIndex << '\n';
 		color32 = palette[file.mVoxels[i].colorIndex - 1];
 		vec3 color = vec3(color32split[0], color32split[1], color32split[2]) / 255;
+
+		//dont forget to convert to correct space
 		octree.setNode(vec3int(file.mVoxels[i].x, file.mVoxels[i].y, file.mVoxels[i].z), color);
 	}
-	std::cout << std::flush;
 
 	return octree;
 }

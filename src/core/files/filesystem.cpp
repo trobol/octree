@@ -53,7 +53,7 @@ namespace filesystem
 		int index = -1;
 		while (index < 0 || index >= n)
 		{
-			std::cout << "Enter index: ";
+			std::cout << "Enter index: " << std::flush;
 			std::cin >> index;
 		}
 		result = path + files[index]->d_name;

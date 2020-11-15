@@ -62,12 +62,12 @@ void  VoxFile::readChunk_XYZI(FILE* file, int size) {
 	int voxelCount = readInt(file);
 	mVoxels.resize(voxelCount);
 	int result = fread(&mVoxels.front(), sizeof(Voxel), voxelCount, file);
-	if (result != voxelCount) { std::cout << "Didnt read all the voxels" << std::endl; }
+	if (result != voxelCount) { std::cout << "Didn't read all the voxels" << std::endl; }
 }
 void  VoxFile::readChunk_RGBA(FILE* file, int size) {
 	mPalette = new uint32_t[256];
 	int result = fread(mPalette, 4, 256, file);
-	if (result != 256) { std::cout << "Didnt read all the colors" << std::endl; }
+	if (result != 256) { std::cout << "Didn't read all the colors" << std::endl; }
 }
 void  VoxFile::readChunk_PACK(FILE* file, int size) {
 
@@ -138,8 +138,8 @@ void VoxFile::load(std::string path)
 			break;
 		default:
 			char* str = (char*)&type;
-			printf("Unknown Chunk: ");
-			printf("%.4s\n", str);
+			//printf("Unknown Chunk: ");
+			//printf("%.4s\n", str);
 
 			fseek(file, size, SEEK_CUR);
 			break;
