@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
+#include <sstream>
+#include <fstream>
 
 #include <octree/graphics/shader.h>
 #include <octree/math/math.h>
@@ -34,6 +36,7 @@ Camera camera;
 vec3 center = vec3(0, 0, 0);
 bool drawBranches = true;
 bool drawLeafs = true;
+bool drawCompute = true;
 
 float speed = 1;
 
@@ -51,7 +54,8 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		drawBranches = !drawBranches;
 	if (key == GLFW_KEY_L && action == GLFW_PRESS)
 		drawLeafs = !drawLeafs;
-
+	if (key == GLFW_KEY_C && action == GLFW_PRESS)
+		drawCompute = !drawCompute;
 
 	// MOVEMENT
 	if (key == GLFW_KEY_W)
@@ -238,10 +242,117 @@ int main(void)
 		0, 0, 0,	0, 0, 0,	0, 0, 1,	5,
 		0, 0, 1,	0, 0, 0,	0, 0, 1,	5,
 	};
-	
+
 	axisVertexBuffer.bufferArray(axisVertexData, 60, GL_STATIC_DRAW);
 	axisVertexArray.unbind();
 	axisVertexBuffer.unbind();
+
+
+	// RAYTRACE STUFF
+	// src https://antongerdelan.net/opengl/compute.html
+
+	int texture_width = 512, texture_height = 512;
+	GLuint texture_output;
+	glGenTextures(1, &texture_output);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture_output);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, texture_width, texture_height, 0, GL_RGBA, GL_FLOAT,
+		NULL);
+	glBindImageTexture(0, texture_output, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+	int work_grp_cnt[3];
+
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &work_grp_cnt[0]);
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &work_grp_cnt[1]);
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &work_grp_cnt[2]);
+
+	printf("max global (total) work group counts x:%i y:%i z:%i\n",
+		work_grp_cnt[0], work_grp_cnt[1], work_grp_cnt[2]);
+
+
+	int work_grp_size[3];
+
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &work_grp_size[0]);
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &work_grp_size[1]);
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &work_grp_size[2]);
+
+	printf("max local (in one shader) work group sizes x:%i y:%i z:%i\n",
+		work_grp_size[0], work_grp_size[1], work_grp_size[2]);
+
+	int work_grp_inv;
+	glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &work_grp_inv);
+	printf("max local work group invocations %i\n", work_grp_inv);
+
+	std::string compute_shader_path = ASSET_PATH_STR + "/shaders/compute.glsl";
+	std::string computeShaderCode;
+	std::ifstream computeShaderStream(compute_shader_path, std::ios::in);
+	if (computeShaderStream.is_open())
+	{
+		std::stringstream sstr;
+		sstr << computeShaderStream.rdbuf();
+		computeShaderCode = sstr.str();
+		computeShaderStream.close();
+	}
+	else
+	{
+		std::cout << "Unable to open " << compute_shader_path << '\n';
+		return 0;
+	}
+	const char* compute_shader_src_ptr = computeShaderCode.c_str();
+	GLuint ray_shader = glCreateShader(GL_COMPUTE_SHADER);
+	glShaderSource(ray_shader, 1, &compute_shader_src_ptr, NULL);
+	glCompileShader(ray_shader);
+
+
+
+	Shader::PrintErrorMessage(ray_shader);
+	GLuint ray_program = glCreateProgram();
+	glAttachShader(ray_program, ray_shader);
+	glLinkProgram(ray_program);
+	// check for linking errors and validate program as per normal here
+
+	Shader::PrintErrorMessage(ray_program);
+
+	glUseProgram(ray_program);
+
+	Buffer computeBuffer = Buffer::Generate();
+	computeBuffer.bind(GL_SHADER_STORAGE_BUFFER);
+	computeBuffer.bufferVector(leafInstances, GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, computeBuffer);
+
+	GLuint count_pos = glGetUniformLocation(ray_program, "cube_count");
+	glUniform1i(count_pos, leafInstances.size());
+
+	UniformMatrix4f computeProjMatrix(ray_program, "projMatrix");
+	UniformMatrix4f computeCamMatrix(ray_program, "camMatrix");
+
+
+
+	std::string quadVertPath = ASSET_PATH_STR + "/shaders/quad.vert";
+	std::string quadFragPath = ASSET_PATH_STR + "/shaders/quad.frag";
+	Shader quadShader = Shader::Load(quadVertPath, quadFragPath);
+
+	VertexArray quadVertexArray = VertexArray::Generate();
+	Buffer quadVertexBuffer = Buffer::Generate();
+
+	quadVertexArray.bind();
+	quadVertexBuffer.bind(GL_ARRAY_BUFFER);
+
+	float quadVerts[] = { -1.0f, -1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+
+	quadVertexBuffer.bufferArray(quadVerts, 16, GL_STATIC_DRAW);
+
+	VertexAttributeDiscriptor quadDescriptor;
+	quadDescriptor.add(2, GL_FLOAT);
+	quadDescriptor.add(2, GL_FLOAT);
+	quadDescriptor.apply();
+
+	quadVertexArray.unbind();
+	quadVertexBuffer.unbind();
 
 	camera.mTransform.scale = vec3(1, 1, 1);
 	camera.mTransform.position = vec3(0, 0, 10.);
@@ -251,14 +362,20 @@ int main(void)
 	UniformMatrix4f projMatrix(shader, "projMatrix");
 	UniformMatrix4f camMatrix(shader, "camMatrix");
 
+	for (Cube c : leafInstances) {
+		std::cout << c.pos << '\n';
+	}
+
 	glEnable(GL_DEPTH_TEST);
 	while (!window.shouldClose())
 	{
 		shader.use();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		projMatrix = camera.getProjMatrix();
-		camMatrix = mat4::lookAt(camera.mTransform.position, center, vec3::up);
+		mat4 proj = camera.getProjMatrix();
+		mat4 cam = mat4::lookAt(camera.mTransform.position, center, vec3::up);
+		projMatrix = proj;
+		camMatrix = cam;
 
 		//draw branches
 
@@ -275,11 +392,33 @@ int main(void)
 
 			glDrawElementsInstanced(GL_TRIANGLES, INDICES_PER_LEAF, GL_UNSIGNED_INT, 0, leafInstances.size());
 		}
+		if (drawCompute) {
 
-		//draw axis
-		glLineWidth(10);
-		axisVertexArray.bind();
-		glDrawArrays(GL_LINES, 0, 6);
+			{ // launch compute shaders!
+				glUseProgram(ray_program);
+				computeProjMatrix = proj;
+				computeCamMatrix = cam;
+				glDispatchCompute((GLuint)texture_width, (GLuint)texture_height, 1);
+			}
+
+			// make sure writing to image has finished before read
+			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+			{ // normal drawing pass
+				glClear(GL_COLOR_BUFFER_BIT);
+				quadShader.use();
+				quadVertexArray.bind();
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, texture_output);
+				glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+			}
+		}
+		{
+			//draw axis
+			glLineWidth(10);
+			axisVertexArray.bind();
+			glDrawArrays(GL_LINES, 0, 6);
+		}
 
 		window.swapBuffers();
 		glfwPollEvents();

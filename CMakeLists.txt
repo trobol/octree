@@ -22,7 +22,7 @@ include_directories(include)
 add_subdirectory(glfw)
 include_directories(glfw/include)
 
-target_link_libraries(octree glfw ${GLFW_LIBRARIES})
+	target_link_libraries(octree glfw ${GLFW_LIBRARIES})
 target_link_libraries(octree glfw ${OPENGL_glu_LIBRARY} ${GLFW_LIBRARIES})
 
 target_link_libraries(octree ${OPENGL_LIBRARIES})

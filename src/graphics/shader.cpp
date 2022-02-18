@@ -15,19 +15,19 @@ std::string LoadFile(std::string path)
 	if (inputFile)
 	{
 		return std::string((std::istreambuf_iterator<char>(inputFile)),
-						   std::istreambuf_iterator<char>());
+			std::istreambuf_iterator<char>());
 	}
 	std::cout << "Unable to load: " << path << std::endl;
 	return std::string();
 }
 
-void printErrorMessage(GLuint id)
+void Shader::PrintErrorMessage(GLuint id)
 {
 	GLsizei infoLogLength;
 	glGetShaderiv(id, GL_INFO_LOG_LENGTH, &infoLogLength);
 	if (infoLogLength > 0)
 	{
-		char *errorMessage = new char[(size_t)infoLogLength + 1];
+		char* errorMessage = new char[(size_t)infoLogLength + 1];
 		glGetShaderInfoLog(id, infoLogLength, NULL, errorMessage);
 		std::cout << &errorMessage[0] << '\n';
 		delete[] errorMessage;
@@ -76,22 +76,22 @@ Shader Shader::Load(std::string vertex_file_path, std::string fragment_file_path
 	GLsizei infoLogLength;
 
 	// Compile Vertex Shader
-	char const *vertexSourcePointer = vertexShaderCode.c_str();
+	char const* vertexSourcePointer = vertexShaderCode.c_str();
 	glShaderSource(vertexShaderId, 1, &vertexSourcePointer, NULL);
 	glCompileShader(vertexShaderId);
 
 	// Check Vertex Shader
 	glGetShaderiv(vertexShaderId, GL_COMPILE_STATUS, &result);
-	printErrorMessage(vertexShaderId);
+	Shader::PrintErrorMessage(vertexShaderId);
 
 	// Compile Fragment Shader
-	char const *fragmentSourcePointer = fragmentShaderCode.c_str();
+	char const* fragmentSourcePointer = fragmentShaderCode.c_str();
 	glShaderSource(fragmentShaderId, 1, &fragmentSourcePointer, NULL);
 	glCompileShader(fragmentShaderId);
 
 	// Check Fragment Shader
 	glGetShaderiv(fragmentShaderId, GL_COMPILE_STATUS, &result);
-	printErrorMessage(fragmentShaderId);
+	Shader::PrintErrorMessage(fragmentShaderId);
 
 	// Link the program
 	printf("Linking program\n");
@@ -102,7 +102,7 @@ Shader Shader::Load(std::string vertex_file_path, std::string fragment_file_path
 
 	// Check the program
 	glGetProgramiv(programId, GL_LINK_STATUS, &result);
-	printErrorMessage(programId);
+	Shader::PrintErrorMessage(programId);
 
 	glDetachShader(programId, vertexShaderId);
 	glDetachShader(programId, fragmentShaderId);

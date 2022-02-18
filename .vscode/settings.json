@@ -75,7 +75,8 @@
 		"xtr1common": "cpp",
 		"xutility": "cpp",
 		"xlocmon": "cpp",
-		"xloctime": "cpp"
+		"xloctime": "cpp",
+		"complex": "cpp"
 	},
 	"cmake.generator": "Visual Studio"
 }

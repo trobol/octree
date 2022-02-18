@@ -12,6 +12,10 @@ public:
 	{
 		mLocation = glGetUniformLocation((GLuint)shader, name);
 	}
+	Uniform(GLuint shader, const char* name)
+	{
+		mLocation = glGetUniformLocation(shader, name);
+	}
 	void set(const T& value, GLboolean transpose = GL_FALSE) {}
 	Uniform& operator=(const T& value)
 	{
