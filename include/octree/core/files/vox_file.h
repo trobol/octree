@@ -7,6 +7,15 @@
 #include <octree/math/vec3int.h>
 
 
+struct Bounds3d {
+	vec3int small, large;
+
+	vec3int size();
+
+	// not the true center because its an int
+	vec3int center();
+};
+
 class VoxFile
 {
 private:
