@@ -6,33 +6,20 @@
 #include <octree/math/math.h>
 #include <octree/octree_chunk.h>
 
-Octree::Octree(uint32_t width, uint32_t height, uint32_t depth) :
-	m_width{ width }, m_height{ height }, m_depth{ depth } {
-	m_chunk_width = (width / 32) + 1;
-	m_chunk_height = (height / 32) + 1;
-	m_chunk_depth = (depth / 32) + 1;
-
-	uint32_t chunk_count = m_chunk_width * m_chunk_height * m_chunk_depth;
-	m_chunks.resize(chunk_count);
-
-	for (uint32_t i = 0; i < chunk_count; i++) {
-		m_chunks[i] = new OctreeChunk(32);
-	}
-
+Octree::Octree(uint32_t size) {
+	m_size = size;
+	m_alloc_size = 0;
+	for (uint32_t s = size; s > 0; s = s >> 1)
+		m_alloc_size += s * s * s;
+	m_list = new OListEntry[m_alloc_size];
 }
 
-OctreeChunk* Octree::getChunk(uint32_t x, uint32_t y, uint32_t z) {
-	uint32_t a = m_chunk_width * m_chunk_height;
-	return m_chunks[(z * a) + (y * m_chunk_height) + x];
-}
 
-void Octree::setChunk(OctreeChunk* chunk, uint32_t x, uint32_t y, uint32_t z) {
-	uint32_t a = m_chunk_width * m_chunk_height;
-	m_chunks[(z * a) + (y * m_chunk_height) + x] = chunk;
-}
+
 
 void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafElements)
 {
+	/*
 	for (uint32_t x = 0; x < m_chunk_width; x++) {
 		for (uint32_t y = 0; y < m_chunk_height; y++) {
 			for (uint32_t z = 0; z < m_chunk_depth; z++) {
@@ -43,7 +30,9 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 			}
 		}
 	}
+	*/
 }
+
 
 /*
 void printNode(Node &node, int depth)
@@ -92,13 +81,14 @@ Node* Octree::setNode(vec3int pos, vec3 color)
 	// find correct chunk
 	vec3int offset = pos / vec3int(32, 32, 32);
 
-	OctreeChunk* chunk = getChunk(offset.x, offset.y, offset.z);
+	//OctreeChunk* chunk = getChunk(offset.x, offset.y, offset.z);
 
 	// calculate position relative to chunk
 	vec3int relative_pos = vec3int(32, 32, 32) * offset;
 
 	// call func on chunk
-	return (chunk->add_node(pos, color));
+	//return (chunk->add_node(pos, color));
+	return NULL;
 }
 
 Octree Octree::loadModel(VoxFile& file)
@@ -106,8 +96,9 @@ Octree Octree::loadModel(VoxFile& file)
 
 	//get sqrt of nearest power of 2 size
 	vec3int size = file.getSize();
+	int maxSize = std::max(size.x, std::max(size.y, size.z));
 
-	Octree octree(size.x, size.y, size.z);
+	Octree octree(maxSize);
 
 	union {
 		uint32_t color32;

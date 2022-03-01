@@ -14,30 +14,40 @@ struct Point {
 };
 
 class OctreeChunk;
+struct OctreeNode {
+	uint16_t child_offset : 15;
+	bool child_far : 1;
+	uint8_t valid_mask;
+	uint8_t leaf_mask;
+};
+struct OListEntry {
+	union {
+		OctreeNode node;
+		uint32_t fwd_ptr;
+	};
+};
 
+
+/*
+For simplicity I am putting bottom a corner at 0 rather than the center
+*/
 class Octree
 {
 private:
-	uint32_t m_width;  //multiple of 32
-	uint32_t m_height; //multiple of 32
-	uint32_t m_depth;
+	uint32_t m_size; // must be power of 2
+	uint32_t m_alloc_size;
 
-	uint32_t m_chunk_width;
-	uint32_t m_chunk_height;
-	uint32_t m_chunk_depth;
 
-	std::vector<OctreeChunk*> m_chunks;
+	OListEntry* m_list;
 
 public:
-	Octree(uint32_t width, uint32_t height, uint32_t depth);
+	Octree(uint32_t size);
 
 	static Octree load(std::string path);
 	void drawLeaf(uint32_t color, vec3 v, std::vector<Cube>& leafInstances);
 	Node* setNode(int x, int y, int z, uint32_t color);
 	Node* setNode(vec3int v, vec3 color);
 
-	OctreeChunk* getChunk(uint32_t x, uint32_t y, uint32_t z);
-	void setChunk(OctreeChunk* chunk, uint32_t x, uint32_t y, uint32_t z);
 
 	void drawNodes(std::vector<Cube>& instances, std::vector<Cube>& leafInstances);
 
@@ -49,8 +59,7 @@ public:
 	~Octree()
 	{
 	}
-
-private:
+	
 };
 
 class OctreeIterator

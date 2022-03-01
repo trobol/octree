@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cstdio>
 #include <iomanip>
+#include <math.h>
 
 #define ASSERT_HEADER(str)                                             \
 	if (!checkHeader(file, str))                                       \
@@ -91,6 +92,21 @@ bool checkHeader(FILE* file, const char header[4])
 	return getHeader(file) == header_int;
 }
 
+// component wise min
+vec3int min(vec3int a, vec3int b) {
+	int x = std::min(a.x, b.x);
+	int y = std::min(a.y, b.y);
+	int z = std::min(a.z, b.z);
+	return vec3int(x, y, z);
+}
+
+vec3int max(vec3int a, vec3int b) {
+	int x = std::max(a.x, b.x);
+	int y = std::max(a.y, b.y);
+	int z = std::max(a.z, b.z);
+	return vec3int(x, y, z);
+}
+
 /*
 TODO:
 Currently this will leak memory if there is an exeption
@@ -146,6 +162,14 @@ void VoxFile::load(std::string path)
 		}
 	}
 	std::fclose(file);
+
+	/*
+	for (uint32_t i = 0; i < mVoxels.size(); i++) {
+		vec3int v(mVoxels[i].x, mVoxels[i].y, mVoxels[i].z);
+		bounds.min = min(bounds.min, v);
+		bounds.max = max(bounds.max, v);
+	}
+	*/
 }
 
 VoxFile::~VoxFile()

@@ -8,7 +8,7 @@
 
 
 struct Bounds3d {
-	vec3int small, large;
+	vec3int min, max;
 
 	vec3int size();
 
@@ -30,6 +30,7 @@ private:
 	};
 	int mVersion;
 	vec3int mSize;
+	//Bounds3d bounds;
 
 	void readChunk_SIZE(FILE* file, int size);
 	void readChunk_XYZI(FILE* file, int size);

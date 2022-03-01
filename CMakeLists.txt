@@ -22,6 +22,8 @@ include_directories(include)
 add_subdirectory(glfw)
 include_directories(glfw/include)
 
+source_group(TREE "${CMAKE_SOURCE_DIR}/include" PREFIX "Header Files" FILES ${HEADER_LIST})
+
 target_link_libraries(octree glfw ${GLFW_LIBRARIES})
 target_link_libraries(octree glfw ${OPENGL_glu_LIBRARY} ${GLFW_LIBRARIES})
 

@@ -4,6 +4,8 @@
 #include <iostream>
 #include <dirent.h>
 
+#include <Windows.h>
+
 namespace filesystem
 {
 	std::string fileSelect(std::string path, std::string ext)
