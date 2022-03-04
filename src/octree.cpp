@@ -1,36 +1,132 @@
 #include <octree/octree.h>
-
+#include <stack>
 
 
 #include <math.h>
 #include <octree/math/math.h>
 #include <octree/octree_chunk.h>
 
+// https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+unsigned int next_pow2(unsigned int v) {
+	v--;
+	v |= v >> 1;
+	v |= v >> 2;
+	v |= v >> 4;
+	v |= v >> 8;
+	v |= v >> 16;
+	v++;
+
+	return v;
+}
+
 Octree::Octree(uint32_t size) {
-	m_size = size;
+
+	m_size = next_pow2(size);
 	m_alloc_size = 0;
 	for (uint32_t s = size; s > 0; s = s >> 1)
 		m_alloc_size += s * s * s;
-	m_list = new OListEntry[m_alloc_size];
+
+	m_array.resize(9);
+
+	m_array[0].children_ptr = 1;
+	m_array[0].children_far = 0;
+	m_array[0].valid_mask = 0;
+	m_array[0].leaf_mask = 0;
+
+	printf("size %u\n", m_size);
 }
 
 
 
-
+// elements are the box outlines
+// leafElements are the cubes that makes the actual model
 void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafElements)
 {
-	/*
-	for (uint32_t x = 0; x < m_chunk_width; x++) {
-		for (uint32_t y = 0; y < m_chunk_height; y++) {
-			for (uint32_t z = 0; z < m_chunk_depth; z++) {
-				OctreeChunk* chunk = getChunk(x, y, z);
-				vec3 center = (vec3(x, y, z) * 32) + vec3(16, 16, 16);
 
-				chunk->drawNodes(center, elements, leafElements);
-			}
+	printf("rendering %llu nodes\n", m_array.size());
+	vec3 random_colors[256] = {};
+	for (uint16_t i = 0; i < 256; i++) 
+		random_colors[i] = vec3((float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX);
+	
+	struct NodeStackEntry {
+		const uint32_t index;
+		const int pos_x, pos_y, pos_z;
+		uint8_t child_offset;
+	};
+	std::stack<NodeStackEntry> traversal_stack;
+	traversal_stack.push({ 0, 0, 0, 0, 0 });
+
+	uint32_t current_size = m_size;
+
+	while (!traversal_stack.empty()) {
+
+		uint8_t child_offset;
+		uint32_t index;
+		int x;
+		int y;
+		int z;
+		{
+			NodeStackEntry& entry = traversal_stack.top();
+			child_offset = entry.child_offset;
+			index = entry.index;
+			x = entry.pos_x;
+			y = entry.pos_y;
+			z = entry.pos_z;
+			entry.child_offset++;
 		}
+
+		// done with this node (and all its children)
+		if (child_offset > 7) {
+
+			current_size = current_size << 1;
+			// draw branch
+			Cube c;
+			c.pos = vec3(x, y, z);
+			c.color = random_colors[index % 256];
+			c.size = current_size;
+			traversal_stack.pop();
+
+			elements.push_back(c);
+			continue;
+		}
+		
+		OctreeNode& parent = m_array[index];
+		uint32_t half_size = current_size >> 1;
+
+		uint32_t children_ptr = parent.children_ptr;
+		if (parent.children_far) children_ptr = m_farpointers[children_ptr];
+		uint32_t child_index = index + children_ptr + child_offset;
+		
+
+		int pos_x[8] = {x + half_size, x, x + half_size, x, x + half_size, x, x + half_size, x};
+		int pos_y[8] = {y + half_size, y + half_size, y, y, y + half_size, y + half_size, y, y};
+		int pos_z[8] = {z + half_size, z + half_size, z + half_size, z + half_size, z, z, z, z};
+
+
+		if (!(parent.valid_mask & (1 << child_offset))) continue;
+		if (parent.leaf_mask & (1 << child_offset)) {
+			Cube c;
+			c.pos = vec3(pos_x[child_offset], pos_y[child_offset], pos_z[child_offset]);
+			c.size = current_size;
+			c.color = random_colors[child_index % 256];
+			leafElements.push_back(c);
+		
+			continue;
+		} 
+
+		{
+			// if non-leaf, add to elements and push to traversal_stack
+			uint8_t of = child_offset;	
+			traversal_stack.push({child_index, pos_x[of], pos_y[of], pos_z[of], 0});
+		}
+
+		current_size = half_size;
+		
+
+		
 	}
-	*/
+
+	printf("drew %llu branches and %llu leaves", elements.size(), leafElements.size());
 }
 
 
@@ -56,9 +152,114 @@ Octree Octree::load(std::string path)
 }
 */
 
-Node* Octree::setNode(int x, int y, int z, uint32_t color)
+// we should make a custom dynamic array/buffer for storing the octree
+// along with a "view" class to make the code a bit cleaner
+
+// allocate the memory for nodes up to a depth, so that we dont overflow our pointers as soon
+
+uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint16_t min_depth)
 {
-	return setNode(vec3int(x, y, z), vec3(0, 0, 0));
+	// ensure x, y, z is inside octree
+
+	
+	
+
+	// child offset is basically 3 bits representing if x, y or z are larger than center, 00000zyx
+	// it can be interpreted as an int and the following arrays allow for translation into coords
+	// [x + half_size, x, x + half_size, x, x + half_size, x, x + half_size, x]
+	// [y + half_size, y + half_size, y, y, y + half_size, y + half_size, y, y]
+	// [z + half_size, z + half_size, z + half_size, z + half_size, z, z, z, z]
+	
+
+	
+	uint32_t current_index = 0;
+	uint32_t parent_index = 0;
+	uint8_t child_offset = 0;
+
+	vec3 currentPos(0, 0, 0); // 0,0,0 is the back bottom left
+	int x = 0;
+	int y = 0;
+	int z = 0;
+
+	uint32_t current_size = m_size;
+	while(current_size > min_depth)
+	{
+	
+		parent_index = current_index;
+
+		// get half size
+		int half_size = current_size >> 1;
+
+		int center_x = x + half_size;
+		int center_y = y + half_size;
+		int center_z = z + half_size;
+
+		// child positions
+		int pos_x[8] = {x + half_size, x, x + half_size, x, x + half_size, x, x + half_size, x};
+		int pos_y[8] = {y + half_size, y + half_size, y, y, y + half_size, y + half_size, y, y};
+		int pos_z[8] = {z + half_size, z + half_size, z + half_size, z + half_size, z, z, z, z};
+
+		
+
+		// see child offset comment above
+		child_offset = ((target_z < center_z) << 2) | ((target_y < center_y) << 1) | (target_x < center_x);
+		
+	
+		// assume that parent node is already a valid node
+		// this means all members are valid values and has space designated for children, even if it has no valid children
+		bool child_valid;
+		{ // prevents parent reference usage after array resize
+			OctreeNode& parent = m_array[parent_index];
+			// TODO: mask check should be a function
+			// is the child we want to work on next valid?
+			child_valid = parent.valid_mask & (1 << child_offset);
+			// we are gonna make the child valid if its not
+			parent.valid_mask |= 1 << child_offset;
+
+			uint32_t children_ptr = parent.children_ptr;
+			if (parent.children_far) children_ptr = m_farpointers[children_ptr];
+			current_index = parent_index + children_ptr + child_offset;
+		}
+
+		// if child is not valid, need to initialize values and make space for children
+		if (!child_valid) {
+
+			OctreeNode& node = m_array[current_index];
+			uint32_t ptr = m_array.size() - current_index;
+			if (ptr >= (1 << 15)-1) {
+				
+				uint32_t farptr = m_farpointers.size();
+				if (farptr >= (1 << 15) - 1) puts("farptr index was too large to store");
+				m_farpointers.push_back(ptr);
+				
+				ptr = farptr;
+				node.children_far = 1;
+			}
+
+		
+			node.children_ptr = ptr;
+			node.children_far = 0;
+			node.leaf_mask = 0;
+			node.valid_mask = 0;
+
+			m_array.resize(m_array.size() + 8); 
+		}
+
+		x = pos_x[child_offset];
+		y = pos_y[child_offset];
+		z = pos_z[child_offset];
+		
+		//printf("halfsize: %5i\n", half_size);
+
+		current_size = half_size;
+	}
+
+	//printf("%5i, %5i, %5i  (%5i)\n ", x, y, z, current_size);
+	if (min_depth == 0)
+		m_array[parent_index].leaf_mask |= 1 << child_offset;
+	if (target_x != x || target_y != y || target_z != z) puts("ERROR: target did not match destination in octree");
+
+	return current_index;
 }
 
 /*
@@ -88,6 +289,7 @@ Node* Octree::setNode(vec3int pos, vec3 color)
 
 	// call func on chunk
 	//return (chunk->add_node(pos, color));
+	setNode(pos.x, pos.y, pos.z);
 	return NULL;
 }
 
@@ -97,13 +299,27 @@ Octree Octree::loadModel(VoxFile& file)
 	//get sqrt of nearest power of 2 size
 	vec3int size = file.getSize();
 	int maxSize = std::max(size.x, std::max(size.y, size.z));
-
+	unsigned int realSize = next_pow2(maxSize);
 	Octree octree(maxSize);
 
 	union {
 		uint32_t color32;
 		uint8_t color32split[4];
 	};
+
+	/*
+	if (realSize > 32) {
+		int min_depth = 5;
+		int step = 1 << (min_depth-1); // 2 pow min_depth
+		for (int x = 0; x < realSize; x+=step) {
+			for (int y = 0; y < realSize; y+=step) {
+				for (int z = 0; z < realSize; z+=step) {
+					octree.setNode(x, y, z, min_depth);
+				}
+			}
+		}
+	}
+	*/
 
 	uint32_t* palette = file.getPalette();
 	//load
@@ -112,8 +328,9 @@ Octree Octree::loadModel(VoxFile& file)
 		color32 = palette[file.mVoxels[i].colorIndex - 1];
 		vec3 color = vec3(color32split[0], color32split[1], color32split[2]) / 255;
 
+		if (file.mVoxels[i].x > 40 || file.mVoxels[i].y > 40 || file.mVoxels[i].z > 40) continue;
 		//dont forget to convert to correct space
-		octree.setNode(vec3int(file.mVoxels[i].x, file.mVoxels[i].y, file.mVoxels[i].z), color);
+		octree.setNode(file.mVoxels[i].x, file.mVoxels[i].y, file.mVoxels[i].z);
 	}
 
 	return octree;

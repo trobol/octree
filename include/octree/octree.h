@@ -15,12 +15,12 @@ struct Point {
 
 class OctreeChunk;
 struct OctreeNode {
-	uint16_t child_offset : 15;
-	bool child_far : 1;
+	uint16_t children_ptr : 15;
+	bool children_far : 1;
 	uint8_t valid_mask;
 	uint8_t leaf_mask;
 };
-struct OListEntry {
+struct OTArrayEntry {
 	union {
 		OctreeNode node;
 		uint32_t fwd_ptr;
@@ -38,14 +38,16 @@ private:
 	uint32_t m_alloc_size;
 
 
-	OListEntry* m_list;
+	std::vector<OctreeNode> m_array;
+	std::vector<uint32_t> m_farpointers; // TEMP HACK
 
 public:
 	Octree(uint32_t size);
 
 	static Octree load(std::string path);
 	void drawLeaf(uint32_t color, vec3 v, std::vector<Cube>& leafInstances);
-	Node* setNode(int x, int y, int z, uint32_t color);
+	uint32_t setNode(int x, int y, int z, uint16_t min_depth = 0);
+	void fillDepth(uint16_t depth);
 	Node* setNode(vec3int v, vec3 color);
 
 
