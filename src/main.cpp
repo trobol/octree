@@ -27,6 +27,10 @@
 #include <octree/camera.h>
 #include "defines.h"
 
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_opengl3.h"
+#include "imgui/imgui_impl_glfw.h"
+
 const std::string ASSET_PATH_STR = ASSET_PATH;
 
 Camera camera;
@@ -39,23 +43,34 @@ float speed = 1;
 
 bool absolute_movement = false;
 
+void draw_ui();
+
 void draw_axis();
 
+float sensitivity = 0.01f;
 static void mouse_move_callback(GLFWwindow* window, double xpos, double ypos) {
+	ImGui_ImplGlfw_CursorPosCallback(window, xpos, ypos);
+	ImGuiIO& io = ImGui::GetIO();
+	if (io.WantCaptureMouse) return;
+
 	printf("%f, %f\n", xpos, ypos);
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) != GLFW_PRESS) return;
 
 
 	glfwSetCursorPos(window, 0, 0);
-	camera.mTransform.rotation *= Quaternion::AxisAngle(vec3::up, (float)xpos * 2000);
-	camera.mTransform.rotation *= Quaternion::AxisAngle(vec3::right, (float)ypos * 2000);
+	camera.rotation.x += (float)ypos *sensitivity;
+	camera.rotation.y += (float)xpos * sensitivity;
 
 }		
  
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-	vec3 forward = (center - camera.mTransform.position).normalized();
+	ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
+	ImGuiIO& io = ImGui::GetIO();
+	if (io.WantCaptureKeyboard) return;
+	vec3 forward = Quaternion::AxisAngle(vec3::up, camera.rotation.y) * vec3::forwards;
+	vec3 right = Quaternion::AxisAngle(vec3::up, camera.rotation.y) * vec3::right;
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
 	// VISUALIZATION
@@ -76,11 +91,11 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		camera.mTransform.position.y += speed;
 	if (key == GLFW_KEY_LEFT_SHIFT)
 		camera.mTransform.position.y -= speed;
-	if (key == GLFW_KEY_D)
-		camera.mTransform.rotateAroundDistance(center, speed);
 
+	if (key == GLFW_KEY_D)
+		camera.mTransform.position += right * speed;
 	if (key == GLFW_KEY_A)
-		camera.mTransform.rotateAroundDistance(center, -speed);
+		camera.mTransform.position -= right * speed;
 
 	if (key == GLFW_KEY_EQUAL)
 		camera.mFov -= 2;
@@ -95,6 +110,11 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 }
 
 static void mouse_btn_callback(GLFWwindow* window, int button, int action, int mods) {
+	ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods);
+
+	ImGuiIO& io = ImGui::GetIO();
+	if (io.WantCaptureMouse) return;
+
 	if (button == GLFW_MOUSE_BUTTON_LEFT) {
 		if (action == GLFW_PRESS) {
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -123,6 +143,11 @@ int main(void)
 	Octree tree = Octree::loadModel(file);
 
 	window.startup();
+
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGui_ImplGlfw_InitForOpenGL(window.mWindow, true);
+	ImGui_ImplOpenGL3_Init("#version 330");
 
 	window.setKeyCallback(key_callback);
 	window.setScrollCallback(scroll_callback);
@@ -283,6 +308,7 @@ int main(void)
 
 		projMatrix = camera.getProjMatrix();
 		camMatrix = mat4::lookAt(camera.mTransform.position, center, vec3::up);
+		camMatrix = camera.getTransformMatrix();
 
 		//draw branches
 
@@ -305,6 +331,8 @@ int main(void)
 		axisVertexArray.bind();
 		glDrawArrays(GL_LINES, 0, 6);
 
+	
+
 		window.swapBuffers();
 		glfwPollEvents();
 	}
@@ -315,3 +343,31 @@ int main(void)
 	exit(EXIT_SUCCESS);
 }
 
+
+
+void startup() {
+
+}
+
+
+void shutdown() {
+
+}
+
+void draw_ui() {
+
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+
+	ImGui::SetNextWindowBgAlpha(0.7f);
+	ImGui::Begin("Controls", NULL, ImGuiWindowFlags_NoResize);
+	ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), "Camera");
+	//ImGui::Text()
+
+
+
+	ImGui::Render();
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+}

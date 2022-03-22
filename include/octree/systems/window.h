@@ -53,9 +53,12 @@ public:
 	~Window() {
 
 	}
+
+public:
+	GLFWwindow* mWindow = nullptr;
 private:
 	Window() = default;
-	GLFWwindow* mWindow = nullptr;
+	
 	float mAspectRatio = 0;
 	int mWidth = 1500,
 		mHeight = 480;

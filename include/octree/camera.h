@@ -13,6 +13,8 @@ public:
 
 	float mFov = 90;
 
+	vec3 rotation;
+
 	Transform mTransform;
 
 	float mNearClip = 1;
@@ -24,7 +26,9 @@ public:
 	}
 	mat4 getTransformMatrix()
 	{
-		return mTransform.ToMatrix();
+		Transform tmp = mTransform;
+		tmp.rotation = Quaternion::AxisAngle(vec3::up, rotation.y) * Quaternion::AxisAngle(vec3::right, rotation.x);
+		return tmp.ToMatrix();
 	}
 
 private:
