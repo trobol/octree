@@ -40,6 +40,10 @@ void Window::startup() {
 		exit(EXIT_FAILURE);
 	}
 
+	if (glfwRawMouseMotionSupported())
+		glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+	
+	
 	glfwSetWindowSizeCallback(mWindow, Window::windowSizeCallback);
 	glfwSetFramebufferSizeCallback(mWindow, framebuffer_size_callback);
 

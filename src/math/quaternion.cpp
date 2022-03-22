@@ -123,9 +123,23 @@ Quaternion Quaternion::operator*(const Quaternion& q2) const
 		-x * q2.x - y * q2.y - z * q2.z + w * q2.w);
 }
 
+
+
 Quaternion Quaternion::operator+(const Quaternion& q) const
 {
 	return Quaternion(x + q.x, y + q.y, z + q.z, w + q.w);
+}
+
+
+void Quaternion::operator*=(const Quaternion &q2) {
+	*this = *this * q2;
+}
+
+void Quaternion::operator+=(const Quaternion &q) {
+	x += q.x;
+	y += q.y;
+	z += q.z;
+	w += q.w;
 }
 
 /*

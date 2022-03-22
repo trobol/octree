@@ -41,6 +41,18 @@ bool absolute_movement = false;
 
 void draw_axis();
 
+static void mouse_move_callback(GLFWwindow* window, double xpos, double ypos) {
+	printf("%f, %f\n", xpos, ypos);
+	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) != GLFW_PRESS) return;
+
+
+	glfwSetCursorPos(window, 0, 0);
+	camera.mTransform.rotation *= Quaternion::AxisAngle(vec3::up, (float)xpos * 2000);
+	camera.mTransform.rotation *= Quaternion::AxisAngle(vec3::right, (float)ypos * 2000);
+
+}		
+ 
+
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	vec3 forward = (center - camera.mTransform.position).normalized();
@@ -82,6 +94,16 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 	}
 }
 
+static void mouse_btn_callback(GLFWwindow* window, int button, int action, int mods) {
+	if (button == GLFW_MOUSE_BUTTON_LEFT) {
+		if (action == GLFW_PRESS) {
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		} else {
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		}
+	}
+}
+
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	speed = max(0, speed + yoffset * 0.05);
@@ -101,9 +123,11 @@ int main(void)
 	Octree tree = Octree::loadModel(file);
 
 	window.startup();
-	// NOTE: OpenGL error checks have been omitted for brevity
+
 	window.setKeyCallback(key_callback);
 	window.setScrollCallback(scroll_callback);
+	window.setMouseMoveCallback(mouse_move_callback);
+	window.setMouseButtonCallback(mouse_btn_callback);
 
 	std::string vertPath = ASSET_PATH_STR + "/shaders/shader.vert";
 	std::string fragPath = ASSET_PATH_STR + "/shaders/shader.frag";

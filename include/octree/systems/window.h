@@ -29,6 +29,13 @@ public:
 	void setScrollCallback(GLFWscrollfun scroll_callback) {
 		glfwSetScrollCallback(mWindow, scroll_callback);
 	}
+	void setMouseMoveCallback(GLFWcursorposfun callback) {
+		glfwSetCursorPosCallback(mWindow, callback);
+	}
+	void setMouseButtonCallback(GLFWmousebuttonfun callback) {
+		glfwSetMouseButtonCallback(mWindow, callback);
+	}
+
 	int getWidth() { return mWidth; }
 	int getHeight() { return mHeight; }
 

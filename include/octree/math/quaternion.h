@@ -25,14 +25,14 @@ public:
 	Quaternion normalized() const;
 
 	void operator+=(const Quaternion &q);
-	void operator-=(const Quaternion &q);
+	//void operator-=(const Quaternion &q);
 	void operator*=(const Quaternion &q);
-	void operator/=(const Quaternion &q);
+	//void operator/=(const Quaternion &q);
 
 	Quaternion operator+(const Quaternion &q) const;
-	Quaternion operator-(const Quaternion &q) const;
+	//Quaternion operator-(const Quaternion &q) const;
 	Quaternion operator*(const Quaternion &q) const;
-	Quaternion operator/(const Quaternion &q) const;
+	//Quaternion operator/(const Quaternion &q) const;
 
 	vec3 operator*(const vec3 &v) const;
 
