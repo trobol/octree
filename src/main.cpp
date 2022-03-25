@@ -23,6 +23,9 @@
 #include <octree/graphics/uniform.h>
 #include <octree/graphics/vertex_array.h>
 
+#include <octree/drawables/branch_mesh.h>
+#include <octree/drawables/axis_drawable.h>
+
 #include <octree/systems/window.h>
 #include <octree/camera.h>
 #include "defines.h"
@@ -101,6 +104,8 @@ Shader shader;
 
 Window& window = Window::getInstance();
 
+std::vector<Drawable*> drawables;
+
 int main(void)
 {
 	srand(time(NULL));
@@ -135,52 +140,12 @@ int main(void)
 
 	tree.drawNodes(instances, leafInstances);
 
-	Buffer branchInstanceBuffer = Buffer::Generate();
-	branchInstanceBuffer.bind(GL_ARRAY_BUFFER);
-	branchInstanceBuffer.bufferVector(instances, GL_STATIC_DRAW);
-	branchInstanceBuffer.unbind();
+	BranchMeshDrawable branch_drawable;
 
+	branch_drawable.Initialize();
+	branch_drawable.SetInstances(instances);
 
-	VertexArray branchVertexArray = VertexArray::Generate();
-	Buffer branchVertexBuffer = Buffer::Generate();
-	Buffer branchElementBuffer = Buffer::Generate();
-
-
-	// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-	branchVertexArray.bind();
-	branchVertexBuffer.bind(GL_ARRAY_BUFFER);
-	branchElementBuffer.bind(GL_ELEMENT_ARRAY_BUFFER);
-
-	branchVertexBuffer.bufferArray(CUBE_POINTS, ELEMENTS_PER_CUBE, GL_STATIC_DRAW);
-	branchElementBuffer.bufferArray(BRANCH_INDICES, INDICES_PER_BRANCH, GL_STATIC_DRAW);
-
-
-
-	VertexAttributeDiscriptor discriptor;
-	discriptor.add(3, GL_FLOAT); // position attribute
-	//discriptor.add(3, GL_FLOAT); moved to instance
-	discriptor.apply();
-
-	//instanced attributes
-	glEnableVertexAttribArray(1);
-	glEnableVertexAttribArray(2);
-	glEnableVertexAttribArray(3);
-	branchInstanceBuffer.bind(GL_ARRAY_BUFFER);
-
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)0);
-
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(3 * sizeof(float)));
-
-	glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(6 * sizeof(float)));
-	branchInstanceBuffer.unbind();
-	glVertexAttribDivisor(1, 1);
-	glVertexAttribDivisor(2, 1);
-	glVertexAttribDivisor(3, 1); // tell OpenGL this is an instanced vertex attribute.
-
-	branchVertexArray.unbind();
-	branchVertexBuffer.unbind();
-	branchElementBuffer.unbind();
-
+	drawables.push_back(&branch_drawable);
 
 	// SET UP STATIC CUBE BUFFERS
 	Buffer leafInstanceBuffer = Buffer::Generate();
@@ -198,7 +163,8 @@ int main(void)
 	leafVertexBuffer.bufferArray(CUBE_POINTS, ELEMENTS_PER_CUBE, GL_STATIC_DRAW);
 	leafElementBuffer.bufferArray(LEAF_INDICES, INDICES_PER_LEAF, GL_STATIC_DRAW);
 
-
+	VertexAttributeDiscriptor discriptor;
+	discriptor.add(3, GL_FLOAT); // position attribute
 	discriptor.apply();
 
 
@@ -229,32 +195,10 @@ int main(void)
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
 	*/
 
-	VertexArray axisVertexArray = VertexArray::Generate();
-	Buffer axisVertexBuffer = Buffer::Generate();
+	AxisDrawable axis_drawable;
+	axis_drawable.Initialize();
+	drawables.push_back(&axis_drawable);
 
-	axisVertexArray.bind();
-	axisVertexBuffer.bind(GL_ARRAY_BUFFER);
-
-	VertexAttributeDiscriptor axisDiscriptor;
-	axisDiscriptor.add(3, GL_FLOAT); // vertex position attribute
-	axisDiscriptor.add(3, GL_FLOAT); // instance position attribute
-	axisDiscriptor.add(3, GL_FLOAT); // color attribute
-	axisDiscriptor.add(1, GL_FLOAT); // size
-	axisDiscriptor.apply();
-
-	float axisVertexData[60] = {
-		// x, y, z  r, g, b
-		0, 0, 0,	0, 0, 0,	1, 0, 0,	5,
-		1, 0, 0,	0, 0, 0,	1, 0, 0,	5,
-		0, 0, 0,	0, 0, 0,	0, 1, 0,	5,
-		0, 1, 0,	0, 0, 0,	0, 1, 0,	5,
-		0, 0, 0,	0, 0, 0,	0, 0, 1,	5,
-		0, 0, 1,	0, 0, 0,	0, 0, 1,	5,
-	};
-	
-	axisVertexBuffer.bufferArray(axisVertexData, 60, GL_STATIC_DRAW);
-	axisVertexArray.unbind();
-	axisVertexBuffer.unbind();
 
 	camera.mTransform.scale = vec3(1, 1, 1);
 	camera.mTransform.position = vec3(-10.0, 0, -10.);
@@ -292,15 +236,6 @@ int main(void)
 		projMatrix = camera.getProjMatrix();
 		camMatrix = camera.getViewMatrix();
 
-		//draw branches
-
-		if (drawBranches)
-		{
-
-			branchVertexArray.bind();
-			glLineWidth(1);
-			glDrawElementsInstanced(GL_LINES, INDICES_PER_BRANCH, GL_UNSIGNED_INT, 0, instances.size());
-		}
 		if (drawLeafs)
 		{
 			leafVertexArray.bind();
@@ -308,10 +243,12 @@ int main(void)
 			glDrawElementsInstanced(GL_TRIANGLES, INDICES_PER_LEAF, GL_UNSIGNED_INT, 0, leafInstances.size());
 		}
 
-		//draw axis
-		glLineWidth(10);
-		axisVertexArray.bind();
-		glDrawArrays(GL_LINES, 0, 6);
+		for (Drawable* drble : drawables) {
+			if (drble->m_enable)
+				drble->Draw();
+		}
+
+		
 
 		draw_ui();
 
@@ -343,19 +280,34 @@ void draw_ui() {
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 	
+	ImGui::ShowDemoWindow();
+
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
 	ImGui::SetNextWindowSize(ImVec2(300, 500), ImGuiCond_Always);
 	ImGui::SetNextWindowBgAlpha(0.7f);
 	ImGui::Begin("Controls", NULL, ImGuiWindowFlags_NoResize);
-	ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), "Camera");
-	float* posp = &camera.mTransform.position.x;
-	vec3 rot = camera.mTransform.rotation.ToEuler();
-	float* speedp = &camera.speed;
-	float* sensp = &camera.sensitivity;
-	ImGui::InputFloat3("Pos:", posp);
-	ImGui::InputFloat3("Rot: ", &rot.x, "%.3f", ImGuiInputTextFlags_ReadOnly);
-	ImGui::SliderFloat("Speed: ", speedp, 0.1f, 10.0f, "%4.1f");
-	ImGui::SliderFloat("Sensitivity: ", sensp, 0.1f, 10.0f, "%4.1f");
+	if (ImGui::CollapsingHeader("Camera")) {
+		ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), "Camera");
+		float* posp = &camera.mTransform.position.x;
+		vec3 rot = camera.mTransform.rotation.ToEuler();
+		float* speedp = &camera.speed;
+		float* sensp = &camera.sensitivity;
+		ImGui::InputFloat3("Pos:", posp);
+		ImGui::InputFloat3("Rot: ", &rot.x, "%.3f", ImGuiInputTextFlags_ReadOnly);
+		ImGui::SliderFloat("Speed: ", speedp, 0.1f, 10.0f, "%4.1f");
+		ImGui::SliderFloat("Sensitivity: ", sensp, 0.1f, 10.0f, "%4.1f");
+	}
+
+	if (ImGui::CollapsingHeader("Drawables")) {
+		for (Drawable* drawable : drawables) {
+			if (!ImGui::TreeNode(drawable->m_name.c_str())) continue;
+			
+			ImGui::Checkbox("enabled:", &drawable->m_enable);
+
+			ImGui::TreePop();
+		}
+	}
+
 	ImGui::End();
 
 
