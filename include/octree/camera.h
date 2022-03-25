@@ -18,9 +18,12 @@ public:
 		lookX += x;
 		lookY += y;
 
-		while (lookX > 2.0) lookX -= 2.0;
-		if (lookY > 0.9) lookY = 0.9;
-		if (lookY < -0.9) lookY = -0.9;
+		if (lookX > 2.0) lookX -= 2.0;
+		if (lookX < -2.0) lookX += 2.0;
+		if (lookY > 0.4999) lookY = 0.4999;
+		if (lookY < -0.4999) lookY = -0.4999;
+		
+	
 
 		mTransform.rotation = Quaternion::AxisAngle(vec3::up, lookX * PI) * Quaternion::AxisAngle(vec3::right, lookY * PI);
 	}
