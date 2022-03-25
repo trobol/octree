@@ -33,7 +33,7 @@ Quaternion::Quaternion(vec3 eulerAngles)
 
 Quaternion::Quaternion(float pitch, float yaw, float roll) : Quaternion(vec3(pitch, yaw, roll)) {}
 
-vec3 Quaternion::EulerAngle()
+vec3 Quaternion::ToEuler()
 {
 	vec3 v;
 	// roll (x-axis rotation)
@@ -54,6 +54,23 @@ vec3 Quaternion::EulerAngle()
 	v.z = atan2f(siny_cosp, cosy_cosp);
 
 	return v;
+}
+
+Quaternion Quaternion::FromEuler(vec3 euler) {
+  	float cy = cosf(euler.z * 0.5);
+    float sy = sinf(euler.z * 0.5);
+    float cp = cosf(euler.y * 0.5);
+    float sp = sinf(euler.y * 0.5);
+    float cr = cosf(euler.x * 0.5);
+    float sr = sinf(euler.x * 0.5);
+
+    Quaternion q;
+    q.w = cr * cp * cy + sr * sp * sy;
+    q.x = sr * cp * cy - cr * sp * sy;
+    q.y = cr * sp * cy + sr * cp * sy;
+    q.z = cr * cp * sy - sr * sp * cy;
+
+	return q;
 }
 
 Quaternion::Quaternion()

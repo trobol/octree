@@ -15,9 +15,11 @@ public:
 
 	float x, y, z, w;
 
-	vec3 EulerAngle();
+	vec3 ToEuler();
 	void normalize();
 
+
+	static Quaternion FromEuler(vec3 euler);
 	static Quaternion AxisAngle(vec3 axis, float angle);
 	static Quaternion identity;
 

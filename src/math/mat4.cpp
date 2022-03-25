@@ -48,26 +48,25 @@ mat4::mat4(float m[16])
 	}
 }
 
-mat4 mat4::lookAt(vec3 const& eye, vec3 const& center, vec3 const& up)
+mat4 mat4::lookAt(vec3 const& eye, vec3 const& view_dir, vec3 const& up)
 {
-	vec3  f = (center - eye).normalized();
-	vec3  u = up.normalized();
-	vec3  s = vec3::cross(f, u).normalized();
-	u = vec3::cross(s, f);
+	vec3 zaxis = (view_dir).normalized();
+	vec3 xaxis = vec3::cross(up, zaxis).normalized();
+	vec3 yaxis = vec3::cross(zaxis, xaxis);
 
 	mat4 Result;
-	Result[0][0] = s.x;
-	Result[1][0] = s.y;
-	Result[2][0] = s.z;
-	Result[0][1] = u.x;
-	Result[1][1] = u.y;
-	Result[2][1] = u.z;
-	Result[0][2] = -f.x;
-	Result[1][2] = -f.y;
-	Result[2][2] = -f.z;
-	Result[3][0] = -vec3::dot(s, eye);
-	Result[3][1] = -vec3::dot(u, eye);
-	Result[3][2] = vec3::dot(f, eye);
+	Result[0][0] = xaxis.x;
+	Result[1][0] = xaxis.y;
+	Result[2][0] = xaxis.z;
+	Result[0][1] = yaxis.x;
+	Result[1][1] = yaxis.y;
+	Result[2][1] = yaxis.z;
+	Result[0][2] = zaxis.x;
+	Result[1][2] = zaxis.y;
+	Result[2][2] = zaxis.z;
+	Result[3][0] = -vec3::dot(xaxis, eye);
+	Result[3][1] = -vec3::dot(yaxis, eye);
+	Result[3][2] = -vec3::dot(zaxis, eye);
 	return Result;
 }
 

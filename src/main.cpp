@@ -30,6 +30,7 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_opengl3.h"
 #include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_style.h"
 
 const std::string ASSET_PATH_STR = ASSET_PATH;
 
@@ -39,38 +40,19 @@ vec3 center = vec3(0, 0, 0);
 bool drawBranches = true;
 bool drawLeafs = true;
 
-float speed = 1;
-
 bool absolute_movement = false;
 
 void draw_ui();
 
 void draw_axis();
 
-float sensitivity = 0.01f;
-static void mouse_move_callback(GLFWwindow* window, double xpos, double ypos) {
-	ImGui_ImplGlfw_CursorPosCallback(window, xpos, ypos);
-	ImGuiIO& io = ImGui::GetIO();
-	if (io.WantCaptureMouse) return;
-
-	printf("%f, %f\n", xpos, ypos);
-	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) != GLFW_PRESS) return;
-
-
-	glfwSetCursorPos(window, 0, 0);
-	camera.rotation.x += (float)ypos *sensitivity;
-	camera.rotation.y += (float)xpos * sensitivity;
-
-}		
- 
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
 	ImGuiIO& io = ImGui::GetIO();
 	if (io.WantCaptureKeyboard) return;
-	vec3 forward = Quaternion::AxisAngle(vec3::up, camera.rotation.y) * vec3::forwards;
-	vec3 right = Quaternion::AxisAngle(vec3::up, camera.rotation.y) * vec3::right;
+
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
 	// VISUALIZATION
@@ -80,22 +62,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		drawLeafs = !drawLeafs;
 
 
-	// MOVEMENT
-	if (key == GLFW_KEY_W)
-		camera.mTransform.position += forward * speed;
 
-	if (key == GLFW_KEY_S)
-		camera.mTransform.position -= forward * speed;
-
-	if (key == GLFW_KEY_SPACE)
-		camera.mTransform.position.y += speed;
-	if (key == GLFW_KEY_LEFT_SHIFT)
-		camera.mTransform.position.y -= speed;
-
-	if (key == GLFW_KEY_D)
-		camera.mTransform.position += right * speed;
-	if (key == GLFW_KEY_A)
-		camera.mTransform.position -= right * speed;
 
 	if (key == GLFW_KEY_EQUAL)
 		camera.mFov -= 2;
@@ -118,6 +85,7 @@ static void mouse_btn_callback(GLFWwindow* window, int button, int action, int m
 	if (button == GLFW_MOUSE_BUTTON_LEFT) {
 		if (action == GLFW_PRESS) {
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			glfwSetCursorPos(window, 0, 0);
 		} else {
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		}
@@ -126,8 +94,9 @@ static void mouse_btn_callback(GLFWwindow* window, int button, int action, int m
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-	speed = max(0, speed + yoffset * 0.05);
+	camera.speed = max(0, camera.speed + yoffset * 0.05);
 }
+
 Shader shader;
 
 Window& window = Window::getInstance();
@@ -148,10 +117,10 @@ int main(void)
 	ImGui::CreateContext();
 	ImGui_ImplGlfw_InitForOpenGL(window.mWindow, true);
 	ImGui_ImplOpenGL3_Init("#version 330");
+	setImGuiStyle();
 
 	window.setKeyCallback(key_callback);
 	window.setScrollCallback(scroll_callback);
-	window.setMouseMoveCallback(mouse_move_callback);
 	window.setMouseButtonCallback(mouse_btn_callback);
 
 	std::string vertPath = ASSET_PATH_STR + "/shaders/shader.vert";
@@ -213,13 +182,8 @@ int main(void)
 	branchElementBuffer.unbind();
 
 
-
-	// LEAF BUFFERS
-
+	// SET UP STATIC CUBE BUFFERS
 	Buffer leafInstanceBuffer = Buffer::Generate();
-	leafInstanceBuffer.bind(GL_ARRAY_BUFFER);
-	leafInstanceBuffer.bufferVector(leafInstances, GL_STATIC_DRAW);
-	leafInstanceBuffer.unbind();
 
 	VertexArray leafVertexArray = VertexArray::Generate();
 	Buffer leafVertexBuffer = Buffer::Generate();
@@ -293,22 +257,40 @@ int main(void)
 	axisVertexBuffer.unbind();
 
 	camera.mTransform.scale = vec3(1, 1, 1);
-	camera.mTransform.position = vec3(0, 0, 10.);
+	camera.mTransform.position = vec3(-10.0, 0, -10.);
 
 	center = vec3(0, 0, 0);
 
 	UniformMatrix4f projMatrix(shader, "projMatrix");
 	UniformMatrix4f camMatrix(shader, "camMatrix");
 
+	// load leaf instance buffer
+	leafInstanceBuffer.bind(GL_ARRAY_BUFFER);
+	leafInstanceBuffer.bufferVector(leafInstances, GL_STATIC_DRAW);
+	leafInstanceBuffer.unbind();
+
+	ImGuiIO& io = ImGui::GetIO();
+
 	glEnable(GL_DEPTH_TEST);
+
+	// MAIN LOOP
 	while (!window.shouldClose())
 	{
+
+
+		// UPDATE
+		camera.bCanCaptureMouse = !io.WantCaptureMouse;
+		camera.Update(0);
+
+
+		// DRAW
 		shader.use();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
+
 		projMatrix = camera.getProjMatrix();
-		camMatrix = mat4::lookAt(camera.mTransform.position, center, vec3::up);
-		camMatrix = camera.getTransformMatrix();
+		camMatrix = camera.getViewMatrix();
 
 		//draw branches
 
@@ -331,12 +313,13 @@ int main(void)
 		axisVertexArray.bind();
 		glDrawArrays(GL_LINES, 0, 6);
 
-	
+		draw_ui();
 
 		window.swapBuffers();
 		glfwPollEvents();
 	}
 
+	
 	window.shutdown();
 
 	glfwTerminate();
@@ -359,12 +342,21 @@ void draw_ui() {
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
-
+	
+	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(300, 500), ImGuiCond_Always);
 	ImGui::SetNextWindowBgAlpha(0.7f);
 	ImGui::Begin("Controls", NULL, ImGuiWindowFlags_NoResize);
 	ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), "Camera");
-	//ImGui::Text()
-
+	float* posp = &camera.mTransform.position.x;
+	vec3 rot = camera.mTransform.rotation.ToEuler();
+	float* speedp = &camera.speed;
+	float* sensp = &camera.sensitivity;
+	ImGui::InputFloat3("Pos:", posp);
+	ImGui::InputFloat3("Rot: ", &rot.x, "%.3f", ImGuiInputTextFlags_ReadOnly);
+	ImGui::SliderFloat("Speed: ", speedp, 0.1f, 10.0f, "%4.1f");
+	ImGui::SliderFloat("Sensitivity: ", sensp, 0.1f, 10.0f, "%4.1f");
+	ImGui::End();
 
 
 	ImGui::Render();
