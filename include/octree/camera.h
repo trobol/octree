@@ -20,8 +20,8 @@ public:
 
 		if (lookX > 2.0) lookX -= 2.0;
 		if (lookX < -2.0) lookX += 2.0;
-		if (lookY > 0.4999) lookY = 0.4999;
-		if (lookY < -0.4999) lookY = -0.4999;
+		if (lookY > 0.49999) lookY = 0.49999;
+		if (lookY < -0.49999) lookY = -0.49999;
 		
 	
 
