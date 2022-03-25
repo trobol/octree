@@ -23,7 +23,7 @@
 #include <octree/graphics/uniform.h>
 #include <octree/graphics/vertex_array.h>
 
-#include <octree/drawables/branch_mesh.h>
+#include <octree/drawables/voxel_mesh.h>
 #include <octree/drawables/axis_drawable.h>
 
 #include <octree/systems/window.h>
@@ -140,55 +140,18 @@ int main(void)
 
 	tree.drawNodes(instances, leafInstances);
 
-	BranchMeshDrawable branch_drawable;
+	VoxelMeshDrawable branch_drawable("branch_drawable", true);
+	VoxelMeshDrawable leaf_drawable("leaf_drawable", false);
 
 	branch_drawable.Initialize();
 	branch_drawable.SetInstances(instances);
 
+	leaf_drawable.Initialize();
+	leaf_drawable.SetInstances(leafInstances);
+
 	drawables.push_back(&branch_drawable);
-
-	// SET UP STATIC CUBE BUFFERS
-	Buffer leafInstanceBuffer = Buffer::Generate();
-
-	VertexArray leafVertexArray = VertexArray::Generate();
-	Buffer leafVertexBuffer = Buffer::Generate();
-	Buffer leafElementBuffer = Buffer::Generate();
-
-	leafVertexArray.bind();
-	leafVertexBuffer.bind(GL_ARRAY_BUFFER);
-	leafElementBuffer.bind(GL_ELEMENT_ARRAY_BUFFER);
-
-
-
-	leafVertexBuffer.bufferArray(CUBE_POINTS, ELEMENTS_PER_CUBE, GL_STATIC_DRAW);
-	leafElementBuffer.bufferArray(LEAF_INDICES, INDICES_PER_LEAF, GL_STATIC_DRAW);
-
-	VertexAttributeDiscriptor discriptor;
-	discriptor.add(3, GL_FLOAT); // position attribute
-	discriptor.apply();
-
-
-	//instanced attributes
-	glEnableVertexAttribArray(1);
-	glEnableVertexAttribArray(2);
-	glEnableVertexAttribArray(3);
-	leafInstanceBuffer.bind(GL_ARRAY_BUFFER);
-
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)0);
-
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(3 * sizeof(float)));
-
-	glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(6 * sizeof(float)));
-	leafInstanceBuffer.unbind();
-	glVertexAttribDivisor(1, 1);
-	glVertexAttribDivisor(2, 1);
-	glVertexAttribDivisor(3, 1); // tell OpenGL this is an instanced vertex attribute.
-
-
-	leafVertexArray.unbind();
-	leafVertexBuffer.unbind();
-	leafElementBuffer.unbind();
-
+	drawables.push_back(&leaf_drawable);
+	
 	/*
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -208,10 +171,6 @@ int main(void)
 	UniformMatrix4f projMatrix(shader, "projMatrix");
 	UniformMatrix4f camMatrix(shader, "camMatrix");
 
-	// load leaf instance buffer
-	leafInstanceBuffer.bind(GL_ARRAY_BUFFER);
-	leafInstanceBuffer.bufferVector(leafInstances, GL_STATIC_DRAW);
-	leafInstanceBuffer.unbind();
 
 	ImGuiIO& io = ImGui::GetIO();
 
@@ -235,13 +194,6 @@ int main(void)
 
 		projMatrix = camera.getProjMatrix();
 		camMatrix = camera.getViewMatrix();
-
-		if (drawLeafs)
-		{
-			leafVertexArray.bind();
-
-			glDrawElementsInstanced(GL_TRIANGLES, INDICES_PER_LEAF, GL_UNSIGNED_INT, 0, leafInstances.size());
-		}
 
 		for (Drawable* drble : drawables) {
 			if (drble->m_enable)

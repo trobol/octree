@@ -1,8 +1,8 @@
-#include <octree/drawables/branch_mesh.h>
+#include <octree/drawables/voxel_mesh.h>
 #include "../defines.h"
 
 
-void BranchMeshDrawable::Initialize() {
+void VoxelMeshDrawable::Initialize() {
 
 	m_instanceBuffer = Buffer::Generate();
 	//branchInstanceBuffer.bind(GL_ARRAY_BUFFER);
@@ -19,8 +19,10 @@ void BranchMeshDrawable::Initialize() {
 
 
 	vertexBuffer.bufferArray(CUBE_POINTS, ELEMENTS_PER_CUBE, GL_STATIC_DRAW);
-	elementBuffer.bufferArray(BRANCH_INDICES, INDICES_PER_BRANCH, GL_STATIC_DRAW);
-
+ 
+	unsigned int indices_count = m_outline ? INDICES_PER_BRANCH : INDICES_PER_LEAF;
+	const unsigned int* indices_ptr = m_outline ? BRANCH_INDICES : LEAF_INDICES;
+	elementBuffer.bufferArray(indices_ptr, indices_count, GL_STATIC_DRAW);
 
 	VertexAttributeDiscriptor discriptor;
 	discriptor.add(3, GL_FLOAT); // position attribute
@@ -48,7 +50,7 @@ void BranchMeshDrawable::Initialize() {
 	elementBuffer.unbind();
 }
 
-void BranchMeshDrawable::SetInstances(std::vector<Cube>& instances) {
+void VoxelMeshDrawable::SetInstances(std::vector<Cube>& instances) {
 	// load leaf instance buffer
 	m_instanceBuffer.bind(GL_ARRAY_BUFFER);
 	m_instanceBuffer.bufferVector(instances, GL_STATIC_DRAW);
@@ -56,8 +58,12 @@ void BranchMeshDrawable::SetInstances(std::vector<Cube>& instances) {
 	m_instanceCount = instances.size();
 }
 
-void BranchMeshDrawable::Draw() {
+void VoxelMeshDrawable::Draw() {
 	m_vertexArray.bind();
-	glLineWidth(1);
-	glDrawElementsInstanced(GL_LINES, INDICES_PER_BRANCH, GL_UNSIGNED_INT, 0, m_instanceCount);
+	if (m_outline) {
+		glLineWidth(1);
+		glDrawElementsInstanced(GL_LINES, INDICES_PER_BRANCH, GL_UNSIGNED_INT, 0, m_instanceCount);
+	} else {
+		glDrawElementsInstanced(GL_TRIANGLES, INDICES_PER_LEAF, GL_UNSIGNED_INT, 0, m_instanceCount);
+	}
 }

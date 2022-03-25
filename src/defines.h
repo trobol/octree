@@ -19,7 +19,7 @@ const vec3 CUBE_POINTS[ELEMENTS_PER_CUBE] = {
 };
 
 
-const int BRANCH_INDICES[INDICES_PER_BRANCH] = {
+const unsigned int BRANCH_INDICES[INDICES_PER_BRANCH] = {
 	0, 1,
 	1, 5,
 	5, 4,
