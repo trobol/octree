@@ -6,8 +6,9 @@ set(CMAKE_CXX_STANDARD 14)  # for c++17
 
 
 file(GLOB_RECURSE SOURCE_FILES "src/*.cpp")
+file(GLOB_RECURSE IMGUI_FILES "deps/imgui/*.cpp")
 
-add_executable(octree ${SOURCE_FILES})
+add_executable(octree ${SOURCE_FILES} ${IMGUI_FILES})
 
 find_package(OpenGL REQUIRED)
 include_directories( ${OPENGL_INCLUDE_DIRS} )
@@ -15,6 +16,7 @@ include_directories( ${OPENGL_INCLUDE_DIRS} )
 add_definitions(-DASSET_PATH="${CMAKE_SOURCE_DIR}/assets")
 
 include_directories(include)
+include_directories(deps)
 
 #add_subdirectory(benchmark)
 #target_link_libraries(octree benchmark::benchmark)
