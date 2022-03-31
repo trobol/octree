@@ -2,8 +2,9 @@
 #include <iostream>
 
 #include <octree/graphics/shader.h>
+#ifdef WIN32
 #include <windows.h>
-
+#endif
 #include <stdlib.h>
 #include <vector>
 #include <sstream>

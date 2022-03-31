@@ -7,7 +7,7 @@ class Drawable {
 public:
 	Drawable(std::string name) : m_name{name} {}
 	std::string m_name;
-	bool m_enable;
+	bool m_enable = true;
 
 	virtual void Draw() = 0;
 	virtual void Initialize() = 0;

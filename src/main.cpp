@@ -1,5 +1,6 @@
-
+#ifdef WIN32
 #include <Windows.h>
+#endif
 #include <GL/glu.h>
 #include <GLFW/glfw3.h>
 #include <octree/octree.h>
@@ -97,7 +98,7 @@ static void mouse_btn_callback(GLFWwindow* window, int button, int action, int m
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-	camera.speed = max(0, camera.speed + yoffset * 0.05);
+	camera.speed = std::max(0.0, camera.speed + yoffset * 0.05);
 }
 
 Shader shader;
