@@ -3,6 +3,11 @@
 #include <GL/glu.h>
 #include <GLFW/glfw3.h>
 #include <octree/octree.h>
+
+
+#define TINYGLTF_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <octree/tiny_gltf.h>
 
 #include <stdlib.h>
