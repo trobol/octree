@@ -8,6 +8,8 @@
 #include <iomanip>
 #include <math.h>
 
+
+
 #define ASSERT_HEADER(str)                                             \
 	if (!checkHeader(file, str))                                       \
 	{                                                                  \
@@ -130,7 +132,6 @@ void VoxFile::load(std::string path)
 	ASSERT_HEADER("MAIN");
 	int chunkSize = readInt(file);
 	int chunkCount = readInt(file);
-
 
 	while (!feof(file)) {
 		int32_t type = getHeader(file);
