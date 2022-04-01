@@ -1,4 +1,4 @@
-#include <octree/math/math.h>
+#include <octree/math/octree_math.h>
 
 float degreeToRadian(float degree)
 {
