@@ -10,9 +10,10 @@
 #include <iostream>
 
 #include <octree/graphics/shader.h>
-#include <octree/math/math.h>
+#include <octree/math/octree_math.h>
 #include <octree/math/vec3.h>
 
+#include <math.h>
 
 #include <octree/core/files/filesystem.h>
 
@@ -98,7 +99,7 @@ static void mouse_btn_callback(GLFWwindow* window, int button, int action, int m
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-	camera.speed = std::max(0.0, camera.speed + yoffset * 0.05);
+	camera.speed = maxf(0.0, camera.speed + yoffset * 0.05);
 }
 
 Shader shader;
@@ -138,6 +139,7 @@ int main(void)
 
 	std::vector<Cube> instances;
 	std::vector<Cube> leafInstances;
+
 
 	tree.drawNodes(instances, leafInstances);
 
@@ -233,7 +235,7 @@ void draw_ui() {
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 	
-	ImGui::ShowDemoWindow();
+	//ImGui::ShowDemoWindow();
 
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
 	ImGui::SetNextWindowSize(ImVec2(300, 500), ImGuiCond_Always);
@@ -245,10 +247,12 @@ void draw_ui() {
 		vec3 rot = camera.mTransform.rotation.ToEuler();
 		float* speedp = &camera.speed;
 		float* sensp = &camera.sensitivity;
+		float* fovp = &camera.mFov;
 		ImGui::InputFloat3("Pos:", posp);
 		ImGui::InputFloat3("Rot: ", &rot.x, "%.3f", ImGuiInputTextFlags_ReadOnly);
 		ImGui::SliderFloat("Speed: ", speedp, 0.1f, 10.0f, "%4.1f");
 		ImGui::SliderFloat("Sensitivity: ", sensp, 0.1f, 10.0f, "%4.1f");
+		ImGui::SliderFloat("FOV: ", fovp, 10.0f, 110.0f, "%4.0f");
 	}
 
 	if (ImGui::CollapsingHeader("Drawables")) {

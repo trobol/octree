@@ -1,5 +1,5 @@
 #include <octree/math/transform.h>
-#include <octree/math/math.h>
+#include <octree/math/octree_math.h>
 #include <math.h>
 
 mat4 Transform::ToMatrix()

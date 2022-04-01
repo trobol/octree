@@ -1,5 +1,5 @@
 
-#include <octree/math/math.h>
+#include <octree/math/octree_math.h>
 #include <octree/math/mat4.h>
 #include <ctgmath>
 

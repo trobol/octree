@@ -47,7 +47,9 @@ For simplicity I am putting bottom a corner at 0 rather than the center
 class Octree
 {
 private:
-	uint32_t m_size; // must be power of 2
+	uint32_t m_depth; // number of "levels" of nodes
+	uint32_t m_size; // 2 ^ m_depth
+	
 	uint32_t m_alloc_size;
 
 
@@ -56,7 +58,7 @@ private:
 
 public:
 	Octree(uint32_t size);
-	Octree(OctreeBuilder& builder);
+
 
 	static Octree load(std::string path);
 	void drawLeaf(uint32_t color, vec3 v, std::vector<Cube>& leafInstances);

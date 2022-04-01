@@ -3,7 +3,7 @@
 
 
 #include <math.h>
-#include <octree/math/math.h>
+#include <octree/math/octree_math.h>
 #include <octree/octree_chunk.h>
 
 #include <octree/octree_builder.h>
@@ -21,16 +21,23 @@ unsigned int next_pow2(unsigned int v) {
 	return v;
 }
 
-Octree::Octree(uint32_t size) {
+Octree::Octree(uint32_t size) :
+m_depth{0},
+m_size{0}
+{
 
-	m_size = next_pow2(size);
+	// calculate the depth that can hold all the data
+	while((1 << m_depth) < size) { m_depth++; }
+	m_size = 1 << m_depth;
+
+	
 	m_alloc_size = 0;
 	for (uint32_t s = size; s > 0; s = s >> 1)
 		m_alloc_size += s * s * s;
 
-	m_array.resize(9);
+	m_array.resize(1);
 
-	m_array[0].children_ptr = 1;
+	m_array[0].children_ptr = 0;
 	m_array[0].children_far = 0;
 	m_array[0].valid_mask = 0;
 	m_array[0].leaf_mask = 0;
@@ -38,7 +45,18 @@ Octree::Octree(uint32_t size) {
 	printf("size %u\n", m_size);
 }
 
-
+// out_str should be at least 9 bytes
+void bitArrayToStr(uint8_t bits, char* out_str) {
+	out_str[0] = '0' + ((bits & 0x80) >> 7);
+	out_str[1] = '0' + ((bits & 0x40) >> 6);
+	out_str[2] = '0' + ((bits & 0x20) >> 5);
+	out_str[3] = '0' + ((bits & 0x10) >> 4);
+	out_str[4] = '0' + ((bits & 0x08) >> 3);
+	out_str[5] = '0' + ((bits & 0x04) >> 2);
+	out_str[6] = '0' + ((bits & 0x02) >> 1);
+	out_str[7] = '0' + ((bits & 0x01) >> 0);
+	out_str[8] = 0;
+}
 
 // elements are the box outlines
 // leafElements are the cubes that makes the actual model
@@ -54,11 +72,12 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 		const uint32_t index;
 		const int pos_x, pos_y, pos_z;
 		uint8_t child_offset;
+		uint32_t depth;
 	};
 	std::stack<NodeStackEntry> traversal_stack;
-	traversal_stack.push({ 0, 0, 0, 0, 0 });
+	traversal_stack.push({ 0, 0, 0, 0, 0, m_depth });
 
-	uint32_t current_size = m_size;
+	//uint32_t current_size = m_size;
 
 	while (!traversal_stack.empty()) {
 
@@ -67,6 +86,7 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 		int x;
 		int y;
 		int z;
+		uint32_t current_depth;
 		{
 			NodeStackEntry& entry = traversal_stack.top();
 			child_offset = entry.child_offset;
@@ -75,25 +95,25 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 			y = entry.pos_y;
 			z = entry.pos_z;
 			entry.child_offset++;
+			current_depth = entry.depth;
 		}
 
 		// done with this node (and all its children)
 		if (child_offset > 7) {
 
-			current_size = current_size << 1;
 			// draw branch
 			Cube c;
 			c.pos = vec3(x, y, z);
 			c.color = random_colors[index % 256];
-			c.size = current_size;
+			c.size = 1 << current_depth;
 			traversal_stack.pop();
 
 			elements.push_back(c);
 			continue;
 		}
 		
-		OTNode& parent = m_array[index];
-		uint32_t half_size = current_size >> 1;
+		OTNode parent = m_array[index];
+		int half_size = 1 << (current_depth-1);
 
 		uint32_t children_ptr = parent.children_ptr;
 		//if (parent.children_far) children_ptr = m_farpointers[children_ptr];
@@ -104,30 +124,21 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 		int pos_y[8] = {y + half_size, y + half_size, y, y, y + half_size, y + half_size, y, y};
 		int pos_z[8] = {z + half_size, z + half_size, z + half_size, z + half_size, z, z, z, z};
 
-
 		if (!(parent.valid_mask & (1 << child_offset))) continue;
 		if (parent.leaf_mask & (1 << child_offset)) {
 			Cube c;
 			c.pos = vec3(pos_x[child_offset], pos_y[child_offset], pos_z[child_offset]);
-			c.size = current_size;
+			c.size = (float)half_size;
 			c.color = random_colors[child_index % 256];
 			leafElements.push_back(c);
-
-			//printf("%5i, %5i, %5i  (%5i)\n ", pos_x[child_offset], pos_y[child_offset], pos_z[child_offset], current_size);
 			continue;
 		} 
 
 		{
 			// if non-leaf, add to elements and push to traversal_stack
 			uint8_t of = child_offset;	
-			traversal_stack.push({child_index, pos_x[of], pos_y[of], pos_z[of], 0});
-		}
-
-		current_size = half_size;
-		
-		
-
-		
+			traversal_stack.push({child_index, pos_x[of], pos_y[of], pos_z[of], 0, current_depth-1});
+		}	
 	}
 
 	printf("drew %llu branches and %llu leaves", elements.size(), leafElements.size());
@@ -186,7 +197,7 @@ uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint16_t min_
 	int z = 0;
 
 	uint32_t current_size = m_size;
-	while(current_size > min_depth)
+	while(current_size > 1)
 	{
 	
 		parent_index = current_index;
@@ -211,9 +222,10 @@ uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint16_t min_
 		
 		// no valid children
 		// we are going to make some children valid, so allocate them
-		if (!m_array[current_index].valid_mask && half_size > 0) {
+		if (!m_array[current_index].valid_mask && half_size > 1) {
 			uint32_t ptr = m_array.size() - current_index;
 			if (ptr > (1 << 14)) puts("ERROR: node index will overflow");
+		
 			m_array[current_index].children_ptr = ptr;
 			m_array.resize(m_array.size() + 8); 
 		}
@@ -282,6 +294,10 @@ Node* Octree::setNode(vec3int pos, vec3 color)
 	return NULL;
 }
 
+
+
+
+
 Octree Octree::loadModel(VoxFile& file)
 {
 
@@ -318,7 +334,7 @@ Octree Octree::loadModel(VoxFile& file)
 		color32 = palette[file.mVoxels[i].colorIndex - 1];
 		vec3 color = vec3(color32split[0], color32split[1], color32split[2]) / 255;
 
-		if (file.mVoxels[i].x > 50 || file.mVoxels[i].y > 50 || file.mVoxels[i].z > 50) continue;
+		//if (file.mVoxels[i].x > 50 || file.mVoxels[i].y > 50 || file.mVoxels[i].z > 50) continue;
 		//dont forget to convert to correct space
 		octree.setNode(file.mVoxels[i].x, file.mVoxels[i].y, file.mVoxels[i].z);
 	}
@@ -346,6 +362,22 @@ Octree Octree::loadModel(VoxFile& file)
 			octree.m_array.push_back(node);
 			printf("%i, ", node.children_ptr);
 		}
+	}
+	*/
+
+	/*
+	for (unsigned int i = 0; i < octree.m_array.size(); i++) {
+		printf("[%u]: {\n", i);
+		OTNode node = octree.m_array[i];
+		char tmp[9];
+		bitArrayToStr(node.valid_mask, tmp);
+		printf(" valid: %s\n", tmp);
+
+		bitArrayToStr(node.leaf_mask, tmp);
+		printf(" leaf:  %s\n", tmp);
+
+		printf(" children: %hu", node.children_ptr);
+		printf("\n}\n");
 	}
 	*/
 	return octree;
