@@ -311,6 +311,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 }
 
 Shader shader;
+Shader shaderDuck;
 
 Window& window = Window::getInstance();
 
@@ -321,11 +322,6 @@ int main(void)
 	srand(time(NULL));
 	VoxFile file;
 
-	tinygltf::Model model;
-	if (!loadModel(model, "/models/")) return -1;
-
-	//This should be the model loaded in
-	GLuint vao = bindModel(model);
 
 	std::string filepath = filesystem::fileSelect(ASSET_PATH_STR + "/models/", ".vox");
 	file.load(filepath);
@@ -333,6 +329,13 @@ int main(void)
 	Octree tree = Octree::loadModel(file);
 
 	window.startup();
+
+	tinygltf::Model model;
+	filepath = ASSET_PATH_STR + "/models/Duck.gltf";
+	if (!loadModel(model, filepath.c_str())) return -1;
+
+	//This should be the model loaded in
+	GLuint vao = bindModel(model);
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -346,6 +349,12 @@ int main(void)
 
 	std::string vertPath = ASSET_PATH_STR + "/shaders/shader.vert";
 	std::string fragPath = ASSET_PATH_STR + "/shaders/shader.frag";
+
+	std::string vertDuckPath = ASSET_PATH_STR + "/shaders/duck.vert";
+	std::string fragDuckPath = ASSET_PATH_STR + "/shaders/duck.frag";
+
+	shaderDuck = Shader::Load(vertDuckPath, fragDuckPath);
+
 	shader = Shader::Load(vertPath, fragPath);
 
 	shader.use();
@@ -404,11 +413,12 @@ int main(void)
 
 
 		// DRAW
-		shader.use();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		shaderDuck.use();
+		drawModel(vao, model);
 
-
+		shader.use();
 		projMatrix = camera.getProjMatrix();
 		camMatrix = camera.getViewMatrix();
 
