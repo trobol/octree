@@ -33,6 +33,7 @@
 
 #include <octree/drawables/voxel_mesh.h>
 #include <octree/drawables/axis_drawable.h>
+#include <octree/drawables/mesh_drawable.h>
 
 #include <octree/systems/window.h>
 #include <octree/camera.h>
@@ -57,6 +58,41 @@ void draw_ui();
 
 void draw_axis();
 
+void GLAPIENTRY
+MessageCallback( GLenum source,
+                 GLenum type,
+                 GLuint id,
+                 GLenum severity,
+                 GLsizei length,
+                 const GLchar* message,
+                 const void* userParam )
+{
+  fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+           ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+            type, severity, message );
+}
+
+GLenum glCheckError_(const char *file, int line)
+{
+    GLenum errorCode;
+    while ((errorCode = glGetError()) != GL_NO_ERROR)
+    {
+        std::string error;
+        switch (errorCode)
+        {
+            case GL_INVALID_ENUM:                  error = "INVALID_ENUM"; break;
+            case GL_INVALID_VALUE:                 error = "INVALID_VALUE"; break;
+            case GL_INVALID_OPERATION:             error = "INVALID_OPERATION"; break;
+            case GL_STACK_OVERFLOW:                error = "STACK_OVERFLOW"; break;
+            case GL_STACK_UNDERFLOW:               error = "STACK_UNDERFLOW"; break;
+            case GL_OUT_OF_MEMORY:                 error = "OUT_OF_MEMORY"; break;
+            case GL_INVALID_FRAMEBUFFER_OPERATION: error = "INVALID_FRAMEBUFFER_OPERATION"; break;
+        }
+        std::cout << error << " | " << file << " (" << line << ")" << std::endl;
+    }
+    return errorCode;
+}
+#define glCheckError() glCheckError_(__FILE__, __LINE__) 
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -321,7 +357,8 @@ int main(void)
 {
 	srand(time(NULL));
 	VoxFile file;
-
+	MeshDrawable duckDrawable("duck");
+	drawables.push_back(&duckDrawable);
 
 	std::string filepath = filesystem::fileSelect(ASSET_PATH_STR + "/models/", ".vox");
 	file.load(filepath);
@@ -329,6 +366,10 @@ int main(void)
 	Octree tree = Octree::loadModel(file);
 
 	window.startup();
+
+	// During init, enable debug output
+	//glEnable              ( GL_DEBUG_OUTPUT );
+	//glDebugMessageCallback( MessageCallback, 0 );
 
 	tinygltf::Model model;
 	filepath = ASSET_PATH_STR + "/models/Duck.gltf";
@@ -354,6 +395,7 @@ int main(void)
 	std::string fragDuckPath = ASSET_PATH_STR + "/shaders/duck.frag";
 
 	shaderDuck = Shader::Load(vertDuckPath, fragDuckPath);
+	shaderDuck.use();
 
 	shader = Shader::Load(vertPath, fragPath);
 
@@ -397,11 +439,19 @@ int main(void)
 	UniformMatrix4f projMatrix(shader, "projMatrix");
 	UniformMatrix4f camMatrix(shader, "camMatrix");
 
-
+	shaderDuck.use();
+	UniformMatrix4f duckProjMatrix(shaderDuck, "projMatrix");
+	UniformMatrix4f duckViewMatrix(shaderDuck, "viewMatrix");
 	ImGuiIO& io = ImGui::GetIO();
 
+	//shader.use();
+	
 	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//glEnable(GL_BLEND);
+	glCheckError();
 	// MAIN LOOP
 	while (!window.shouldClose())
 	{
@@ -414,10 +464,14 @@ int main(void)
 
 		// DRAW
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		shaderDuck.use();
-		drawModel(vao, model);
-
+		
+		if (duckDrawable.m_enable) {
+			shaderDuck.use();
+			duckProjMatrix = camera.getProjMatrix();
+			duckViewMatrix = camera.getViewMatrix();
+			drawModel(vao, model);
+		}
+	
 		shader.use();
 		projMatrix = camera.getProjMatrix();
 		camMatrix = camera.getViewMatrix();

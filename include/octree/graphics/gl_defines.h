@@ -6,6 +6,8 @@
 #define GL_MAX_COMPUTE_WORK_GROUP_COUNT 0x91BE
 #define GL_MAX_COMPUTE_WORK_GROUP_SIZE 0x91BF
 
+
+
 #define GL_ARRAY_BUFFER 0x8892		   // Acquired from:
 #define GL_ARRAY_BUFFER_BINDING 0x8894 // https://www.opengl.org/registry/api/GL/glext.h
 #define GL_COLOR_ATTACHMENT0 0x8CE0
@@ -38,3 +40,18 @@
 #define GL_BUFFER_SIZE 0x8764
 #define GL_MAP_WRITE_BIT 0x0002
 #define GL_READ_WRITE 0x88BA
+
+
+#ifndef APIENTRY
+#define APIENTRY
+#endif
+#ifndef APIENTRYP
+#define APIENTRYP APIENTRY *
+#endif
+#ifndef GLAPI
+#define GLAPI extern
+#endif
+
+
+#define GL_DEBUG_OUTPUT                   0x92E0
+#define GL_DEBUG_TYPE_ERROR               0x824C

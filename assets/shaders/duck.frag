@@ -1,16 +1,16 @@
-uniform sampler2D diffuseTex;
-uniform int uIsCurve;
+#version 330 core
+in vec3 normal;
+in vec3 position;
+in vec2 texcoord;
 
-varying vec3 normal;
-varying vec2 texcoord;
+uniform sampler2D tex;
+uniform vec3 sun_position; 
+uniform vec3 sun_color; 
 
-void main(void)
-{
-    //gl_FragColor = vec4(0.5 * normalize(normal) + 0.5, 1.0);
-    //gl_FragColor = vec4(texcoord, 0.0, 1.0);
-    if (uIsCurve > 0) {
-        gl_FragColor = texture2D(diffuseTex, texcoord);
-    } else {
-        gl_FragColor = vec4(0.5 * normalize(normal) + 0.5, 1.0);
-    }
+out vec4 color;
+void main() {
+	float lum = max(dot(normal, normalize(sun_position)), 0.0);
+	color = texture(tex, texcoord) * vec4((0.3 + 0.7 * lum) * sun_color, 1.0);
+	//color = vec4(1, 1, 1, 1);
+	color = texture(tex, texcoord);
 }
