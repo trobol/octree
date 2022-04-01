@@ -8,7 +8,8 @@
 
 
 struct Bounds3d {
-	vec3int small, large;
+	//vec3int small;
+	//vec3int large;
 
 	vec3int size();
 
