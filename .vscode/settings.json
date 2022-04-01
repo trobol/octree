@@ -75,7 +75,13 @@
 		"xtr1common": "cpp",
 		"xutility": "cpp",
 		"xlocmon": "cpp",
-		"xloctime": "cpp"
+		"xloctime": "cpp",
+		"bit": "cpp",
+		"complex": "cpp",
+		"ranges": "cpp",
+		"shared_mutex": "cpp",
+		"stop_token": "cpp",
+		"variant": "cpp"
 	},
 	"cmake.generator": "Visual Studio"
 }

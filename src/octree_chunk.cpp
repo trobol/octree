@@ -2,6 +2,8 @@
 #include "defines.h"
 #include <iostream>
 
+// DEPRECATED / UNUSED
+
 Node* OctreeChunk::add_node(vec3int pos, vec3 color) {
 	
 	// NOTE: Because this is operating with a vector pointers/references are very dangerous 

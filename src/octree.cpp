@@ -6,6 +6,8 @@
 #include <octree/math/math.h>
 #include <octree/octree_chunk.h>
 
+#include <octree/octree_builder.h>
+
 // https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
 unsigned int next_pow2(unsigned int v) {
 	v--;
@@ -90,11 +92,11 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 			continue;
 		}
 		
-		OctreeNode& parent = m_array[index];
+		OTNode& parent = m_array[index];
 		uint32_t half_size = current_size >> 1;
 
 		uint32_t children_ptr = parent.children_ptr;
-		if (parent.children_far) children_ptr = m_farpointers[children_ptr];
+		//if (parent.children_far) children_ptr = m_farpointers[children_ptr];
 		uint32_t child_index = index + children_ptr + child_offset;
 		
 
@@ -110,7 +112,8 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 			c.size = current_size;
 			c.color = random_colors[child_index % 256];
 			leafElements.push_back(c);
-		
+
+			//printf("%5i, %5i, %5i  (%5i)\n ", pos_x[child_offset], pos_y[child_offset], pos_z[child_offset], current_size);
 			continue;
 		} 
 
@@ -121,6 +124,7 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 		}
 
 		current_size = half_size;
+		
 		
 
 		
@@ -204,12 +208,20 @@ uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint16_t min_
 		// see child offset comment above
 		child_offset = ((target_z < center_z) << 2) | ((target_y < center_y) << 1) | (target_x < center_x);
 		
-	
+		
+		// no valid children
+		// we are going to make some children valid, so allocate them
+		if (!m_array[current_index].valid_mask && half_size > 0) {
+			uint32_t ptr = m_array.size() - current_index;
+			if (ptr > (1 << 14)) puts("ERROR: node index will overflow");
+			m_array[current_index].children_ptr = ptr;
+			m_array.resize(m_array.size() + 8); 
+		}
 		// assume that parent node is already a valid node
 		// this means all members are valid values and has space designated for children, even if it has no valid children
 		bool child_valid;
 		{ // prevents parent reference usage after array resize
-			OctreeNode& parent = m_array[parent_index];
+			OTNode& parent = m_array[parent_index];
 			// TODO: mask check should be a function
 			// is the child we want to work on next valid?
 			child_valid = parent.valid_mask & (1 << child_offset);
@@ -221,29 +233,6 @@ uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint16_t min_
 			current_index = parent_index + children_ptr + child_offset;
 		}
 
-		// if child is not valid, need to initialize values and make space for children
-		if (!child_valid) {
-
-			OctreeNode& node = m_array[current_index];
-			uint32_t ptr = m_array.size() - current_index;
-			if (ptr >= (1 << 15)-1) {
-				
-				uint32_t farptr = m_farpointers.size();
-				if (farptr >= (1 << 15) - 1) puts("farptr index was too large to store");
-				m_farpointers.push_back(ptr);
-				
-				ptr = farptr;
-				node.children_far = 1;
-			}
-
-		
-			node.children_ptr = ptr;
-			node.children_far = 0;
-			node.leaf_mask = 0;
-			node.valid_mask = 0;
-
-			m_array.resize(m_array.size() + 8); 
-		}
 
 		x = pos_x[child_offset];
 		y = pos_y[child_offset];
@@ -254,7 +243,7 @@ uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint16_t min_
 		current_size = half_size;
 	}
 
-	//printf("%5i, %5i, %5i  (%5i)\n ", x, y, z, current_size);
+	
 	if (min_depth == 0)
 		m_array[parent_index].leaf_mask |= 1 << child_offset;
 	if (target_x != x || target_y != y || target_z != z) puts("ERROR: target did not match destination in octree");
@@ -321,6 +310,7 @@ Octree Octree::loadModel(VoxFile& file)
 	}
 	*/
 
+	OctreeBuilder builder((uint32_t)std::sqrt(realSize));
 	uint32_t* palette = file.getPalette();
 	//load
 	for (int i = 0; i < file.getNumVoxels(); i++)
@@ -328,10 +318,36 @@ Octree Octree::loadModel(VoxFile& file)
 		color32 = palette[file.mVoxels[i].colorIndex - 1];
 		vec3 color = vec3(color32split[0], color32split[1], color32split[2]) / 255;
 
-		if (file.mVoxels[i].x > 40 || file.mVoxels[i].y > 40 || file.mVoxels[i].z > 40) continue;
+		if (file.mVoxels[i].x > 50 || file.mVoxels[i].y > 50 || file.mVoxels[i].z > 50) continue;
 		//dont forget to convert to correct space
 		octree.setNode(file.mVoxels[i].x, file.mVoxels[i].y, file.mVoxels[i].z);
 	}
 
+	printf("\nCOUNT: %u\n", octree.m_array.size());
+	/*
+	for(int i = 0; i <  builder.nodeLevels.size(); i++ ) {
+		std::vector<OTNode>& level = builder.nodeLevels[i];
+		printf("[%i]: ");
+		for(int j = 0; j < level.size(); j++) {
+			OTNode node = level[j];
+			printf("%i, ", node.children_ptr);
+		}
+		printf("\n");
+	}
+
+	puts("\n");
+
+	for (int i = builder.nodeLevels.size()-1; i >= 0; i--) {
+		std::vector<OTNode>& level = builder.nodeLevels[i];
+
+		for(int j = 0; j < level.size(); j++) {
+			OTNode node = level[j];
+			node.children_ptr += level.size() - j;
+			octree.m_array.push_back(node);
+			printf("%i, ", node.children_ptr);
+		}
+	}
+	*/
 	return octree;
 }
+

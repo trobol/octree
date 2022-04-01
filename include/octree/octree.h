@@ -1,3 +1,6 @@
+#ifndef _OCTREE_H
+#define _OCTREE_H
+
 #include <vector>
 #include "math/vec3.h"
 #include "math/vec3int.h"
@@ -14,7 +17,10 @@ struct Point {
 };
 
 class OctreeChunk;
-struct OctreeNode {
+
+
+
+struct OTNode {
 	uint16_t children_ptr : 15;
 	bool children_far : 1;
 	uint8_t valid_mask;
@@ -22,11 +28,18 @@ struct OctreeNode {
 };
 struct OTArrayEntry {
 	union {
-		OctreeNode node;
+		OTNode node;
 		uint32_t fwd_ptr;
 	};
 };
 
+// this is designed to be used as a pointer
+// 
+struct OTGroup {
+	OTNode nodes[8];
+};
+
+class OctreeBuilder;
 
 /*
 For simplicity I am putting bottom a corner at 0 rather than the center
@@ -38,11 +51,12 @@ private:
 	uint32_t m_alloc_size;
 
 
-	std::vector<OctreeNode> m_array;
+	std::vector<OTNode> m_array;
 	std::vector<uint32_t> m_farpointers; // TEMP HACK
 
 public:
 	Octree(uint32_t size);
+	Octree(OctreeBuilder& builder);
 
 	static Octree load(std::string path);
 	void drawLeaf(uint32_t color, vec3 v, std::vector<Cube>& leafInstances);
@@ -70,3 +84,6 @@ private:
 	int value_;
 };
 void printNode(Node& node, int depth = 0);
+
+
+#endif
