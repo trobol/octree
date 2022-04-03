@@ -9,8 +9,8 @@ class MeshDrawable : public Drawable {
 public:
 	MeshDrawable(std::string name) : Drawable{name} {}
 
-	virtual void Draw() override;
-	virtual void Initialize() override;
+	virtual void Draw() override {};
+	virtual void Initialize() override {};
 	
 private:
 	VertexArray m_vertexArray;

@@ -57,6 +57,15 @@ typedef ptrdiff_t GLsizeiptr;
 
 #include <GL/glu.h>
 
+
+ typedef void (APIENTRY *DEBUGPROC)(GLenum source,
+            GLenum type,
+            GLuint id,
+            GLenum severity,
+            GLsizei length,
+            const GLchar *message,
+            const void *userParam);
+
 #define PAPAYA_GL_LIST                                                                                                                                                                                \
 	/* ret, name, params */                                                                                                                                                                           \
 	GLE(void, AttachShader, GLuint program, GLuint shader)                                                                                                                                            \
@@ -116,10 +125,10 @@ typedef ptrdiff_t GLsizeiptr;
 	GLE(void, FramebufferTexture, GLenum target, GLenum attachment, GLuint texture, GLint level)                                                                                                      \
 	GLE(void, BindImageTexture, GLuint unit, GLuint texture, GLint level, GLboolean layered, GLint layer, GLenum access, GLenum format)                                                               \
 	GLE(void, GetIntegeri_v, GLenum pname, GLuint index, GLint *data)                                                                                                                                 \
-	GLE(void, DetachShader, GLuint program, GLuint shader)	\
-	GLE(void, DispatchCompute, GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z)	\
-	GLE(void, MemoryBarrier, GLbitfield barriers)	\
-	GLE(void, DetachShader, GLuint program, GLuint shader)
+	GLE(void, DispatchCompute, GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z)                                                                                                         \
+	GLE(void, MemoryBarrier, GLbitfield barriers)                                                                                                                                                     \
+	GLE(void, DetachShader, GLuint program, GLuint shader)                                                                                                                                            \
+	GLE(void, DebugMessageCallback, DEBUGPROC callback, const void* userParam)
 //	GLE(void, TexSubImage3D, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const GLvoid *pixels) \
 //	GLE(void, GetIntegerv, GLenum pname, GLint *params)                                                                                                                                               
 
