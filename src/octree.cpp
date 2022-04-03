@@ -4,7 +4,6 @@
 
 #include <math.h>
 #include <octree/math/octree_math.h>
-#include <octree/octree_chunk.h>
 
 #include <octree/octree_builder.h>
 
@@ -27,7 +26,7 @@ m_size{0}
 {
 
 	// calculate the depth that can hold all the data
-	while((1 << m_depth) < size) { m_depth++; }
+	while(((uint32_t)1 << m_depth) < size) { m_depth++; }
 	m_size = 1 << m_depth;
 
 	
@@ -103,9 +102,9 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 
 			// draw branch
 			Cube c;
-			c.pos = vec3(x, y, z);
+			c.pos = vec3((float)x, (float)y, (float)z);
 			c.color = random_colors[index % 256];
-			c.size = 1 << current_depth;
+			c.size = (float)(1 << current_depth);
 			traversal_stack.pop();
 
 			elements.push_back(c);
@@ -127,7 +126,7 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 		if (!(parent.valid_mask & (1 << child_offset))) continue;
 		if (parent.leaf_mask & (1 << child_offset)) {
 			Cube c;
-			c.pos = vec3(pos_x[child_offset], pos_y[child_offset], pos_z[child_offset]);
+			c.pos = vec3((float)pos_x[child_offset], (float)pos_y[child_offset], (float)pos_z[child_offset]);
 			c.size = (float)half_size;
 			c.color = random_colors[child_index % 256];
 			leafElements.push_back(c);
@@ -223,7 +222,7 @@ uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint16_t min_
 		// no valid children
 		// we are going to make some children valid, so allocate them
 		if (!m_array[current_index].valid_mask && half_size > 1) {
-			uint32_t ptr = m_array.size() - current_index;
+			uint32_t ptr = (uint32_t)m_array.size() - current_index;
 			if (ptr > (1 << 14)) puts("ERROR: node index will overflow");
 		
 			m_array[current_index].children_ptr = ptr;
@@ -278,7 +277,7 @@ x y z
 */
 
 
-Node* Octree::setNode(vec3int pos, vec3 color)
+void Octree::setNode(vec3int pos, vec3 color)
 {
 	// find correct chunk
 	vec3int offset = pos / vec3int(32, 32, 32);
@@ -291,7 +290,7 @@ Node* Octree::setNode(vec3int pos, vec3 color)
 	// call func on chunk
 	//return (chunk->add_node(pos, color));
 	setNode(pos.x, pos.y, pos.z);
-	return NULL;
+	
 }
 
 
@@ -339,7 +338,7 @@ Octree Octree::loadModel(VoxFile& file)
 		octree.setNode(file.mVoxels[i].x, file.mVoxels[i].y, file.mVoxels[i].z);
 	}
 
-	printf("\nCOUNT: %u\n", octree.m_array.size());
+	printf("\nCOUNT: %u\n", (unsigned int)octree.m_array.size());
 	/*
 	for(int i = 0; i <  builder.nodeLevels.size(); i++ ) {
 		std::vector<OTNode>& level = builder.nodeLevels[i];

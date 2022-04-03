@@ -46,14 +46,16 @@ std::istream& operator>>(std::istream& is, vec3int& v)
 
 float vec3int::magnitude()
 {
-	return sqrtf(x * x + y * y + z * z);
+	return sqrtf((float)(x * x + y * y + z * z));
 }
 
+/*
 vec3int vec3int::normalized()
 {
 	float m = magnitude();
 	return (*this) / m;
 }
+*/
 
 vec3int vec3int::cross(const vec3int& a, const vec3int& b)
 {
@@ -63,7 +65,7 @@ vec3int vec3int::cross(const vec3int& a, const vec3int& b)
 
 float vec3int::dot(const vec3int& a, const vec3int& b)
 {
-	return a.x * b.x + a.y * b.y + a.z * b.z;
+	return (float)(a.x * b.x + a.y * b.y + a.z * b.z);
 }
 
 vec3int& vec3int::operator*=(const vec3int& v)

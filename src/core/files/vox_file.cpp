@@ -64,12 +64,12 @@ void  VoxFile::readChunk_SIZE(FILE* file, int size) {
 void  VoxFile::readChunk_XYZI(FILE* file, int size) {
 	int voxelCount = readInt(file);
 	mVoxels.resize(voxelCount);
-	int result = fread(&mVoxels.front(), sizeof(Voxel), voxelCount, file);
+	size_t result = fread(&mVoxels.front(), sizeof(Voxel), (size_t)voxelCount, file);
 	if (result != voxelCount) { std::cout << "Didn't read all the voxels" << std::endl; }
 }
 void  VoxFile::readChunk_RGBA(FILE* file, int size) {
 	mPalette = new uint32_t[256];
-	int result = fread(mPalette, 4, 256, file);
+	size_t result = fread(mPalette, 4, (size_t)256, file);
 	if (result != 256) { std::cout << "Didn't read all the colors" << std::endl; }
 }
 void  VoxFile::readChunk_PACK(FILE* file, int size) {

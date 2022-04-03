@@ -42,7 +42,7 @@ public:
 	~VoxFile();
 	void load(std::string path);
 	vec3int getSize() { return mSize; };
-	int getNumVoxels() { return mVoxels.size(); };
+	size_t getNumVoxels() { return mVoxels.size(); };
 	unsigned int* getPalette() { if (mPalette != nullptr) return mPalette; else return (unsigned int*)DEFAULT_VOX_PALETTE; };
 
 

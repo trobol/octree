@@ -4,6 +4,10 @@ project(octree)
 
 set(CMAKE_CXX_STANDARD 14)  # for c++17
 
+if(MSVC)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+endif()
+
 
 file(GLOB_RECURSE SOURCE_FILES "src/*.cpp")
 file(GLOB_RECURSE IMGUI_FILES "deps/imgui/*.cpp")

@@ -240,7 +240,7 @@ mat4 mat4::PerspectiveProj(float fov, float aspect,
 	float znear, float zfar)
 {
 
-	float xymax = znear * tan(fov * PI / 360);
+	float xymax = znear * tanf(fov * (float)PI / 360.0f);
 	float ymin = -xymax;
 	float xmin = -xymax;
 

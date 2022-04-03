@@ -6,7 +6,7 @@
 #include <octree/graphics/buffer.h>
 #include <octree/graphics/vertex_attribute_distriptor.h>
 #include <octree/graphics/uniform.h>
-#include <octree/octree_chunk.h>
+#include <octree/octree.h>
 
 class VoxelMeshDrawable : public Drawable {
 

@@ -182,7 +182,7 @@ std::map<int, GLuint> bindMesh(std::map<int, GLuint> vbos,
 
 		GLuint vbo;
 		glGenBuffers(1, &vbo);
-		vbos[i] = vbo;
+		vbos[(int)i] = vbo;
 		glBindBuffer(bufferView.target, vbo);
 
 		std::cout << "buffer.data.size = " << buffer.data.size()
@@ -299,7 +299,7 @@ GLuint bindModel(tinygltf::Model& model) {
 	glBindVertexArray(0);
 	// cleanup vbos
 	for (size_t i = 0; i < vbos.size(); ++i) {
-		glDeleteBuffers(1, &vbos[i]);
+		glDeleteBuffers(1, &vbos[(int)i]);
 	}
 
 	return vao;
@@ -310,7 +310,7 @@ void drawMesh(tinygltf::Model& model, tinygltf::Mesh& mesh) {
 		tinygltf::Primitive primitive = mesh.primitives[i];
 		tinygltf::Accessor indexAccessor = model.accessors[primitive.indices];
 
-		glDrawElements(primitive.mode, indexAccessor.count,
+		glDrawElements(primitive.mode, (GLsizei)indexAccessor.count,
 			indexAccessor.componentType,
 			((char*)NULL + (indexAccessor.byteOffset)));
 	}
@@ -343,7 +343,7 @@ static void error_callback(int error, const char* description) {
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-	camera.speed = maxf(0.0, camera.speed + yoffset * 0.05);
+	camera.speed = maxf(0.0f, camera.speed + (float)yoffset * 0.05f);
 }
 
 Shader shader;
@@ -355,7 +355,7 @@ std::vector<Drawable*> drawables;
 
 int main(void)
 {
-	srand(time(NULL));
+	srand((unsigned int)time(nullptr));
 	VoxFile file;
 	MeshDrawable duckDrawable("duck");
 	drawables.push_back(&duckDrawable);

@@ -18,12 +18,12 @@ Quaternion::Quaternion(float x, float y, float z, float w)
 
 Quaternion::Quaternion(vec3 eulerAngles)
 {
-	double cy = cos(eulerAngles.z * 0.5);
-	double sy = sin(eulerAngles.z * 0.5);
-	double cp = cos(eulerAngles.y * 0.5);
-	double sp = sin(eulerAngles.y * 0.5);
-	double cr = cos(eulerAngles.x * 0.5);
-	double sr = sin(eulerAngles.x * 0.5);
+	float cy = cosf(eulerAngles.z * 0.5f);
+	float sy = sinf(eulerAngles.z * 0.5f);
+	float cp = cosf(eulerAngles.y * 0.5f);
+	float sp = sinf(eulerAngles.y * 0.5f);
+	float cr = cosf(eulerAngles.x * 0.5f);
+	float sr = sinf(eulerAngles.x * 0.5f);
 
 	w = cy * cp * cr + sy * sp * sr;
 	x = cy * cp * sr - sy * sp * cr;
@@ -44,7 +44,7 @@ vec3 Quaternion::ToEuler()
 	// pitch (y-axis rotation)
 	float sinp = 2.0f * (w * y - z * x);
 	if (fabs(sinp) >= 1)
-		v.y = copysignf(M_PI / 2.0f, sinp); // use 90 degrees if out of range
+		v.y = copysignf((float)M_PI / 2.0f, sinp); // use 90 degrees if out of range
 	else
 		v.y = asinf(sinp);
 
@@ -57,12 +57,12 @@ vec3 Quaternion::ToEuler()
 }
 
 Quaternion Quaternion::FromEuler(vec3 euler) {
-  	float cy = cosf(euler.z * 0.5);
-    float sy = sinf(euler.z * 0.5);
-    float cp = cosf(euler.y * 0.5);
-    float sp = sinf(euler.y * 0.5);
-    float cr = cosf(euler.x * 0.5);
-    float sr = sinf(euler.x * 0.5);
+  	float cy = cosf(euler.z * 0.5f);
+    float sy = sinf(euler.z * 0.5f);
+    float cp = cosf(euler.y * 0.5f);
+    float sp = sinf(euler.y * 0.5f);
+    float cr = cosf(euler.x * 0.5f);
+    float sr = sinf(euler.x * 0.5f);
 
     Quaternion q;
     q.w = cr * cp * cy + sr * sp * sy;

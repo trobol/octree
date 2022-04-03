@@ -6,7 +6,6 @@
 #include <octree/graphics/buffer.h>
 #include <octree/graphics/vertex_attribute_distriptor.h>
 #include <octree/graphics/uniform.h>
-#include <octree/octree_chunk.h>
 
 class BranchMeshDrawable : public Drawable {
 

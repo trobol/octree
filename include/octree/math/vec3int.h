@@ -24,7 +24,7 @@ public:
 	static float dot(const vec3int &a, const vec3int &b);
 
 	float magnitude();
-	vec3int normalized();
+	//vec3int normalized();
 
 	vec3 toFloat();
 

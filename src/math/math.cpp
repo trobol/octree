@@ -2,7 +2,7 @@
 
 float degreeToRadian(float degree)
 {
-	return degree * PI / 180.f;
+	return degree * (float)PI / 180.f;
 }
 
 //https://www.geeksforgeeks.org/smallest-power-of-2-greater-than-or-equal-to-n/

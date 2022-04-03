@@ -4,12 +4,20 @@
 #include <vector>
 #include "math/vec3.h"
 #include "math/vec3int.h"
-#include "octree_chunk.h"
 
 #include <iostream>
 #include <iterator>
 
 #include <octree/core/files/vox_file.h>
+
+
+
+struct Cube
+{
+	vec3 pos{0, 0, 0};
+	vec3 color{0, 0, 0};
+	float size;
+};
 
 struct Point {
 	vec3 pos;
@@ -64,12 +72,12 @@ public:
 	void drawLeaf(uint32_t color, vec3 v, std::vector<Cube>& leafInstances);
 	uint32_t setNode(int x, int y, int z, uint16_t min_depth = 0);
 	void fillDepth(uint16_t depth);
-	Node* setNode(vec3int v, vec3 color);
+	void setNode(vec3int v, vec3 color);
 
 
 	void drawNodes(std::vector<Cube>& instances, std::vector<Cube>& leafInstances);
 
-	void drawNode(Node* node, vec3 v, std::vector<Cube>& leafInstances);
+	//void drawNode(Node* node, vec3 v, std::vector<Cube>& leafInstances);
 
 	static Octree loadModel(VoxFile& file);
 	size_t mLeafNodeCount = 0;
@@ -79,13 +87,6 @@ public:
 	}
 	
 };
-
-class OctreeIterator
-{
-private:
-	int value_;
-};
-void printNode(Node& node, int depth = 0);
 
 
 #endif

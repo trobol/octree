@@ -57,7 +57,7 @@ uint32_t OctreeBuilder::setNode(int target_x, int target_y, int target_z)
         // no valid children
 		// we are going to make some children valid, so allocate them
 		if (!parent_level[current_index].valid_mask) {
-			uint32_t ptr = child_level.size() - current_index;
+			uint32_t ptr = (uint32_t)child_level.size() - current_index;
             if (ptr > (1 << 14)) puts("ERROR: node index will overflow");
 			parent_level[current_index].children_ptr = ptr;
 			child_level.resize(child_level.size() + 8); 

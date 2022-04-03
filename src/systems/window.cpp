@@ -47,7 +47,7 @@ void Window::startup() {
 	glfwSetWindowSizeCallback(mWindow, Window::windowSizeCallback);
 	glfwSetFramebufferSizeCallback(mWindow, framebuffer_size_callback);
 
-	mAspectRatio = mWidth / mHeight;
+	mAspectRatio = (float)mWidth / (float)mHeight;
 
 	glfwMakeContextCurrent(mWindow);
 	gl_lite_init();
@@ -60,7 +60,7 @@ void Window::startup() {
 void Window::setSize(int width, int height) {
 	mWidth = width;
 	mHeight = height;
-	mAspectRatio = width / height;
+	mAspectRatio = (float)width / (float)height;
 }
 
 

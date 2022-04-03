@@ -16,11 +16,11 @@ public:
 		GLint size;
 		GLenum type;
 		GLboolean normalized;
-		size_t typeSize; //size of the attribute in bytes
+		GLsizei typeSize; //size of the attribute in bytes
 	};
-	void add(GLuint size, GLenum type, GLboolean normalized = GL_FALSE)
+	void add(GLint size, GLenum type, GLboolean normalized = GL_FALSE)
 	{
-		size_t typeSize;
+		GLsizei typeSize;
 		switch (type)
 		{
 		case GL_BYTE:
@@ -61,9 +61,9 @@ public:
 		{
 			VertexAttribute attr = mAttributes[i];
 
-			glVertexAttribPointer(i, attr.size, attr.type, attr.normalized, mStride, (GLvoid *)ptr);
+			glVertexAttribPointer(i, attr.size, attr.type, attr.normalized, mStride, (GLvoid *)((uint8_t*)nullptr + ptr));
 			glEnableVertexAttribArray(i);
-			ptr += attr.typeSize * attr.size;
+			ptr += (GLsizei)attr.typeSize * (GLsizei)attr.size;
 		}
 		//_ASSERT(ptr == mStride, "End pointer location did not match stride");
 	}

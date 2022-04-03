@@ -45,8 +45,8 @@ namespace filesystem
 		FindClose(dir);
 	#else
 		DIR *dir;
-		class dirent *ent;
-		class stat st;
+		struct dirent *ent;
+		struct stat st;
 
 		dir = opendir(directory.c_str());
 		while ((ent = readdir(dir)) != NULL) {

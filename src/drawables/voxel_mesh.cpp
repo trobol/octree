@@ -55,7 +55,7 @@ void VoxelMeshDrawable::SetInstances(std::vector<Cube>& instances) {
 	m_instanceBuffer.bind(GL_ARRAY_BUFFER);
 	m_instanceBuffer.bufferVector(instances, GL_STATIC_DRAW);
 	m_instanceBuffer.unbind();
-	m_instanceCount = instances.size();
+	m_instanceCount = (uint32_t)instances.size();
 }
 
 void VoxelMeshDrawable::Draw() {

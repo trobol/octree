@@ -18,18 +18,18 @@ public:
 		lookX += x;
 		lookY += y;
 
-		if (lookX > 2.0) lookX -= 2.0;
-		if (lookX < -2.0) lookX += 2.0;
-		if (lookY > 0.49999) lookY = 0.49999;
-		if (lookY < -0.49999) lookY = -0.49999;
+		if (lookX > 2.0f) lookX -= 2.0f;
+		if (lookX < -2.0f) lookX += 2.0f;
+		if (lookY > 0.49999f) lookY = 0.49999f;
+		if (lookY < -0.49999f) lookY = -0.49999f;
 		
 	
 
-		mTransform.rotation = Quaternion::AxisAngle(vec3::up, lookX * PI) * Quaternion::AxisAngle(vec3::right, lookY * PI);
+		mTransform.rotation = Quaternion::AxisAngle(vec3::up, lookX * (float)PI) * Quaternion::AxisAngle(vec3::right, lookY * (float)PI);
 	}
 
 	vec3 getRight() {
-		return Quaternion::AxisAngle(vec3::up, lookX * PI) * vec3::right;
+		return Quaternion::AxisAngle(vec3::up, lookX * (float)PI) * vec3::right;
 	}
 
 	float lookX = 0;
