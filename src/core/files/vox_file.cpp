@@ -82,7 +82,6 @@ int32_t getHeader(FILE* file) {
 		int32_t input_int;
 	};
 	fread(input_char, sizeof(input_char[0]), 4, file);
-	printf("%.4s\n", input_char);
 	return input_int;
 }
 bool checkHeader(FILE* file, const char header[4])
