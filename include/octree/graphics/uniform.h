@@ -43,4 +43,10 @@ inline void Uniform<float>::set(const float& value, GLboolean transpose)
 }
 
 
+template <>
+inline void Uniform<int>::set(const int& value, GLboolean transpose)
+{
+	glUniform1i(mLocation, value);
+}
+
 #endif

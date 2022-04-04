@@ -444,6 +444,34 @@ int main(void)
 	UniformMatrix4f duckViewMatrix(shaderDuck, "viewMatrix");
 	ImGuiIO& io = ImGui::GetIO();
 
+	Shader rayShader = Shader::Load(ASSET_PATH_STR + "/shaders/quad.vert", ASSET_PATH_STR + "/shaders/raytrace.frag");
+	rayShader.use();
+
+	UniformMatrix4f rayProjMatrix(shaderDuck, "projMatrix");
+	UniformMatrix4f rayViewMatrix(shaderDuck, "viewMatrix");
+	Uniform<int> cubeCountU(rayShader, "cubeCount");
+	cubeCountU = leafInstances.size();
+	VertexArray quadVertexArray = VertexArray::Generate();
+	Buffer quadVertexBuffer = Buffer::Generate();
+	Buffer cubeStorageBuffer = Buffer::Generate();
+	quadVertexArray.bind();
+	quadVertexBuffer.bind(GL_ARRAY_BUFFER);
+	float quadVerts[] = { -1.0f, -1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+
+	quadVertexBuffer.bufferArray(quadVerts, 16, GL_STATIC_DRAW);
+
+	VertexAttributeDiscriptor quadDescriptor;
+	quadDescriptor.add(2, GL_FLOAT);
+	quadDescriptor.add(2, GL_FLOAT);
+	quadDescriptor.apply();
+
+	cubeStorageBuffer.bind(GL_SHADER_STORAGE_BUFFER);
+	cubeStorageBuffer.bufferVector(leafInstances, GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, cubeStorageBuffer);
+
+	quadVertexArray.unbind();
+	quadVertexBuffer.unbind();
+	cubeStorageBuffer.unbind();
 	//shader.use();
 	
 	glEnable(GL_DEPTH_TEST);
@@ -480,6 +508,15 @@ int main(void)
 			if (drble->m_enable)
 				drble->Draw();
 		}
+
+		rayShader.use();
+
+		rayProjMatrix = camera.getProjMatrix();
+		rayViewMatrix = camera.getViewMatrix();
+		quadVertexArray.bind();
+		cubeStorageBuffer.bind(GL_SHADER_STORAGE_BUFFER);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, cubeStorageBuffer);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 		
 
