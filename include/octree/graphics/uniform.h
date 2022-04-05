@@ -3,6 +3,7 @@
 
 #include "../math/mat4.h"
 #include <octree/graphics/shader.h>
+#include "../math/vec2.h"
 
 template <typename T>
 class Uniform
@@ -48,5 +49,11 @@ inline void Uniform<int>::set(const int& value, GLboolean transpose)
 {
 	glUniform1i(mLocation, value);
 }
+
+template <>
+inline void Uniform<vec2>::set(const vec2& value, GLboolean transpose) {
+	glUniform2f(mLocation, value.x, value.y);
+}
+
 
 #endif

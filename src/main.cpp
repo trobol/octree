@@ -18,6 +18,7 @@
 #include <octree/graphics/shader.h>
 #include <octree/math/octree_math.h>
 #include <octree/math/vec3.h>
+#include <octree/math/vec4.h>
 
 #include <math.h>
 
@@ -429,8 +430,12 @@ int main(void)
 	glCheckError();
 	UniformMatrix4f rayProjMatrix(rayShader, "projMatrix");
 	UniformMatrix4f rayViewMatrix(rayShader, "viewMatrix");
+	Uniform<vec2> rayViewPlanes(rayShader, "viewPlanes");
 	Uniform<int> cubeCountU(rayShader, "cubeCount");
-	cubeCountU = leafInstances.size();
+
+	vec2 viewPlanes = vec2(camera.mNearClip, camera.mFarClip);
+	rayViewPlanes.set(viewPlanes);
+	
 	VertexArray quadVertexArray = VertexArray::Generate();
 	Buffer quadVertexBuffer = Buffer::Generate();
 	Buffer cubeStorageBuffer = Buffer::Generate();
@@ -445,8 +450,19 @@ int main(void)
 	quadDescriptor.add(2, GL_FLOAT);
 	quadDescriptor.apply();
 
+	std::vector<vec4> raytraceData;
+	raytraceData.reserve(leafInstances.size() * 2);
+	for (Cube& cube : leafInstances) {
+		vec3 p = cube.pos;
+		vec3 c = cube.color;
+		raytraceData.push_back(vec4{ p.x, p.y, p.z, 0. });
+		raytraceData.push_back(vec4{ c.x, c.y, c.z, 0. });
+	}
+
 	cubeStorageBuffer.bind(GL_SHADER_STORAGE_BUFFER);
-	cubeStorageBuffer.bufferVector(leafInstances, GL_STATIC_DRAW);
+	cubeCountU = leafInstances.size();
+	//cubeCountU = 1;
+	cubeStorageBuffer.bufferVector(raytraceData, GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, cubeStorageBuffer);
 
 	quadVertexArray.unbind();
@@ -456,6 +472,8 @@ int main(void)
 	
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
+
+	glDisable(GL_CULL_FACE);
 
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	//glEnable(GL_BLEND);
