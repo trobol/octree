@@ -127,5 +127,6 @@ void main(){
     }
 	
     color = pixel;
-	gl_FragDepth = hit.distance * 0.1;
+	//gl_FragDepth = hit.distance * 0.001;
+	//color = vec4((uv+1)*0.5, 1., 1.);
 }

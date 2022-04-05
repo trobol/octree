@@ -67,32 +67,12 @@ MessageCallback( GLenum source,
                  const GLchar* message,
                  const void* userParam )
 {
+	if (severity == GL_DEBUG_SEVERITY_HIGH)
   fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
            ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
             type, severity, message );
 }
 
-GLenum glCheckError_(const char *file, int line)
-{
-    GLenum errorCode;
-    while ((errorCode = glGetError()) != GL_NO_ERROR)
-    {
-        std::string error;
-        switch (errorCode)
-        {
-            case GL_INVALID_ENUM:                  error = "INVALID_ENUM"; break;
-            case GL_INVALID_VALUE:                 error = "INVALID_VALUE"; break;
-            case GL_INVALID_OPERATION:             error = "INVALID_OPERATION"; break;
-            case GL_STACK_OVERFLOW:                error = "STACK_OVERFLOW"; break;
-            case GL_STACK_UNDERFLOW:               error = "STACK_UNDERFLOW"; break;
-            case GL_OUT_OF_MEMORY:                 error = "OUT_OF_MEMORY"; break;
-            case GL_INVALID_FRAMEBUFFER_OPERATION: error = "INVALID_FRAMEBUFFER_OPERATION"; break;
-        }
-        std::cout << error << " | " << file << " (" << line << ")" << std::endl;
-    }
-    return errorCode;
-}
-#define glCheckError() glCheckError_(__FILE__, __LINE__) 
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -446,9 +426,9 @@ int main(void)
 
 	Shader rayShader = Shader::Load(ASSET_PATH_STR + "/shaders/quad.vert", ASSET_PATH_STR + "/shaders/raytrace.frag");
 	rayShader.use();
-
-	UniformMatrix4f rayProjMatrix(shaderDuck, "projMatrix");
-	UniformMatrix4f rayViewMatrix(shaderDuck, "viewMatrix");
+	glCheckError();
+	UniformMatrix4f rayProjMatrix(rayShader, "projMatrix");
+	UniformMatrix4f rayViewMatrix(rayShader, "viewMatrix");
 	Uniform<int> cubeCountU(rayShader, "cubeCount");
 	cubeCountU = leafInstances.size();
 	VertexArray quadVertexArray = VertexArray::Generate();
@@ -503,14 +483,12 @@ int main(void)
 		shader.use();
 		projMatrix = camera.getProjMatrix();
 		camMatrix = camera.getViewMatrix();
-
 		for (Drawable* drble : drawables) {
 			if (drble->m_enable)
 				drble->Draw();
 		}
 
 		rayShader.use();
-
 		rayProjMatrix = camera.getProjMatrix();
 		rayViewMatrix = camera.getViewMatrix();
 		quadVertexArray.bind();

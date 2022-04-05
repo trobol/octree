@@ -26,19 +26,22 @@ void printErrorMessage(GLuint id)
 {
 	GLsizei infoLogLength;
 	glGetShaderiv(id, GL_INFO_LOG_LENGTH, &infoLogLength);
+	glCheckError();
 	if (infoLogLength > 0)
 	{
 		char *errorMessage = new char[(size_t)infoLogLength + 1];
 		glGetShaderInfoLog(id, infoLogLength, NULL, errorMessage);
+		glCheckError();
 		puts(errorMessage);
 		delete[] errorMessage;
 	}
 }
 
 void LoadSingleShader(GLuint shaderID, const char* path) {
-	char first_section[2048] = {};
-	char* pointers[16] = { first_section };
-	size_t section_count = 0;
+	char first_section[2048] = { 0 };
+	char* pointers[256] = { first_section };
+	GLint lens[256] = { 0 };
+	GLsizei section_count = 0;
 	FILE* fp = fopen(path, "r");
 	if (fp == nullptr) {
 		printf("SHADER ERROR: Unable to open \"%s\"\n", path);
@@ -46,15 +49,16 @@ void LoadSingleShader(GLuint shaderID, const char* path) {
 	}
 	size_t bytes;
 	do {
-		if (section_count > 1) {
+		if (section_count > 0) {
 			pointers[section_count] = new char[2048];
 		}
-		bytes = fread(pointers[section_count], 1, 2047, fp);
+		bytes = fread(pointers[section_count], 1, 2048, fp);
+		lens[section_count] = (GLsizei)bytes;
 		section_count++;
-	} while(bytes == 2047);
+	} while(bytes == 2048);
 	fclose(fp);
 
-	glShaderSource(shaderID, (GLsizei)section_count, pointers, NULL);
+	glShaderSource(shaderID, section_count, pointers, lens);
 	glCompileShader(shaderID);
 
 	for (size_t i = 1; i < section_count; i++)
@@ -82,6 +86,10 @@ Shader Shader::LoadCompute(const char* path) {
 
 	glAttachShader(programID, shaderID);
 	glLinkProgram(programID);
+	GLint result = GL_FALSE;
+	glGetProgramiv(programID, GL_LINK_STATUS, &result);
+	
+
 	glDetachShader(programID, shaderID);
 	glDeleteShader(shaderID);
 
@@ -101,24 +109,22 @@ Shader Shader::Load(const char* vertex_file_path, const char* fragment_file_path
 
 	LoadSingleShader(vertexShaderId, vertex_file_path);
 	LoadSingleShader(fragmentShaderId, fragment_file_path);
-
+	glCheckError();
 	// Link the program
-	printf("Linking program\n");
+	//printf("Linking program\n");
 	GLuint programId = glCreateProgram();
 	glAttachShader(programId, vertexShaderId);
 	glAttachShader(programId, fragmentShaderId);
 	glLinkProgram(programId);
-
+	glCheckError();
 	// Check the program
 	GLint result = GL_FALSE;
 	glGetProgramiv(programId, GL_LINK_STATUS, &result);
-	printErrorMessage(programId);
 
+	
 	glDetachShader(programId, vertexShaderId);
 	glDetachShader(programId, fragmentShaderId);
-
 	glDeleteShader(vertexShaderId);
 	glDeleteShader(fragmentShaderId);
-
 	return Shader(programId);
 }
