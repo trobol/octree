@@ -23,6 +23,11 @@ public:
 
 	static float dot(const vec3& a, const vec3& b);
 
+	// largest component
+	static float largest(vec3 v);
+	// smallest component
+	static float smallest(vec3 v);
+
 	float magnitude() const;
 	vec3 normalized() const;
 

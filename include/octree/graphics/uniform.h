@@ -36,14 +36,6 @@ inline void Uniform<mat4>::set(const mat4& value, GLboolean transpose) {
 }
 
 
-
-template <>
-inline void Uniform<float>::set(const float& value, GLboolean transpose)
-{
-	glUniformMatrix4fv(mLocation, 1, GL_FALSE, &value);
-}
-
-
 template <>
 inline void Uniform<int>::set(const int& value, GLboolean transpose)
 {
@@ -55,5 +47,9 @@ inline void Uniform<vec2>::set(const vec2& value, GLboolean transpose) {
 	glUniform2f(mLocation, value.x, value.y);
 }
 
+template <>
+inline void Uniform<float>::set(const float& value, GLboolean transpose) {
+	glUniform1f(mLocation, value);
+}
 
 #endif

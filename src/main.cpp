@@ -413,7 +413,7 @@ int main(void)
 
 
 	camera.mTransform.scale = vec3(1, 1, 1);
-	camera.mTransform.position = vec3(-10.0, 0, -10.);
+	camera.mTransform.position = vec3(10.0, 0, 10.);
 
 	center = vec3(0, 0, 0);
 
@@ -432,6 +432,11 @@ int main(void)
 	UniformMatrix4f rayViewMatrix(rayShader, "viewMatrix");
 	Uniform<vec2> rayViewPlanes(rayShader, "viewPlanes");
 	Uniform<int> cubeCountU(rayShader, "cubeCount");
+	Uniform<float> otsizeU(rayShader, "size");
+
+	otsizeU.set((float)tree.m_size);
+
+
 
 	vec2 viewPlanes = vec2(camera.mNearClip, camera.mFarClip);
 	rayViewPlanes.set(viewPlanes);
@@ -470,8 +475,8 @@ int main(void)
 	cubeStorageBuffer.unbind();
 	//shader.use();
 	
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
+	//glEnable(GL_DEPTH_TEST);
+	//glDepthFunc(GL_LESS);
 
 	glDisable(GL_CULL_FACE);
 

@@ -14,6 +14,7 @@ uniform mat4 projMatrix;
 uniform mat4 viewMatrix;
 uniform int cubeCount;
 uniform vec2 viewPlane; // near, far
+uniform float size;
 
 layout(std430, binding = 3) buffer CubesBuffer
 {
@@ -45,52 +46,46 @@ RayHit CreateRayHit()
 	return hit;
 }
 
-vec3 max_cube=vec3(1,1,1);
-vec3 min_cube=vec3(0,0,0);
-RayHit intersect_cube(Ray ray,vec3 position,float size){
+
+RayHit intersect_cube(vec3 dT, vec3 bT, vec3 small, vec3 big, Ray ray, vec3 position, float size){
 	RayHit hit = CreateRayHit();
-	vec3 cube_min=min_cube*size+position;
-	vec3 cube_max=max_cube*size+position;
+	vec3 cube_min=small*size+position;
+	vec3 cube_max=big*size+position;
 
-	float txmin=(cube_min.x-ray.origin.x)/ray.direction.x;
-	float txmax=(cube_max.x-ray.origin.x)/ray.direction.x;
+	vec3 t_min = dT * cube_min + bT;
+	vec3 t_max = dT * cube_max + bT;
 
-	float txenter=min(txmin,txmax);
-	float txexit=max(txmin,txmax);
+	float t_enter = max(t_min.x, max(t_min.y, t_min.z));
+	float t_exit = min(t_max.x, min(t_max.y, t_max.z));
 
-	float tymin=(cube_min.y-ray.origin.y)/ray.direction.y;
-	float tymax=(cube_max.y-ray.origin.y)/ray.direction.y;
-
-	float tyenter=min(tymin,tymax);
-	float tyexit=max(tymin,tymax);
-
-	float tzmin=(cube_min.z-ray.origin.z)/ray.direction.z;
-	float tzmax=(cube_max.z-ray.origin.z)/ray.direction.z;
-
-	float tzenter=min(tzmin,tzmax);
-	float tzexit=max(tzmin,tzmax);
-
-	float tenter=max(txenter,max(tyenter,tzenter));
-	float texit=min(txexit,min(tyexit,tzexit));
-
-	if ( texit>=tenter) {
+	if ( t_exit>=t_enter ) {
 		
-		hit.distance = tenter;
-		hit.position=ray.origin+tenter*ray.direction;
+		hit.distance = t_enter;
+		hit.position=ray.origin+t_enter*ray.direction;
 		
 		hit.normal=normalize(hit.position-position);// TODO: THIS IS WORNG
 	}
+	
 	
 	return hit;
 	
 }
 
 RayHit intersect_all_cubes(Ray ray){
+	vec3 dir = ray.direction;
+	//dir.x = max(abs(dir.x), 0.0001);
+	//dir.y = max(abs(dir.y), 0.0001);
+	//dir.z = max(abs(dir.z), 0.0001);
+	vec3 dT = vec3(1., 1., 1.) / dir;
+	vec3 bT = -ray.origin / dir;
+	vec3 big = vec3(step(0.0, dir.x), step(0.0, dir.y), step(0.0, dir.z));
+	vec3 small = 1.0 - big;
+
 	RayHit bestHit=CreateRayHit();
 	for(int i=0;i<cubeCount;i++){
 		Cube cube=cubes[i];
 		vec3 pos= cube.pos;
-		RayHit hit=intersect_cube(ray,pos, 1);
+		RayHit hit=intersect_cube(dT, bT, small, big, ray, pos, 1);
 		if(hit.distance>0&&hit.distance<bestHit.distance){
             hit.index=i;
 			bestHit=hit;
@@ -173,17 +168,28 @@ void main(){
 
 
 	Ray ray=create_camera_ray(uv);
-
+	
   
     RayHit hit = intersect_all_cubes(ray);
     if (hit.index != -1) {
+		
+
         Cube cube =cubes[hit.index];
 		//vec3 light_position=vec3(2.,-5.,3.);
 		//vec3 direction_to_light=normalize(bestHit.position-light_position);
 		//float diffuse_intensity=max(0.,dot(bestHit.normal,direction_to_light));
 
 		pixel = vec4(cube.color, 1); //*(.5+diffuse_intensity*.5);
-    }
+		float c = 1.0 / hit.distance;
+		pixel = vec4(c, c, c, 1);
+    } else {
+		//pixel.x = step(0.0, ray.direction.x);
+		//pixel.y = step(0.0, ray.direction.y);
+		//pixel.z = step(0.0, ray.direction.z);
+		//pixel.xyz = vec3(0.5, 0.5, 0.5) - ray.direction*0.5;
+		//pixel = vec4(hit.distance, hit.distance, hit.distance, 0);
+	}
+	
 	
 	
     color = pixel;

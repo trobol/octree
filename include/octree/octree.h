@@ -50,11 +50,15 @@ struct OTGroup {
 class OctreeBuilder;
 
 /*
+INFO
 For simplicity I am putting bottom a corner at 0 rather than the center
+Scale referse to the "level" of the node in the octree, the smallest are scale 0, its parents would be scale 1 etc..
+Size referse to the actual world size and is 2^scale of a node
 */
 class Octree
 {
 private:
+public:
 	uint32_t m_depth; // number of "levels" of nodes
 	uint32_t m_size; // 2 ^ m_depth
 	
@@ -64,7 +68,7 @@ private:
 	std::vector<OTNode> m_array;
 	std::vector<uint32_t> m_farpointers; // TEMP HACK
 
-public:
+
 	Octree(uint32_t size);
 
 
@@ -77,6 +81,7 @@ public:
 
 	void drawNodes(std::vector<Cube>& instances, std::vector<Cube>& leafInstances);
 
+	void raytrace(vec3 origin, vec3 direction);
 	//void drawNode(Node* node, vec3 v, std::vector<Cube>& leafInstances);
 
 	static Octree loadModel(VoxFile& file);

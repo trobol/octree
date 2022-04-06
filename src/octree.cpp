@@ -1,11 +1,12 @@
 #include <octree/octree.h>
 #include <stack>
 
-
+#include <algorithm>
 #include <math.h>
 #include <octree/math/octree_math.h>
-
+#include <octree/math/vec2.h>
 #include <octree/octree_builder.h>
+
 
 // https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
 unsigned int next_pow2(unsigned int v) {
@@ -380,5 +381,143 @@ Octree Octree::loadModel(VoxFile& file)
 	}
 	*/
 	return octree;
+}
+
+
+vec2 project_cube(vec3 dT, vec3 bT, vec3 cube_far, vec3 cube_close, vec3 pos, float size) {
+	vec3 cube_min = cube_close * size + pos;
+	vec3 cube_max = cube_far * size + pos;
+
+
+	float tc_min = vec3::largest(dT * cube_min + bT);
+	float tc_max = vec3::smallest(dT * cube_max + bT);
+
+	return vec2{tc_min, tc_max};
+}
+
+vec2 intersect(vec2 a, vec2 b) {
+	return vec2(std::max(a.x, b.x), std::min(a.y, b.y));
+}
+
+uint8_t select_child(vec3 dT, vec3 bT, vec3 pos, float size, float t_min) {
+
+	vec3 center = pos + vec3::one * size / 2.0;
+
+	vec3 p = dT * center + bT;
+	uint8_t idx;
+	idx ^= (p.x > t_min) & 1;
+	idx ^= (p.y > t_min) & 2;
+	idx ^= (p.z > t_min) & 4;
+	return idx;
+}
+
+vec3 child_cube( uint8_t index, vec3 pos, float scale) {
+	const vec3 pos_lookup[8] = {
+		{0.0f, 0.0f, 0.0f },
+		{0.0f, 0.0f, 1.0f },
+		{0.0f, 1.0f, 0.0f },
+		{0.0f, 1.0f, 1.0f },
+		{1.0f, 0.0f, 0.0f },
+		{1.0f, 0.0f, 1.0f },
+		{1.0f, 1.0f, 0.0f },
+		{1.0f, 1.0f, 1.0f },
+	};
+
+	return pos + pos_lookup[index] * scale;
+}
+
+void Octree::raytrace(vec3 origin, vec3 direction) {
+	
+	// ===== INITIALIZE =====
+
+	// prevent divide by zero
+	direction.x = std::max(direction.x, 0.0001f);
+	direction.y = std::max(direction.y, 0.0001f);
+	direction.z = std::max(direction.z, 0.0001f);
+
+	// create axis aligned plane intersection coefficients
+	const vec3 dT = vec3::one / direction;
+	const vec3 bT = vec3(-1.0f, -1.0f, -1.0f)* origin / direction;
+
+	vec3 cube_far = vec3(direction.x > 0.0f, direction.y > 0.0f, direction.z > 0.0f);
+	vec3 cube_close = vec3::one - cube_far;
+
+	vec2 t_prime = project_cube(dT, bT, cube_far, cube_close, vec3(), (float)m_size);
+	vec2 t = intersect(t_prime, vec2(0.0f, 1.0f)); // intersect
+
+	float h = t_prime.y;
+
+	uint64_t parent_index  = 0;
+	uint32_t idx = select_child(dT, bT, vec3(), (float)m_size, t.x);
+	
+
+	vec3 pos = vec3(idx & 1, idx & 2, idx & 4) * (float)m_size;
+	uint16_t scale = m_depth-1;
+
+	struct StackItem {
+		uint64_t parent;
+		float t_max;
+	};
+
+	StackItem stack[256];
+	while (true) {
+		// project cube
+		float size = (float)(2 << scale);
+
+		OTNode parent = m_array[parent_index];
+
+		vec2 tc = project_cube(dT, bT, cube_far, cube_close, pos, size);
+
+		if ((parent.valid_mask & (1 << idx)) && t.x <= t.y) {
+			// if voxel is small enough 
+			if (parent.leaf_mask & (1 << idx)) {
+				// FOUND VOXEL, RETURN
+			}
+		// ===== INTERSECT =====
+			vec2 tv = intersect(tc, t_prime);
+			
+			// if contour
+
+
+			if (tv.x <= tv.y) {
+					// ===== PUSH =====
+				if (parent.leaf_mask & (1 << idx)) {
+					// FOUND VOXEL, RETURN
+				}
+
+				if (tc.y < h) {
+					stack[scale] = {parent_index, t.y};
+				}
+				h = tc.y;
+				parent_index += parent.children_ptr + idx;
+				idx = select_child(dT, bT, pos, size, tv.x);
+				t = tv;
+				size /= 2;
+				pos = child_cube(idx, pos, size);
+				continue;
+			}
+
+			// ===== ADVANCE =====
+			vec3 oldpos = pos;
+			
+
+
+		
+
+
+		}
+
+
+
+
+
+
+	
+
+
+	// ===== POP =====
+
+
+	}
 }
 

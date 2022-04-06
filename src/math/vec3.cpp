@@ -1,5 +1,5 @@
 #include <octree/math/vec3.h>
-
+#include <algorithm>
 #include <math.h>
 
 vec3::vec3(float x1, float y1, float z1)
@@ -121,4 +121,13 @@ vec3& vec3::operator-=(const float& f)
 	y -= f;
 	z -= f;
 	return *this;
+}
+
+
+float vec3::largest(vec3 v) {
+	return std::max(v.x, std::max(v.y, v.z));
+}
+	
+float vec3::smallest(vec3 v) {
+	return std::min(v.x, std::min(v.y, v.z));
 }
