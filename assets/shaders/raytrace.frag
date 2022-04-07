@@ -47,18 +47,24 @@ RayHit CreateRayHit()
 }
 
 
-RayHit intersect_cube(vec3 dT, vec3 bT, vec3 small, vec3 big, Ray ray, vec3 position, float size){
+RayHit intersect_cube(vec3 dT, vec3 bT, vec3 axis_flip, Ray ray, vec3 position, float csize){
 	RayHit hit = CreateRayHit();
-	vec3 cube_min=small*size+position;
-	vec3 cube_max=big*size+position;
+	vec3 cube_min=csize+position;
+	vec3 cube_max=position;
 
-	vec3 t_min = dT * cube_min + bT;
-	vec3 t_max = dT * cube_max + bT;
+	vec3 t_min = dT * cube_min - bT;
+	vec3 t_max = dT * cube_max - bT;
+
+	//t_min *= axis_flip;
+	//t_max *= axis_flip;
 
 	float t_enter = max(t_min.x, max(t_min.y, t_min.z));
 	float t_exit = min(t_max.x, min(t_max.y, t_max.z));
 
-	if ( t_exit>=t_enter ) {
+	//t_enter = -t_enter;
+	//t_exit = -t_exit;
+
+	if ( t_enter <= t_exit ) {
 		
 		hit.distance = t_enter;
 		hit.position=ray.origin+t_enter*ray.direction;
@@ -81,11 +87,31 @@ RayHit intersect_all_cubes(Ray ray){
 	vec3 big = vec3(step(0.0, dir.x), step(0.0, dir.y), step(0.0, dir.z));
 	vec3 small = 1.0 - big;
 
+	vec3 d = ray.direction;
+	float epsilon = 0.000001;
+	
+	d.x = max(abs(d.x), epsilon);
+	d.y = max(abs(d.y), epsilon);
+	d.z = max(abs(d.z), epsilon);
+
+	vec3 t_coef = 1.0 / -d;
+	vec3 t_bias = t_coef * ray.origin;
+
+	vec3 axis_flip = vec3(step(0.0, dir.x), step(0.0, dir.y), step(0.0, dir.z));
+	if (dir.x > 0.0) t_bias.x = 3. * t_coef.x - t_bias.x;
+	if (dir.y > 0.0) t_bias.y = 3. * t_coef.y - t_bias.y;
+	if (dir.z > 0.0) t_bias.z = 3. * t_coef.z - t_bias.z;
+
 	RayHit bestHit=CreateRayHit();
 	for(int i=0;i<cubeCount;i++){
 		Cube cube=cubes[i];
-		vec3 pos= cube.pos;
-		RayHit hit=intersect_cube(dT, bT, small, big, ray, pos, 1);
+		vec3 cent_cube = (cube.pos-0.5);
+		vec3 cent_pos = cent_cube * 2 - (size/2);
+		vec3 flip_pos = (sign(dir) * cent_pos);
+		vec3 pos = cube.pos;
+		//pos *= sign(dir);
+		//pos -= size/2;
+		RayHit hit=intersect_cube(t_coef, t_bias, axis_flip, ray, pos, 1);
 		if(hit.distance>0&&hit.distance<bestHit.distance){
             hit.index=i;
 			bestHit=hit;
@@ -93,7 +119,7 @@ RayHit intersect_all_cubes(Ray ray){
 
 	}
 
-    return bestHit;
+	return bestHit;
 }
 
 
@@ -180,17 +206,36 @@ void main(){
 		//float diffuse_intensity=max(0.,dot(bestHit.normal,direction_to_light));
 
 		pixel = vec4(cube.color, 1); //*(.5+diffuse_intensity*.5);
-		float c = 1.0 / hit.distance;
-		pixel = vec4(c, c, c, 1);
+		//float c = 1.0 / hit.distance;
+		//pixel = vec4(c, c, c, 1);
     } else {
 		//pixel.x = step(0.0, ray.direction.x);
 		//pixel.y = step(0.0, ray.direction.y);
 		//pixel.z = step(0.0, ray.direction.z);
 		//pixel.xyz = vec3(0.5, 0.5, 0.5) - ray.direction*0.5;
 		//pixel = vec4(hit.distance, hit.distance, hit.distance, 0);
+			vec3 dir = ray.direction;
+			vec3 d = dir;
+			float epsilon = 0.00001;
+			
+			d.x = max(abs(d.x), epsilon);
+			d.y = max(abs(d.y), epsilon);
+			d.z = max(abs(d.z), epsilon);
+
+			vec3 t_coef = 1.0 / -d;
+			vec3 t_bias = t_coef * ray.origin;
+
+			if (dir.x > 0.0) t_bias.x = size * t_coef.x - t_bias.x;
+			if (dir.y > 0.0) t_bias.y = size * t_coef.y - t_bias.y;
+			if (dir.z > 0.0) t_bias.z = size * t_coef.z - t_bias.z;
+			
+
+			//pixel.x = step(1.0, -t_coef.x/1000.0);
+			//pixel.y = step(1.0, -t_coef.y/1000.0);
+			//pixel.z = step(1.0, -t_coef.z/1000.0);
 	}
 	
-	
+
 	
     color = pixel;
 	

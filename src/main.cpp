@@ -475,8 +475,8 @@ int main(void)
 	cubeStorageBuffer.unbind();
 	//shader.use();
 	
-	//glEnable(GL_DEPTH_TEST);
-	//glDepthFunc(GL_LESS);
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 
 	glDisable(GL_CULL_FACE);
 
@@ -517,7 +517,7 @@ int main(void)
 		quadVertexArray.bind();
 		cubeStorageBuffer.bind(GL_SHADER_STORAGE_BUFFER);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, cubeStorageBuffer);
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		//glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 		
 

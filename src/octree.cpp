@@ -70,65 +70,74 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 	
 	struct NodeStackEntry {
 		const uint32_t index;
-		const int pos_x, pos_y, pos_z;
 		uint8_t child_offset;
-		uint32_t depth;
+		vec3 pos;
 	};
 	std::stack<NodeStackEntry> traversal_stack;
-	traversal_stack.push({ 0, 0, 0, 0, 0, m_depth });
+	traversal_stack.push({ 0, 0, vec3(0.0f, 0.0f, 0.0f) });
+
+
+
+	uint32_t current_depth = m_depth;
 
 	//uint32_t current_size = m_size;
-
+	float size = (float)(1 << m_depth); 
 	while (!traversal_stack.empty()) {
 
 		uint8_t child_offset;
 		uint32_t index;
-		int x;
-		int y;
-		int z;
-		uint32_t current_depth;
+		vec3 parent_pos; 
 		{
 			NodeStackEntry& entry = traversal_stack.top();
 			child_offset = entry.child_offset;
 			index = entry.index;
-			x = entry.pos_x;
-			y = entry.pos_y;
-			z = entry.pos_z;
 			entry.child_offset++;
-			current_depth = entry.depth;
+			parent_pos = entry.pos;
+			//current_depth = entry.depth;
 		}
-
+		float half_size = size * 0.5;
+		
 		// done with this node (and all its children)
 		if (child_offset > 7) {
 
 			// draw branch
 			Cube c;
-			c.pos = vec3((float)x, (float)y, (float)z);
+			c.pos = parent_pos;
 			c.color = random_colors[index % 256];
-			c.size = (float)(1 << current_depth);
+			c.size = size;
 			traversal_stack.pop();
+			size = size * 2.0;
+			current_depth++;
 
 			elements.push_back(c);
 			continue;
 		}
 		
 		OTNode parent = m_array[index];
-		int half_size = 1 << (current_depth-1);
+		
 
 		uint32_t children_ptr = parent.children_ptr;
 		//if (parent.children_far) children_ptr = m_farpointers[children_ptr];
 		uint32_t child_index = index + children_ptr + child_offset;
 		
+		vec3 pos_table[8] = {
+			{1.0f, 1.0f, 1.0f },
+			{0.0f, 1.0f, 1.0f },
+			{1.0f, 0.0f, 1.0f },
+			{0.0f, 0.0f, 1.0f },
+			{1.0f, 1.0f, 0.0f },
+			{0.0f, 1.0f, 0.0f },
+			{1.0f, 0.0f, 0.0f },
+			{0.0f, 0.0f, 0.0f },
+		};
 
-		int pos_x[8] = {x + half_size, x, x + half_size, x, x + half_size, x, x + half_size, x};
-		int pos_y[8] = {y + half_size, y + half_size, y, y, y + half_size, y + half_size, y, y};
-		int pos_z[8] = {z + half_size, z + half_size, z + half_size, z + half_size, z, z, z, z};
+		vec3 pos = parent_pos + pos_table[child_offset] * half_size;	
 
 		if (!(parent.valid_mask & (1 << child_offset))) continue;
 		if (parent.leaf_mask & (1 << child_offset)) {
 			Cube c;
-			c.pos = vec3((float)pos_x[child_offset], (float)pos_y[child_offset], (float)pos_z[child_offset]);
-			c.size = (float)half_size;
+			c.pos = pos;
+			c.size = half_size;
 			c.color = random_colors[child_index % 256];
 			leafElements.push_back(c);
 			continue;
@@ -137,7 +146,10 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 		{
 			// if non-leaf, add to elements and push to traversal_stack
 			uint8_t of = child_offset;	
-			traversal_stack.push({child_index, pos_x[of], pos_y[of], pos_z[of], 0, current_depth-1});
+			parent_pos = pos;
+			current_depth--;
+			size = half_size;
+			traversal_stack.push({child_index, 0, pos});
 		}	
 	}
 
@@ -214,6 +226,7 @@ uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint16_t min_
 		int pos_y[8] = {y + half_size, y + half_size, y, y, y + half_size, y + half_size, y, y};
 		int pos_z[8] = {z + half_size, z + half_size, z + half_size, z + half_size, z, z, z, z};
 
+		
 		
 
 		// see child offset comment above
@@ -384,9 +397,9 @@ Octree Octree::loadModel(VoxFile& file)
 }
 
 
-vec2 project_cube(vec3 dT, vec3 bT, vec3 cube_far, vec3 cube_close, vec3 pos, float size) {
-	vec3 cube_min = cube_close * size + pos;
-	vec3 cube_max = cube_far * size + pos;
+vec2 project_cube(vec3 dT, vec3 bT, vec3 pos, float size) {
+	vec3 cube_min = vec3(size, size, size) + pos;
+	vec3 cube_max = pos;
 
 
 	float tc_min = vec3::largest(dT * cube_min + bT);
@@ -426,29 +439,40 @@ vec3 child_cube( uint8_t index, vec3 pos, float scale) {
 	return pos + pos_lookup[index] * scale;
 }
 
+/*
 void Octree::raytrace(vec3 origin, vec3 direction) {
 	
 	// ===== INITIALIZE =====
+	vec3 dir = direction;
+	vec3 d = dir;
+	float epsilon = 0.000001;
+	
+	d.x = std::max(abs(d.x), epsilon);
+	d.y = std::max(abs(d.y), epsilon);
+	d.z = std::max(abs(d.z), epsilon);
 
-	// prevent divide by zero
-	direction.x = std::max(direction.x, 0.0001f);
-	direction.y = std::max(direction.y, 0.0001f);
-	direction.z = std::max(direction.z, 0.0001f);
+	vec3 t_coef = vec3(-1.0f, -1.0f, -1.0f) / d;
+	vec3 t_bias = t_coef * origin;
 
-	// create axis aligned plane intersection coefficients
-	const vec3 dT = vec3::one / direction;
-	const vec3 bT = vec3(-1.0f, -1.0f, -1.0f)* origin / direction;
+	// all flip positive axis
+	// this way we don't have to calculate which planes are closer to the camera
+	// but we have to also flip our voxel child axis so we don't grab the wrong one (the)
+	int octant_mask = 7;
+	if (dir.x > 0.0) octant_mask ^= 1, t_bias.x = 2.0 * t_coef.x - t_bias.x;
+	if (dir.y > 0.0) octant_mask ^= 2, t_bias.y = 2.0 * t_coef.y - t_bias.y;
+	if (dir.z > 0.0) octant_mask ^= 4, t_bias.z = 2.0 * t_coef.z - t_bias.z;
 
-	vec3 cube_far = vec3(direction.x > 0.0f, direction.y > 0.0f, direction.z > 0.0f);
-	vec3 cube_close = vec3::one - cube_far;
+	//vec2 t_prime = project_cube(dT, bT, cube_far, (float)m_size);
+	//vec2 t = intersect(t_prime, vec2(0.0f, 1.0f)); // intersect
 
-	vec2 t_prime = project_cube(dT, bT, cube_far, cube_close, vec3(), (float)m_size);
-	vec2 t = intersect(t_prime, vec2(0.0f, 1.0f)); // intersect
+	vec3 far = t_coef * 2.0f - t_bias;
+	float h = vec3::smallest(far);
 
-	float h = t_prime.y;
+	float t_min = 0.0;
+	float t_max = 1.0;
 
 	uint64_t parent_index  = 0;
-	uint32_t idx = select_child(dT, bT, vec3(), (float)m_size, t.x);
+	//uint32_t idx = select_child(dT, bT, vec3(), (float)m_size, t.x);
 	
 
 	vec3 pos = vec3(idx & 1, idx & 2, idx & 4) * (float)m_size;
@@ -466,7 +490,7 @@ void Octree::raytrace(vec3 origin, vec3 direction) {
 
 		OTNode parent = m_array[parent_index];
 
-		vec2 tc = project_cube(dT, bT, cube_far, cube_close, pos, size);
+		vec2 tc = project_cube(t_coef, t_bias, pos, size);
 
 		if ((parent.valid_mask & (1 << idx)) && t.x <= t.y) {
 			// if voxel is small enough 
@@ -499,7 +523,7 @@ void Octree::raytrace(vec3 origin, vec3 direction) {
 
 			// ===== ADVANCE =====
 			vec3 oldpos = pos;
-			
+
 
 
 		
@@ -521,3 +545,4 @@ void Octree::raytrace(vec3 origin, vec3 direction) {
 	}
 }
 
+*/
