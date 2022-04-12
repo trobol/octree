@@ -22,27 +22,31 @@ layout(std430, binding = 3) buffer CubesBuffer
 };
 
 struct Ray{
-	vec3 direction;
-	vec3 direction_inverse;
+	vec3 dir;
+	vec3 dir_inverse;
 	vec3 origin;
 };
 
 
 struct RayHit{
-	float distance;
-    int index;
-	vec3 position;
-	vec3 normal;
+	float dist;
+	vec3 pos;
+	vec3 norm;
+	int idx;
+	int parent;
+	float scale;
 };
 
 
 RayHit CreateRayHit()
 {
 	RayHit hit;
-	hit.position=vec3(0.f,0.f,0.f);
-	hit.distance=1000000000.;
-	hit.normal=vec3(0.f,0.f,0.f);
-    hit.index = -1;
+	hit.pos=vec3(0.f,0.f,0.f);
+	hit.dist=1000000000.;
+	hit.norm=vec3(0.f,0.f,0.f);
+    hit.idx = -1;
+	hit.parent = -1;
+	hit.scale = 0;
 	return hit;
 }
 
@@ -51,8 +55,8 @@ RayHit CreateRayHit()
 Ray create_ray(vec3 origin,vec3 direction){
 	Ray ray;
 	ray.origin=origin;
-	ray.direction=direction;
-	ray.direction_inverse=direction;
+	ray.dir=direction;
+	ray.dir_inverse=direction;
 	return ray;
 }
 
@@ -73,13 +77,13 @@ Ray create_camera_ray(vec2 uv)
 	return create_ray(origin,direction);
 }
 
-
 struct StackEntry {
 	uint offset;
-	float maxT;
+	float t_max;
 };
 
-void main(){
+
+RayHit traverse_octree(Ray ray) {
 	int s_max = 23;
 	// base pixel colour for image
 	vec4 pixel= vec4(0.,0.,0.,0.);
@@ -87,9 +91,9 @@ void main(){
 	const float epsilon = 0.00001;
 
 
-	Ray ray=create_camera_ray(uv);
+
 	
-	vec3 dir = max(vec3(epsilon), abs(ray.direction));
+	vec3 dir = max(vec3(epsilon), abs(ray.dir));
 
 	vec3 t_coef = vec3(-1.0f, -1.0f, -1.0f) / dir;
 	vec3 t_bias = t_coef * ray.origin;
@@ -111,7 +115,9 @@ void main(){
 	float ray_scale = 0.001;
 
 	uint parent_index = 0;
+	// just the ptr
 	uint child_ptr = 0;
+	// the full child ptr, flags and pointer
 	uint child_descriptor = 0; // invalid until fetched
 	int idx = 0;
 	vec3 pos = vec3(1.0f, 1.0f, 1.0f);
@@ -141,8 +147,8 @@ void main(){
 		float tc_max = min(min(t_corner.x, t_corner.y), t_corner.z);
 		// Process voxel if the corresponding bit in valid mask is set
 		// and the active t-span is non-empty.
-		int child_shift = idx ^ octant_mask; // permute child slots based on the mirroring
-		int child_masks = child_descriptor << child_shift;
+		uint child_shift = idx ^ octant_mask; // permute child slots based on the mirroring
+		uint child_masks = child_descriptor << child_shift;
 		// is valid?
 		if ((child_masks & 0x10000) != 0 && t_min <= t_max)
 		{
@@ -182,22 +188,31 @@ void main(){
 				// Terminate if the corresponding bit in the non-leaf mask is not set.
 				if ((child_masks & 0x0080) == 0)
 					break; // at t_min (overridden with tv_min).
-				// PUSH
+				// ==== PUSH =====
 				// Write current parent to the stack.
 				if (tc_max < h)
 					rayStack[scale] = StackEntry(parent_index, t_max);
 
 				h = tc_max;
 				// Find child descriptor corresponding to the current voxel.
-			
-				if ((child_ptr & 0x10000) != 0) // far
-					ofs = parent[ofs * 2]; // far pointer
-				ofs += popc8(child_masks & 0x7F);
-				parent += ofs * 2;
+				
+				uint ofs = child_ptr; // child pointer
+				// TODO: far pointers
+				//if ((child_ptr & 0x10000) != 0) // far
+				//	ofs = parent[ofs * 2]; // far pointer
+				
+				
+				// TODO: sibling count
+				//uint sibling_count = bitcount (child_descriptor & 0xF);
+				//ofs += sibling_count;
+				//parent += ofs * 2; // why is this mutiplied by 2?
+				
+				parent_index += ofs;
+				
 				// Select child voxel that the ray enters first.
 				idx = 0;
 				scale--;
-				scale_exp2 = half;
+				scale_exp2 = _half;
 				if (tx_center > t_min) idx ^= 1, pos.x += scale_exp2;
 				if (ty_center > t_min) idx ^= 2, pos.y += scale_exp2;
 				if (tz_center > t_min) idx ^= 4, pos.z += scale_exp2;
@@ -225,11 +240,11 @@ void main(){
 				if ((step_mask & 1) != 0) differing_bits |= floatBitsToUint(pos.x) ^ floatBitsToUint(pos.x + scale_exp2);
 				if ((step_mask & 2) != 0) differing_bits |= floatBitsToUint(pos.y) ^ floatBitsToUint(pos.y + scale_exp2);
 				if ((step_mask & 4) != 0) differing_bits |= floatBitsToUint(pos.z) ^ floatBitsToUint(pos.z + scale_exp2);
-				scale = (floatBitsToUint((float)differing_bits) >> 23) - 127; // position of the highest bit
+				scale = (floatBitsToInt(float(differing_bits)) >> 23) - 127; // position of the highest bit
 				scale_exp2 = uintBitsToFloat((scale - s_max + 127) << 23); // exp2f(scale - s_max)
 				// Restore parent voxel from the stack.
-				int2 stackEntry = stack[scale];
-				parent = (int*)stackEntry.x;
+				StackEntry stackEntry = rayStack[scale];
+				parent_index = stackEntry.offset;
 				t_max = stackEntry.t_max;
 				// Round cube position and extract child slot index.
 				int shx = floatBitsToInt(pos.x) >> scale;
@@ -252,36 +267,51 @@ void main(){
 		if ((octant_mask & 1) == 0) pos.x = 3.0f - scale_exp2 - pos.x;
 		if ((octant_mask & 2) == 0) pos.y = 3.0f - scale_exp2 - pos.y;
 		if ((octant_mask & 4) == 0) pos.z = 3.0f - scale_exp2 - pos.z;
+		
+		vec3 p = ray.origin;
+		vec3 d = ray.dir;
 		// Output results.
 		float hit_t = t_min;
-		hit_pos.x = min(max(p.x + t_min * d.x, pos.x + epsilon), pos.x + scale_exp2 - epsilon);
-		hit_pos.y = min(max(p.y + t_min * d.y, pos.y + epsilon), pos.y + scale_exp2 - epsilon);
-		hit_pos.z = min(max(p.z + t_min * d.z, pos.z + epsilon), pos.z + scale_exp2 - epsilon);
-		int hit_parent = parent_index;
-		int hit_idx = idx ^ octant_mask ^ 7;
-		int hit_scale = scale;
+
+
+		hit.pos.x = min(max(p.x + t_min * d.x, pos.x + epsilon), pos.x + scale_exp2 - epsilon);
+		hit.pos.y = min(max(p.y + t_min * d.y, pos.y + epsilon), pos.y + scale_exp2 - epsilon);
+		hit.pos.z = min(max(p.z + t_min * d.z, pos.z + epsilon), pos.z + scale_exp2 - epsilon);
+		hit.parent = int(parent_index);
+		hit.idx = idx ^ octant_mask ^ 7;
+		hit.scale;
 	}
-
 	
-	/*
-    if (hit.index != -1) {
+	return hit;
+}
+
+
+void main(){
+	
+	Ray ray=create_camera_ray(uv);
+	RayHit hit = traverse_octree(ray);
+	vec4 pixel = vec4(0., 0., 0., 1.);
+	
+	vec3 colors[4] = { vec3(1., 0., 1.0), vec3(1., 0.2, 2.0), vec3(0.2, 0., 1.0), vec3(0.5, 0.5, 0.0) };
+	
+    if (hit.idx != -1) {
 		
-
-        Cube cube =cubes[hit.index];
+		
+        //Cube cube =cubes[hit.idx];
 		//vec3 light_position=vec3(2.,-5.,3.);
-		//vec3 direction_to_light=normalize(bestHit.position-light_position);
-		//float diffuse_intensity=max(0.,dot(bestHit.normal,direction_to_light));
+		//vec3 direction_to_light=normalize(bestHit.pos-light_position);
+		//float diffuse_intensity=max(0.,dot(bestHit.nor,direction_to_light));
 
-		pixel = vec4(cube.color, 1); //*(.5+diffuse_intensity*.5);
-		//float c = 1.0 / hit.distance;
-		//pixel = vec4(c, c, c, 1);
+		//pixel = vec4(cube.color, 1); //*(.5+diffuse_intensity*.5);
+		float c = 1.0 / hit.dist;
+		pixel = vec4(c, c, c, 1);
     } else {
-		//pixel.x = step(0.0, ray.direction.x);
-		//pixel.y = step(0.0, ray.direction.y);
-		//pixel.z = step(0.0, ray.direction.z);
-		//pixel.xyz = vec3(0.5, 0.5, 0.5) - ray.direction*0.5;
-		//pixel = vec4(hit.distance, hit.distance, hit.distance, 0);
-			vec3 dir = ray.direction;
+		//pixel.x = step(0.0, ray.dir.x);
+		//pixel.y = step(0.0, ray.dir.y);
+		//pixel.z = step(0.0, ray.dir.z);
+		//pixel.xyz = vec3(0.5, 0.5, 0.5) - ray.dir*0.5;
+		//pixel = vec4(hit.dist, hit.dist, hit.dist, 0);
+			vec3 dir = ray.dir;
 			vec3 d = dir;
 			float epsilon = 0.00001;
 			
@@ -297,12 +327,12 @@ void main(){
 			if (dir.z > 0.0) t_bias.z = size * t_coef.z - t_bias.z;
 			
 
-			//pixel.x = step(1.0, -t_coef.x/1000.0);
-			//pixel.y = step(1.0, -t_coef.y/1000.0);
-			//pixel.z = step(1.0, -t_coef.z/1000.0);
+			pixel.x = step(1.0, -t_coef.x/1000.0);
+			pixel.y = step(1.0, -t_coef.y/1000.0);
+			pixel.z = step(1.0, -t_coef.z/1000.0);
 	}
 	
-	*/
+	
 	
     color = pixel;
 	
@@ -312,7 +342,7 @@ void main(){
 	//float b = 2.0*far*near/(far-near);
 	//gl_FragDepth = a + b/hit.position.z;
 	
-	vec4 depth_vec = viewMatrix * projMatrix * vec4(hit.position.xyz, 1.0);
+	vec4 depth_vec = viewMatrix * projMatrix * vec4(hit.pos.xyz, 1.0);
 	float depth = ((depth_vec.z / depth_vec.w) + 1.0) * 0.5; 
 	//gl_FragDepth = depth;
 	

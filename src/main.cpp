@@ -467,7 +467,7 @@ int main(void)
 	cubeStorageBuffer.bind(GL_SHADER_STORAGE_BUFFER);
 	cubeCountU = leafInstances.size();
 	//cubeCountU = 1;
-	cubeStorageBuffer.bufferVector(raytraceData, GL_STATIC_DRAW);
+	cubeStorageBuffer.bufferVector(tree.m_array, GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, cubeStorageBuffer);
 
 	quadVertexArray.unbind();
@@ -491,7 +491,7 @@ int main(void)
 		// UPDATE
 		camera.bCanCaptureMouse = !io.WantCaptureMouse;
 		camera.Update(0);
-
+		
 
 		// DRAW
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -517,7 +517,7 @@ int main(void)
 		quadVertexArray.bind();
 		cubeStorageBuffer.bind(GL_SHADER_STORAGE_BUFFER);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, cubeStorageBuffer);
-		//glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 		
 
