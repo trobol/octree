@@ -4,6 +4,8 @@
 #include "gl_lite.h"
 #include <string>
 
+
+class Shader;
 class Shader
 {
 public:

@@ -341,6 +341,10 @@ int main(void)
 	MeshDrawable duckDrawable("duck");
 	drawables.push_back(&duckDrawable);
 
+	MeshDrawable octreeDrawable("raytrace octree");
+	drawables.push_back(&octreeDrawable);
+	//octreeDrawable.m_enable = false;
+
 	std::string filepath = filesystem::fileSelect(ASSET_PATH_STR + "/models/", ".vox");
 	file.load(filepath);
 	//file.load("../../assets/box.vox");
@@ -436,6 +440,15 @@ int main(void)
 
 	otsizeU.set((float)tree.m_size);
 
+	GLuint tex;
+	glGenTextures(1, &tex);
+	glBindTexture(GL_TEXTURE_1D, tex);
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_R32UI, tree.m_array.size(), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &tree.m_array[0]);
+	glTexParameteri(GL_TEXTURE_1D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_1D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_1D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_1D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+
 
 
 	vec2 viewPlanes = vec2(camera.mNearClip, camera.mFarClip);
@@ -465,7 +478,18 @@ int main(void)
 	}
 
 	cubeStorageBuffer.bind(GL_SHADER_STORAGE_BUFFER);
-	cubeCountU = leafInstances.size();
+	cubeCountU = tree.m_array.size();
+
+	puts("");
+	for (size_t i = 0; i < tree.m_array.size(); i++) {
+		OTNode node = tree.m_array[i];
+		uint16_t vm = node.valid_mask;
+		uint16_t lm = node.leaf_mask;
+		printf("%3lu: ptr: %5u valid: %hu%hu%hu%hu%hu%hu%hu%hu leaf: %hu%hu%hu%hu%hu%hu%hu%hu\n", i, node.children_ptr >> 1,
+			   vm >> 7 & 1, vm >> 6 & 1, vm >> 5 & 1, vm >> 4 & 1, vm >> 3 & 1, vm >> 2 & 1, vm >> 1 & 1, vm & 1, 
+			   lm >> 7 & 1, lm >> 6 & 1, lm >> 5 & 1, lm >> 4 & 1, lm >> 3 & 1, lm >> 2 & 1, lm >> 1 & 1, lm & 1
+		);
+	}
 	//cubeCountU = 1;
 	cubeStorageBuffer.bufferVector(tree.m_array, GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, cubeStorageBuffer);
@@ -511,13 +535,19 @@ int main(void)
 				drble->Draw();
 		}
 
-		rayShader.use();
-		rayProjMatrix = camera.getProjMatrix();
-		rayViewMatrix = camera.getViewMatrix();
-		quadVertexArray.bind();
-		cubeStorageBuffer.bind(GL_SHADER_STORAGE_BUFFER);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, cubeStorageBuffer);
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		if (octreeDrawable.m_enable) {
+			glActiveTexture(GL_TEXTURE0); // activate the texture unit first before binding texture
+			glBindTexture(GL_TEXTURE_1D, tex);
+			rayShader.use();
+			otsizeU.set((float)tree.m_size);
+			cubeCountU = tree.m_array.size();
+			rayProjMatrix = camera.getProjMatrix();
+			rayViewMatrix = camera.getViewMatrix();
+			quadVertexArray.bind();
+			cubeStorageBuffer.bind(GL_SHADER_STORAGE_BUFFER);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, cubeStorageBuffer);
+			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		}
 
 		
 

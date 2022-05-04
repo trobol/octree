@@ -38,7 +38,6 @@ m_size{0}
 	m_array.resize(1);
 
 	m_array[0].children_ptr = 0;
-	m_array[0].children_far = 0;
 	m_array[0].valid_mask = 0;
 	m_array[0].leaf_mask = 0;
 
@@ -81,7 +80,7 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 	uint32_t current_depth = m_depth;
 
 	//uint32_t current_size = m_size;
-	float size = (float)(1 << m_depth); 
+	float size = 1.0; 
 	while (!traversal_stack.empty()) {
 
 		uint8_t child_offset;
@@ -102,7 +101,7 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 
 			// draw branch
 			Cube c;
-			c.pos = parent_pos;
+			c.pos = parent_pos + vec3(1.0, 1.0, 1.0);
 			c.color = random_colors[index % 256];
 			c.size = size;
 			traversal_stack.pop();
@@ -116,7 +115,7 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 		OTNode parent = m_array[index];
 		
 
-		uint32_t children_ptr = parent.children_ptr;
+		uint32_t children_ptr = parent.children_ptr >> 1;
 		//if (parent.children_far) children_ptr = m_farpointers[children_ptr];
 		uint32_t child_index = index + children_ptr + child_offset;
 		
@@ -133,10 +132,10 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 
 		vec3 pos = parent_pos + pos_table[child_offset] * half_size;	
 
-		if (!(parent.valid_mask & (1 << child_offset))) continue;
-		if (parent.leaf_mask & (1 << child_offset)) {
+		if (!(parent.valid_mask & (128 >> child_offset))) continue;
+		if (parent.leaf_mask & (128 >> child_offset)) {
 			Cube c;
-			c.pos = pos;
+			c.pos = pos + vec3(1.0, 1.0, 1.0);
 			c.size = half_size;
 			c.color = random_colors[child_index % 256];
 			leafElements.push_back(c);
@@ -235,12 +234,12 @@ uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint16_t min_
 		
 		// no valid children
 		// we are going to make some children valid, so allocate them
-		if (!m_array[current_index].valid_mask && half_size > 1) {
+		if (m_array[current_index].valid_mask == 0 && half_size > 1) {
 			uint32_t ptr = (uint32_t)m_array.size() - current_index;
 			if (ptr > (1 << 14)) puts("ERROR: node index will overflow");
 		
-			m_array[current_index].children_ptr = ptr;
-			m_array.resize(m_array.size() + 8); 
+			m_array[current_index].children_ptr = ptr << 1;
+			m_array.resize(m_array.size() + 8, {});
 		}
 		// assume that parent node is already a valid node
 		// this means all members are valid values and has space designated for children, even if it has no valid children
@@ -249,29 +248,29 @@ uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint16_t min_
 			OTNode& parent = m_array[parent_index];
 			// TODO: mask check should be a function
 			// is the child we want to work on next valid?
-			child_valid = parent.valid_mask & (1 << child_offset);
+			child_valid = parent.valid_mask & (128 >> child_offset);
 			// we are gonna make the child valid if its not
-			parent.valid_mask |= 1 << child_offset;
+			parent.valid_mask |= 128 >> child_offset;
 
-			uint32_t children_ptr = parent.children_ptr;
-			if (parent.children_far) children_ptr = m_farpointers[children_ptr];
+			uint32_t children_ptr = parent.children_ptr >> 1;
+			//if (parent.children_far) children_ptr = m_farpointers[children_ptr];
 			current_index = parent_index + children_ptr + child_offset;
 		}
 
-
+		
 		x = pos_x[child_offset];
 		y = pos_y[child_offset];
 		z = pos_z[child_offset];
 		
-		//printf("halfsize: %5i\n", half_size);
+		//printf("%2i,%2i x: %5i y: %5i z: %5i\n", half_size, child_offset, x, y, z);
 
 		current_size = half_size;
 	}
 
 	
 	if (min_depth == 0)
-		m_array[parent_index].leaf_mask |= 1 << child_offset;
-	if (target_x != x || target_y != y || target_z != z) puts("ERROR: target did not match destination in octree");
+		m_array[parent_index].leaf_mask |= 128 >> child_offset;
+	if (target_x != x || target_y != y || target_z != z) printf("ERROR: target did not match destination in octree, x: %5i y: %5i z: %5i\n", target_x, target_y, target_z);
 
 	return current_index;
 }
@@ -339,7 +338,6 @@ Octree Octree::loadModel(VoxFile& file)
 	}
 	*/
 
-	OctreeBuilder builder((uint32_t)std::sqrt(realSize));
 	uint32_t* palette = file.getPalette();
 	//load
 	for (int i = 0; i < file.getNumVoxels(); i++)

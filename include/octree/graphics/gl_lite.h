@@ -134,6 +134,7 @@ GLenum glCheckError_(const char *file, int line);
 	GLE(void, DispatchCompute, GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z)                                                                                                         \
 	GLE(void, MemoryBarrier, GLbitfield barriers)                                                                                                                                                     \
 	GLE(void, DetachShader, GLuint program, GLuint shader)                                                                                                                                            \
+	GLE(void, TexStorage1D, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width)                                                                                                      \
 	GLE(void, DebugMessageCallback, DEBUGPROC callback, const void* userParam)
 //	GLE(void, TexSubImage3D, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const GLvoid *pixels) \
 //	GLE(void, GetIntegerv, GLenum pname, GLint *params)                                                                                                                                               

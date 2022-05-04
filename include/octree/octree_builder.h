@@ -10,8 +10,7 @@ public:
         nodeLevels.resize(depth+1);
         std::vector<OTNode>& level = nodeLevels[depth];
         level.resize(1);
-        level[0].children_ptr = 1;
-        level[0].children_far = 0;
+        level[0].children_ptr = 1 << 1; // account for 
         level[0].valid_mask = 0;
         level[0].leaf_mask = 0;
     }

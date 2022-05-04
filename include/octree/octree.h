@@ -29,11 +29,12 @@ class OctreeChunk;
 
 
 struct OTNode {
-	uint16_t children_ptr : 15;
-	bool children_far : 1;
+	uint16_t children_ptr; // the lowest bit is the "far" flag
 	uint8_t valid_mask;
 	uint8_t leaf_mask;
 };
+
+
 struct OTArrayEntry {
 	union {
 		OTNode node;
