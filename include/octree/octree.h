@@ -28,7 +28,13 @@ class OctreeChunk;
 
 
 
-struct OTNode {
+class OTNode {
+private:
+	uint32_t data;
+public:
+	void set_children(uint16_t index);
+	void set_valid(uint16_t child_index);
+	void set_leaf(uint16_t);
 	uint16_t children_ptr; // the lowest bit is the "far" flag
 	uint8_t valid_mask;
 	uint8_t leaf_mask;
@@ -66,7 +72,7 @@ public:
 	uint32_t m_alloc_size;
 
 
-	std::vector<OTNode> m_array;
+	std::vector<uint32_t> m_array;
 	std::vector<uint32_t> m_farpointers; // TEMP HACK
 
 

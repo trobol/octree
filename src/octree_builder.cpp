@@ -1,6 +1,6 @@
 #include <octree/octree_builder.h>
 
-
+/*
 uint32_t OctreeBuilder::setNode(int target_x, int target_y, int target_z)
 {
 	// ensure x, y, z is inside octree
@@ -94,3 +94,5 @@ uint32_t OctreeBuilder::setNode(int target_x, int target_y, int target_z)
 
 	return current_index;
 }
+
+*/

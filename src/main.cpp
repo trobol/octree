@@ -99,7 +99,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 
 
 	if (key == GLFW_KEY_R && action == GLFW_PRESS) {
-		camera.mTransform.position = vec3(0, 0, 10);
+		camera.mTransform.position = vec3(0, 0, 0);
 		camera.mTransform.rotation = Quaternion::identity;
 	}
 }
@@ -334,6 +334,18 @@ Window& window = Window::getInstance();
 
 std::vector<Drawable*> drawables;
 
+struct bin_digit_str {
+	char str[8];
+};
+
+bin_digit_str bin_digits(uint8_t byte) {
+	bin_digit_str result;
+	for (uint8_t i = 0; i < 8; i++)
+		result.str[i] = ((byte << i) & 0x80) ? '1' : '0';
+
+	return result;
+} 
+
 int main(void)
 {
 	srand((unsigned int)time(nullptr));
@@ -417,7 +429,7 @@ int main(void)
 
 
 	camera.mTransform.scale = vec3(1, 1, 1);
-	camera.mTransform.position = vec3(10.0, 0, 10.);
+	camera.mTransform.position = vec3(1.5, 1.5, 3.0);
 
 	center = vec3(0, 0, 0);
 
@@ -482,13 +494,18 @@ int main(void)
 
 	puts("");
 	for (size_t i = 0; i < tree.m_array.size(); i++) {
-		OTNode node = tree.m_array[i];
-		uint16_t vm = node.valid_mask;
-		uint16_t lm = node.leaf_mask;
-		printf("%3lu: ptr: %5u valid: %hu%hu%hu%hu%hu%hu%hu%hu leaf: %hu%hu%hu%hu%hu%hu%hu%hu\n", i, node.children_ptr >> 1,
-			   vm >> 7 & 1, vm >> 6 & 1, vm >> 5 & 1, vm >> 4 & 1, vm >> 3 & 1, vm >> 2 & 1, vm >> 1 & 1, vm & 1, 
-			   lm >> 7 & 1, lm >> 6 & 1, lm >> 5 & 1, lm >> 4 & 1, lm >> 3 & 1, lm >> 2 & 1, lm >> 1 & 1, lm & 1
+
+		uint32_t node = *(uint32_t*)&tree.m_array[i];
+		uint8_t vm = node >> 8;
+		uint8_t lm = node;
+		printf("%3lu: ptr: %5u valid: %.8s leaf: %.8s full: %08x \n",
+			   i, node >> 17,
+			   bin_digits(vm).str, 
+			   bin_digits(lm).str,
+			   node
 		);
+
+		
 	}
 	//cubeCountU = 1;
 	cubeStorageBuffer.bufferVector(tree.m_array, GL_STATIC_DRAW);
@@ -511,7 +528,7 @@ int main(void)
 	while (!window.shouldClose())
 	{
 
-
+		glEnable(GL_DEPTH_TEST);
 		// UPDATE
 		camera.bCanCaptureMouse = !io.WantCaptureMouse;
 		camera.Update(0);
@@ -534,7 +551,7 @@ int main(void)
 			if (drble->m_enable)
 				drble->Draw();
 		}
-
+		glDisable(GL_DEPTH_TEST);
 		if (octreeDrawable.m_enable) {
 			glActiveTexture(GL_TEXTURE0); // activate the texture unit first before binding texture
 			glBindTexture(GL_TEXTURE_1D, tex);
@@ -587,7 +604,7 @@ void draw_ui() {
 	ImGui::SetNextWindowSize(ImVec2(300, 500), ImGuiCond_Always);
 	ImGui::SetNextWindowBgAlpha(0.7f);
 	ImGui::Begin("Controls", NULL, ImGuiWindowFlags_NoResize);
-	if (ImGui::CollapsingHeader("Camera")) {
+	if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), "Camera");
 		float* posp = &camera.mTransform.position.x;
 		vec3 rot = camera.mTransform.rotation.ToEuler();
@@ -596,18 +613,15 @@ void draw_ui() {
 		float* fovp = &camera.mFov;
 		ImGui::InputFloat3("Pos:", posp);
 		ImGui::InputFloat3("Rot: ", &rot.x, "%.3f", ImGuiInputTextFlags_ReadOnly);
-		ImGui::SliderFloat("Speed: ", speedp, 0.1f, 10.0f, "%4.1f");
+		ImGui::SliderFloat("Speed: ", speedp, 0.01f, 1.0f, "%4.1f");
 		ImGui::SliderFloat("Sensitivity: ", sensp, 0.1f, 10.0f, "%4.1f");
 		ImGui::SliderFloat("FOV: ", fovp, 10.0f, 110.0f, "%4.0f");
 	}
 
-	if (ImGui::CollapsingHeader("Drawables")) {
+	if (ImGui::CollapsingHeader("Drawables", ImGuiTreeNodeFlags_DefaultOpen)) {
 		for (Drawable* drawable : drawables) {
-			if (!ImGui::TreeNode(drawable->m_name.c_str())) continue;
-			
-			ImGui::Checkbox("enabled:", &drawable->m_enable);
-
-			ImGui::TreePop();
+		
+			ImGui::Checkbox(drawable->m_name.c_str(), &drawable->m_enable);
 		}
 	}
 

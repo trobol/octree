@@ -37,9 +37,7 @@ m_size{0}
 
 	m_array.resize(1);
 
-	m_array[0].children_ptr = 0;
-	m_array[0].valid_mask = 0;
-	m_array[0].leaf_mask = 0;
+	m_array[0] = 0;
 
 	printf("size %u\n", m_size);
 }
@@ -112,28 +110,30 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 			continue;
 		}
 		
-		OTNode parent = m_array[index];
+		uint32_t parent = m_array[index];
 		
 
-		uint32_t children_ptr = parent.children_ptr >> 1;
+		uint32_t children_ptr = parent >> 17;
 		//if (parent.children_far) children_ptr = m_farpointers[children_ptr];
 		uint32_t child_index = index + children_ptr + child_offset;
 		
 		vec3 pos_table[8] = {
-			{1.0f, 1.0f, 1.0f },
-			{0.0f, 1.0f, 1.0f },
-			{1.0f, 0.0f, 1.0f },
-			{0.0f, 0.0f, 1.0f },
-			{1.0f, 1.0f, 0.0f },
-			{0.0f, 1.0f, 0.0f },
-			{1.0f, 0.0f, 0.0f },
 			{0.0f, 0.0f, 0.0f },
+			{1.0f, 0.0f, 0.0f },
+			{0.0f, 1.0f, 0.0f },
+			{1.0f, 1.0f, 0.0f },
+			{0.0f, 0.0f, 1.0f },
+			{1.0f, 0.0f, 1.0f },
+			{0.0f, 1.0f, 1.0f },
+			{1.0f, 1.0f, 1.0f },
 		};
 
 		vec3 pos = parent_pos + pos_table[child_offset] * half_size;	
 
-		if (!(parent.valid_mask & (128 >> child_offset))) continue;
-		if (parent.leaf_mask & (128 >> child_offset)) {
+		// is valid node
+		if (!((parent >> 8) & (128 >> child_offset))) continue;
+		// is leaf node
+		if (parent & (128 >> child_offset)) {
 			Cube c;
 			c.pos = pos + vec3(1.0, 1.0, 1.0);
 			c.size = half_size;
@@ -221,38 +221,38 @@ uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint16_t min_
 		int center_z = z + half_size;
 
 		// child positions
-		int pos_x[8] = {x + half_size, x, x + half_size, x, x + half_size, x, x + half_size, x};
-		int pos_y[8] = {y + half_size, y + half_size, y, y, y + half_size, y + half_size, y, y};
-		int pos_z[8] = {z + half_size, z + half_size, z + half_size, z + half_size, z, z, z, z};
-
+		int pos_x[8] = {x, x + half_size, x, x + half_size, x, x + half_size, x, x + half_size};
+		int pos_y[8] = {y, y, y + half_size, y + half_size, y, y, y + half_size, y + half_size};
+		int pos_z[8] = {z, z, z, z, z + half_size, z + half_size, z + half_size, z + half_size};
 		
 		
 
 		// see child offset comment above
-		child_offset = ((target_z < center_z) << 2) | ((target_y < center_y) << 1) | (target_x < center_x);
+		child_offset = ((target_z >= center_z) << 2) | ((target_y >= center_y) << 1) | (target_x >= center_x);
 		
 		
 		// no valid children
 		// we are going to make some children valid, so allocate them
-		if (m_array[current_index].valid_mask == 0 && half_size > 1) {
+		if ((m_array[current_index] & 0xFF00) == 0 && half_size != 1) {
 			uint32_t ptr = (uint32_t)m_array.size() - current_index;
-			if (ptr > (1 << 14)) puts("ERROR: node index will overflow");
+			if (ptr > (0xFFFE)) puts("ERROR: node index will overflow");
 		
-			m_array[current_index].children_ptr = ptr << 1;
+			m_array[current_index] |= ptr << 17;
 			m_array.resize(m_array.size() + 8, {});
 		}
 		// assume that parent node is already a valid node
 		// this means all members are valid values and has space designated for children, even if it has no valid children
 		bool child_valid;
 		{ // prevents parent reference usage after array resize
-			OTNode& parent = m_array[parent_index];
+			uint32_t& parent = m_array[parent_index];
 			// TODO: mask check should be a function
 			// is the child we want to work on next valid?
-			child_valid = parent.valid_mask & (128 >> child_offset);
+			child_valid = (parent >> 8) & (128 >> child_offset);
 			// we are gonna make the child valid if its not
-			parent.valid_mask |= 128 >> child_offset;
-
-			uint32_t children_ptr = parent.children_ptr >> 1;
+			uint32_t valid_mask = 128 >> child_offset; 
+			parent |= valid_mask << 8; // assign to valid mask
+			if (half_size == 1) parent |= valid_mask ; // assign to leaf mask, aka set as leaf
+			uint32_t children_ptr = parent >> 17;
 			//if (parent.children_far) children_ptr = m_farpointers[children_ptr];
 			current_index = parent_index + children_ptr + child_offset;
 		}
@@ -268,8 +268,8 @@ uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint16_t min_
 	}
 
 	
-	if (min_depth == 0)
-		m_array[parent_index].leaf_mask |= 128 >> child_offset;
+	//if (min_depth == 0)
+	//	m_array[parent_index].leaf_mask = 0;
 	if (target_x != x || target_y != y || target_z != z) printf("ERROR: target did not match destination in octree, x: %5i y: %5i z: %5i\n", target_x, target_y, target_z);
 
 	return current_index;

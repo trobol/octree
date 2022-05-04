@@ -12,7 +12,8 @@ out vec3 mColor;
 out float size;
 void main(){
 	vec3 pos=(instanceSize*vertexPosition)+instancePosition;
-	gl_Position=projMatrix*camMatrix*vec4(pos,1.);
+	mat4 matrix = projMatrix*camMatrix;
+	gl_Position=matrix*vec4(pos,1.);
 	//gl_Position=vec4(pos,1.);
 	mColor=instanceColor;
 	size=instanceSize;

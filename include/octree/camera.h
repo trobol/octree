@@ -43,7 +43,7 @@ public:
 	bool bCanCaptureMouse;
 
 	float sensitivity = 1.0f;
-	float speed = 1.0f;
+	float speed = 0.1f;
 
 	mat4 getProjMatrix()
 	{
