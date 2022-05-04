@@ -131,9 +131,9 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 		vec3 pos = parent_pos + pos_table[child_offset] * half_size;	
 
 		// is valid node
-		if (!((parent >> 8) & (128 >> child_offset))) continue;
+		if (!((parent >> 8) & (1 << child_offset))) continue;
 		// is leaf node
-		if (parent & (128 >> child_offset)) {
+		if (parent & (1 << child_offset)) {
 			Cube c;
 			c.pos = pos + vec3(1.0, 1.0, 1.0);
 			c.size = half_size;
@@ -247,9 +247,9 @@ uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint16_t min_
 			uint32_t& parent = m_array[parent_index];
 			// TODO: mask check should be a function
 			// is the child we want to work on next valid?
-			child_valid = (parent >> 8) & (128 >> child_offset);
+			uint32_t valid_mask = 1 << child_offset; 
+			child_valid = (parent >> 8) & valid_mask;
 			// we are gonna make the child valid if its not
-			uint32_t valid_mask = 128 >> child_offset; 
 			parent |= valid_mask << 8; // assign to valid mask
 			if (half_size == 1) parent |= valid_mask ; // assign to leaf mask, aka set as leaf
 			uint32_t children_ptr = parent >> 17;
@@ -270,6 +270,7 @@ uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint16_t min_
 	
 	//if (min_depth == 0)
 	//	m_array[parent_index].leaf_mask = 0;
+	//m_array[current_index] = child_offset;
 	if (target_x != x || target_y != y || target_z != z) printf("ERROR: target did not match destination in octree, x: %5i y: %5i z: %5i\n", target_x, target_y, target_z);
 
 	return current_index;

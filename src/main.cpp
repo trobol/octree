@@ -613,7 +613,7 @@ void draw_ui() {
 		float* fovp = &camera.mFov;
 		ImGui::InputFloat3("Pos:", posp);
 		ImGui::InputFloat3("Rot: ", &rot.x, "%.3f", ImGuiInputTextFlags_ReadOnly);
-		ImGui::SliderFloat("Speed: ", speedp, 0.01f, 1.0f, "%4.1f");
+		ImGui::SliderFloat("Speed: ", speedp, 0.01f, 1.0f, "%1.4f");
 		ImGui::SliderFloat("Sensitivity: ", sensp, 0.1f, 10.0f, "%4.1f");
 		ImGui::SliderFloat("FOV: ", fovp, 10.0f, 110.0f, "%4.0f");
 	}

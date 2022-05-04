@@ -99,7 +99,7 @@ layout (binding = 0) uniform usampler1D texture1;
 RayHit traverse_octree(Ray ray) {
 	
 
-	vec3 d = ray.dir;
+	vec3 d = normalize(ray.dir);
 	vec3 o = ray.origin;
 	d.x = abs(d.x) > EPS ? d.x : (d.x >= 0 ? EPS : -EPS);
 	d.y = abs(d.y) > EPS ? d.y : (d.y >= 0 ? EPS : -EPS);
@@ -111,7 +111,7 @@ RayHit traverse_octree(Ray ray) {
 	// all flip positive axis
 	// this way we don't have to calculate which planes are closer to the camera
 	// but we have to also flip our voxel child axis so we don't grab the wrong one (the)
-	uint oct_mask = 0u;
+	uint oct_mask = 7u;
 	if(d.x > 0.0f) oct_mask ^= 1u, t_bias.x = 3.0f * t_coef.x - t_bias.x;
 	if(d.y > 0.0f) oct_mask ^= 2u, t_bias.y = 3.0f * t_coef.y - t_bias.y;
 	if(d.z > 0.0f) oct_mask ^= 4u, t_bias.z = 3.0f * t_coef.z - t_bias.z;
@@ -128,17 +128,18 @@ RayHit traverse_octree(Ray ray) {
 	vec3 pos = vec3(1.0f);
 	uint idx = 0u;
 	// intersect the outer voxel and set the index
-	if (1.5 * t_coef.x - t_bias.x > t_min) idx ^= 1u, pos.x = 1.5f;
-	if (1.5 * t_coef.y - t_bias.y > t_min) idx ^= 2u, pos.y = 1.5f;
-	if (1.5 * t_coef.z - t_bias.z > t_min) idx ^= 4u, pos.z = 1.5f;
+	if (1.5f * t_coef.x - t_bias.x > t_min) idx ^= 1u, pos.x = 1.5f;
+	if (1.5f * t_coef.y - t_bias.y > t_min) idx ^= 2u, pos.y = 1.5f;
+	if (1.5f * t_coef.z - t_bias.z > t_min) idx ^= 4u, pos.z = 1.5f;
 	
 	uint scale = STACK_SIZE - 1;
 	float scale_exp2 = 0.5f;
 
-
+	RayHit hit = CreateRayHit();
+	hit.idx = 1;
 
 	vec3 colors[8] = {
-		vec3(0.6, 0.2, 0.5), //
+		vec3(0.6, 0.2, 0.5), // 0
 		vec3(0.5, 0.5, 0.3), // 1
 		vec3(0.8, 1.0, 0.1), // 2
 		vec3(0.2, 0.2, 0.6),
@@ -147,9 +148,9 @@ RayHit traverse_octree(Ray ray) {
 		vec3(0.0, 0.0, 1.0),
 		vec3(0.9, 0.8, 0.0)
 	};
-
-	
+	uint i = 0;
 	while (scale < STACK_SIZE) {
+		i++;
 		// Fetch child descriptor unless it is already valid.
 		if (cur == 0u) cur = children[parent];
 
@@ -159,20 +160,25 @@ RayHit traverse_octree(Ray ray) {
 		vec3 t_corner = pos * t_coef - t_bias;
 		float tc_max = min(min(t_corner.x, t_corner.y), t_corner.z);
 
+
 		uint child_shift = idx ^ oct_mask;
 		uint child_masks = cur << child_shift;
 
 		// is valid?
 		if ((child_masks & 0x8000u) != 0 && t_min <= t_max)
 		{
-
+			
 			float tv_max = min(t_max, tc_max);
 			float half_scale_exp2 = scale_exp2 * 0.5f;
-			vec3 t_center = half_scale_exp2 * t_coef + t_corner;
+			vec3 t_center = (half_scale_exp2 * t_coef) + t_corner;
 
-			if( t_min <= tv_max ) {
+
+			if( t_min <= tv_max ) {	
 				if( (child_masks & 0x80u) != 0 ) { // leaf node 
-			
+					//t_min = max(t_min, );
+					//uint color_index = children[]
+					//norm.color = 
+		
 					break;
 				}	
 					// PUSH
@@ -183,10 +189,10 @@ RayHit traverse_octree(Ray ray) {
 				h = tc_max;
 
 				// mask out 15 bits
-				parent = cur >> 17;
+				parent += (cur >> 17) + 7 - child_shift;
 
 				idx = 0u;
-				-- scale;
+				scale--;
 				scale_exp2 = half_scale_exp2;
 				if(t_center.x > t_min) idx ^= 1u, pos.x += scale_exp2;
 				if(t_center.y > t_min) idx ^= 2u, pos.y += scale_exp2;
@@ -197,26 +203,8 @@ RayHit traverse_octree(Ray ray) {
 
 				continue;
 			}
-			/*
-			// Intersect with contour if the corresponding bit in contour mask is set.
-			int contour_mask = child_descriptor.y << child_shift;
-			if ((contour_mask & 0x80) != 0)
-			{
-				int ofs = (unsigned int)child_descriptor.y >> 8; // contour pointer
-				int value = parent[ofs + popc8(contour_mask & 0x7F)]; // contour value
-				float cthick = (float)(unsigned int)value * scale_exp2 * 0.75f; // thickness
-				float cpos = (float)(value << 7) * scale_exp2 * 1.5f; // position
-				float cdirx = (float)(value << 14) * d.x; // nx
-				float cdiry = (float)(value << 20) * d.y; // ny
-				float cdirz = (float)(value << 26) * d.z; // nz
-				float tcoef = 1.0f / (cdirx + cdiry + cdirz);
-				float tavg = tx_center * cdirx + ty_center * cdiry + tz_center * cdirz + cpos;
-				float tdiff = cthick * tcoef;
-				t_min = fmaxf(t_min, tcoef * tavg - fabsf(tdiff)); // Override t_min with tv_min.
-				tv_max = fminf(tv_max, tcoef * tavg + fabsf(tdiff));
-			}
-			*/
-		}
+			
+		} 
 		
 		// ADVANCE
 		// Step along the ray.
@@ -231,6 +219,7 @@ RayHit traverse_octree(Ray ray) {
 		// Proceed with pop if the bit flips disagree with the ray direction.
 		if ((idx & step_mask) != 0)
 		{
+			
 			// POP
 			// proceed to the next sibling of the highest ancestor that the ray exits.
 			// find the "scale" of the difference of old position with the new
@@ -245,12 +234,13 @@ RayHit traverse_octree(Ray ray) {
 			scale = findMSB(differing_bits);
 			scale_exp2 = uintBitsToFloat((scale - STACK_SIZE + 127u) << 23u); // exp2f(scale - s_max)
 
+			
 			// Restore parent voxel from the stack.
 			// Restore parent voxel from the stack.
 			parent = stack[scale].offset;
 			t_max  = stack[scale].t_max;
 
-
+			
 			// Round cube position and extract child slot index.
 			uint shx = floatBitsToUint(pos.x) >> scale;
 			uint shy = floatBitsToUint(pos.y) >> scale;
@@ -265,31 +255,33 @@ RayHit traverse_octree(Ray ray) {
 			cur = 0;
 		}
 	}
+		vec3 norm, t_corner = t_coef * (pos + scale_exp2) - t_bias;
 	
-	RayHit hit = CreateRayHit();
-	hit.idx = 1;
-	
-	vec3 norm, t_corner = t_coef * (pos + scale_exp2) - t_bias;
-	if(t_corner.x > t_corner.y && t_corner.x > t_corner.z)
-		norm = vec3(-1, 0, 0);
-	else if(t_corner.y > t_corner.z)
-		norm = vec3(0, -1, 0);
-	else
-		norm = vec3(0, 0, -1);
-	
-	if ((oct_mask & 1u) == 0u) norm.x = -norm.x;
-	if ((oct_mask & 2u) == 0u) norm.y = -norm.y;
-	if ((oct_mask & 4u) == 0u) norm.z = -norm.z;
+	if ((oct_mask & 1) != 0) pos.x = 3.0f - scale_exp2 - pos.x;
+	if ((oct_mask & 2) != 0) pos.y = 3.0f - scale_exp2 - pos.y;
+	if ((oct_mask & 4) != 0) pos.z = 3.0f - scale_exp2 - pos.z;
 
-	hit.dist = t_min;
-	//hit.norm = vec3( cur & 0xffu, (cur >> 8u) & 0xffu, (cur >> 16u) & 0xffu) * 0.00392156862745098f; // (...) / 255.0f
+
+	
+	if(t_corner.x > t_corner.y && t_corner.x > t_corner.z)
+		norm = vec3(1, 0, 0);
+	else if(t_corner.y > t_corner.z)
+		norm = vec3(0, 1, 0);
+	else
+		norm = vec3(0, 0, 1);
+
+	if ((oct_mask & 1u) != 0u) norm.x = -norm.x;
+	if ((oct_mask & 2u) != 0u) norm.y = -norm.y;
+	if ((oct_mask & 4u) != 0u) norm.z = -norm.z;
 	
 	// Indicate miss if we are outside the octree.
 	if (scale >= STACK_SIZE) {
-		hit.norm = vec3(1.0, 0.0, 0.0);
+		hit.norm = vec3(0);
 	} else {
-		hit.norm = vec3(1.0/t_min);;
-		
+		vec3 lightDir = normalize(vec3(0, -1.0, -0.5));
+		float diff = max(dot(norm, lightDir), 0.0);
+		hit.norm = vec3(0.5 + diff * 0.5);
+		//hit.norm = norm + 1.0f / 2.0;//colors[step_mask];
 	}
 
 	
