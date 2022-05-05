@@ -7,7 +7,7 @@
 #include <octree/math/vec2.h>
 #include <octree/octree_builder.h>
 #include <algorithm>
-
+#include <pmmintrin.h>
 
 // https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
 unsigned int next_pow2(unsigned int v) {
@@ -408,13 +408,26 @@ int planeBoxOverlap(vec3 normal,float d, float maxbox)
 
 	vec3 vmin,vmax;
 
+	//static const __m128 sign_mask = _mm_set1_ps(-0.f);
+	//__m128 min;
+	//__m128 max = normal.mm;
+
+	
+
 	vmax.x = copysignf(maxbox, normal.x);
 	vmax.y = copysignf(maxbox, normal.y);
 	vmax.z = copysignf(maxbox, normal.z);
 
 	vmin = vmax * -1.0f;
 
-	if(vec3::dot(normal,vmin)+d>0.0f) return 0;
+	
+
+	__m128 prod = _mm_mul_ps(normal.mm, vmin.mm);
+	__m128 sum1 = _mm_hadd_ps(prod, prod);
+    __m128 sum2 = _mm_hadd_ps(sum1, sum1);
+	float dotmin = _mm_cvtss_f32(sum2);
+
+	if(dotmin+d>0.0f) return 0;
 	if(vec3::dot(normal,vmax)+d>=0.0f) return 1;
 
 	return 0;
@@ -483,86 +496,91 @@ int triBoxOverlap(vec3 boxcenter, float boxhalfsize,Triangle tri)
 
    /* This is the fastest branch on Sun */
    /* move everything so that the boxcenter is in (0,0,0) */
-   v0 = tri.pos[0] - boxcenter;
-   v1 = tri.pos[1] - boxcenter;
-   v2 = tri.pos[2] - boxcenter;
-
-   /* compute triangle edges */
-   e0 = v1 - v0;      /* tri edge 0 */
-   e1 = v2 - v1;      /* tri edge 1 */
-   e2 = v0 - v2;      /* tri edge 2 */
-
-   /* Bullet 3:  */
-   /*  test the 9 tests first (this was faster) */
-   fex = fabs(e0.x);
-   fey = fabs(e0.y);
-   fez = fabs(e0.z);
-/*
-	//   a, b, fa, fb
-   // AXISTEST_X01 e0.z, e0.y, fez, fey 
-    p0 = e0.z*v0.y - e0.y*v0.z;                    
-    p2 = e0.z*v2.y - e0.y*v2.z;                    
-        if(p0<p2) {min=p0; max=p2;} else {min=p2; max=p0;} 
-    rad = fa * boxhalfsize + fb * boxhalfsize;   
-    if(min>rad || max<-rad) return 0;
-
-	//AXISTEST_Y02 e0.z, e0.x, fez, fex
-	    p0 = -a*v0.x + b*v0.z;                   
-    p2 = -a*v2.x + b*v2.z;                       
-        if(p0<p2) {min=p0; max=p2;} else {min=p2; max=p0;} 
-    rad = fa * boxhalfsize + fb * boxhalfsize;   
-    if(min>rad || max<-rad) return 0;
+   
+   v0.mm = _mm_sub_ps(tri.pos[0].mm, boxcenter.mm);
+   v1.mm = _mm_sub_ps(tri.pos[1].mm, boxcenter.mm);
+   v2.mm = _mm_sub_ps(tri.pos[2].mm, boxcenter.mm);
 
 	
-
-	// AXISTEST_Z12 e0.y, e0.x, fey, fex
-	p1 = a*v1.x - b*v1.y;                    
-    p2 = a*v2.x - b*v2.y;                    
-    if(p2<p1) {min=p2; max=p1;} else {min=p1; max=p2;} 
-    rad = fa * boxhalfsize + fb * boxhalfsize;   
-    if(min>rad || max<-rad) return 0;
-	*/
-
-   AXISTEST_X01(e0.z, e0.y, fez, fey);
-   AXISTEST_Y02(e0.z, e0.x, fez, fex);
-   AXISTEST_Z12(e0.y, e0.x, fey, fex);
-   
-
-   fex = fabs(e1.x);
-   fey = fabs(e1.y);
-   fez = fabs(e1.z);
-   AXISTEST_X01(e1.z, e1.y, fez, fey);
-   AXISTEST_Y02(e1.z, e1.x, fez, fex);
-   AXISTEST_Z0(e1.y, e1.x, fey, fex);
-
-   fex = fabs(e2.x);
-   fey = fabs(e2.y);
-   fez = fabs(e2.z);
-   AXISTEST_X2(e2.z, e2.y, fez, fey);
-   AXISTEST_Y1(e2.z, e2.x, fez, fex);
-   AXISTEST_Z12(e2.y, e2.x, fey, fex);
-
-   /* Bullet 1: */
+	  /* Bullet 1: */
    /*  first test overlap in the {x,y,z}-directions */
    /*  find min, max of the triangle each direction, and test for overlap in */
    /*  that direction -- this is equivalent to testing a minimal AABB around */
    /*  the triangle against the AABB */
 
    /* test in X-direction */
-   min = std::min(std::min(v0.x, v1.x), v2.x);
-   max = std::max(std::max(v0.x, v1.x), v2.x);
-   if(min>boxhalfsize || max<-boxhalfsize) return 0;
+   __m128 box = _mm_set1_ps(boxhalfsize);
+   __m128 min_v = _mm_min_ps(v0.mm, _mm_min_ps(v1.mm, v2.mm));
+   __m128 max_v = _mm_max_ps(v0.mm, _mm_max_ps(v1.mm, v2.mm));
+  
+   __m128 g_min = _mm_cmpgt_ps(min_v, box);
+   __m128 g_max = _mm_cmplt_ps(max_v, _mm_mul_ps(_mm_set1_ps(-1.0f), box));
 
-   /* test in Y-direction */
-   min = std::min(std::min(v0.z, v1.z), v2.z);
-   max = std::max(std::max(v0.z, v1.z), v2.z);
-   if(min>boxhalfsize || max<-boxhalfsize) return 0;
+   if((_mm_movemask_ps(g_min) & 7) != 0 || (_mm_movemask_ps(g_max) & 7) != 0) return 0;
 
-   /* test in Z-direction */
-   min = std::min(std::min(v0.z, v1.z), v2.z);
-   max = std::max(std::max(v0.z, v1.z), v2.z);
-   if(min>boxhalfsize || max<-boxhalfsize) return 0;
 
+   /* compute triangle edges */
+   //e0 = v1 - v0;      /* tri edge 0 */
+   //e1 = v2 - v1;      /* tri edge 1 */
+   //e2 = v0 - v2;      /* tri edge 2 */
+
+	e0.mm = _mm_sub_ps(v1.mm, v0.mm);
+	e1.mm = _mm_sub_ps(v2.mm, v1.mm);
+	e2.mm = _mm_sub_ps(v0.mm, v2.mm);
+
+	static const __m128 sign_mask = _mm_set1_ps(-0.f); // -0.f = 1 << 31
+
+   /* Bullet 3:  */
+   /*  test the 9 tests first (this was faster) */
+   vec3 fe;
+
+  
+ 
+  
+	// flip 
+   
+
+	//   a, b, fa, fb
+   // AXISTEST_X01 e0.z, e0.y, fez, fey 
+//   p0 = e0.z*v0.y - e0.y*v0.z;                    // cross (e0, v0).x
+//   p2 = e0.z*v2.y - e0.y*v2.z;                    // cross (e0, v2).x
+//   if(p0<p2) {min=p0; max=p2;} else {min=p2; max=p0;} 
+//   rad = fez * boxhalfsize + fey * boxhalfsize;   
+//   if(min>rad || max<-rad) return 0;
+//
+//	//AXISTEST_Y02 e0.z, e0.x, fez, fex
+//	p0 = -e0.z*v0.x + e0.x*v0.z;                   // cross (-e0, v0).y
+//   p2 = -e0.z*v2.x + e0.x*v2.z;                   // cross (-e0, v2).y
+//   if(p0<p2) {min=p0; max=p2;} else {min=p2; max=p0;} 
+//   rad = fez * boxhalfsize + fex * boxhalfsize;   
+//   if(min>rad || max<-rad) return 0;
+//
+//
+//	// AXISTEST_Z12 e0.y, e0.x, fey, fex
+//	p1 = e0.y*v1.x - e0.x*v1.y;                      // cross(e0, v1)
+//   p2 = e0.y*v2.x - e0.x*v2.y;                    	 // cross(e0, v2)
+//   if(p2<p1) {min=p2; max=p1;} else {min=p1; max=p2;} 
+//	
+//   rad = fey * boxhalfsize + fex * boxhalfsize;   
+//   if(min>rad || max<-rad) return 0;
+//	
+ fe.mm = _mm_andnot_ps(sign_mask, e0.mm);
+   AXISTEST_X01(e0.z, e0.y, fe.z, fe.y);
+   AXISTEST_Y02(e0.z, e0.x, fe.z, fe.x);
+   AXISTEST_Z12(e0.y, e0.x, fe.y, fe.x);
+
+     fe.mm = _mm_andnot_ps(sign_mask, e1.mm);
+   AXISTEST_X01(e1.z, e1.y, fe.z, fe.y); // cross (e1, v0).x, cross(e1, v2).x
+   AXISTEST_Y02(e1.z, e1.x, fe.z, fe.x); // cross (-e1, v0).y, cross(-e1, v2).x
+   AXISTEST_Z0(e1.y, e1.x, fe.y, fe.x); // cross (e1, v0).z, cross(e1, v1).x
+
+ fe.mm = _mm_andnot_ps(sign_mask, e2.mm);
+   AXISTEST_X2(e2.z, e2.y, fe.z, fe.y); // cross(e2, v0).x, cross(e2, v1).x
+   AXISTEST_Y1(e2.z, e2.x, fe.z, fe.x);
+   AXISTEST_Z12(e2.y, e2.x, fe.y, fe.x);
+
+	
+  
    /* Bullet 2: */
    /*  test if the box intersects the plane of the triangle */
    /*  compute plane equation of triangle: normal*x+d=0 */
@@ -605,21 +623,50 @@ Octree Octree::fromMesh(std::vector<Face>& faces) {
 	}
 	}
 	size_t size = 64;
+	size_t step_size = 16;
+	size_t step_count = size/16;
+	float half_step = step_size/2.0f;
 	Octree result(size);
 	
+	vec3int offset = {0, 0, 0};
+	std::vector<vec3int> points;
+	//std::vector<Triangle> subset;
+	//std::vector<int> offsets(step_count * step_count * step_count);
+	//for (size_t stepx = 0; stepx < size; stepx += step_size) 
+	//for (size_t stepy = 0; stepy < size; stepy += step_size) 
+	//for (size_t stepz = 0; stepz < size; stepz += step_size) {
+	//	vec3 center((stepx+half_step)/(float)size, (stepy+half_step)/(float)size, (stepz+half_step)/(float)size);
+//
+	//	size_t index = (stepz / step_size) + (stepy / step_size) * step_count + (stepz / step_size) * step_count * step_count;
+	//	int start = -1;
+	//	for(size_t i = 0; i < triangles.size(); i++) {
+	//		if (triBoxOverlap(center, half_step, triangles[i])) {
+	//			start = i;
+	//			break;
+	//		}
+	//	}
+	//
+	//}	
 	float boxhalfsize = 1.0f / (float)size / 2.0f;
 	for (size_t x = 0; x < size; x++) {
 	for (size_t y = 0; y < size; y++)
 	for (size_t z = 0; z < size; z++) {
-		vec3 boxcenter(x/(float)size, y/(float)size, z/(float)size);
-		for(Triangle& tri : triangles) {
-			if (triBoxOverlap(boxcenter, boxhalfsize, tri)) {
-				result.setNode(x, y, z, (uint32_t)-1);
+	
+		vec3int pos = {(int)(x), (int)(y), (int)(z)};
+		vec3 boxcenter(pos.x/(float)size, pos.y/(float)size, pos.z/(float)size);
+		for(size_t i = 0; i < triangles.size(); i++) {
+			if (triBoxOverlap(boxcenter, boxhalfsize, triangles[i])) {
+				points.push_back(pos);
 				break;
 			}
 		}
 	}
 	printf("x = %zu\n", x);
+	}
+	//}
+
+	for (vec3int p : points) {
+		result.setNode(p.x, p.y, p.z, (uint32_t)-1);
 	}
 
 
