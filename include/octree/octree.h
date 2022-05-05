@@ -9,7 +9,7 @@
 #include <iterator>
 
 #include <octree/core/files/vox_file.h>
-
+#include <octree/load_obj.h>
 
 
 struct Cube
@@ -56,6 +56,7 @@ struct OTGroup {
 
 class OctreeBuilder;
 
+
 /*
 INFO
 For simplicity I am putting bottom a corner at 0 rather than the center
@@ -75,16 +76,18 @@ public:
 	std::vector<uint32_t> m_array;
 	std::vector<uint32_t> m_farpointers; // TEMP HACK
 
+	uint32_t min_depth;
 
 	Octree(uint32_t size);
 
 
 	static Octree load(std::string path);
 	void drawLeaf(uint32_t color, vec3 v, std::vector<Cube>& leafInstances);
-	uint32_t setNode(int x, int y, int z, uint16_t min_depth = 0);
+	uint32_t setNode(int x, int y, int z, uint32_t value, uint16_t min_depth = 0);
 	void fillDepth(uint16_t depth);
 	void setNode(vec3int v, vec3 color);
 
+	static Octree fromMesh(std::vector<Face>& face);
 
 	void drawNodes(std::vector<Cube>& instances, std::vector<Cube>& leafInstances);
 

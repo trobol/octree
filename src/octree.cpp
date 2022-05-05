@@ -6,6 +6,7 @@
 #include <octree/math/octree_math.h>
 #include <octree/math/vec2.h>
 #include <octree/octree_builder.h>
+#include <algorithm>
 
 
 // https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
@@ -183,7 +184,7 @@ Octree Octree::load(std::string path)
 
 // allocate the memory for nodes up to a depth, so that we dont overflow our pointers as soon
 
-uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint16_t min_depth)
+uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint32_t value, uint16_t min_depth)
 {
 	// ensure x, y, z is inside octree
 
@@ -233,9 +234,9 @@ uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint16_t min_
 		
 		// no valid children
 		// we are going to make some children valid, so allocate them
-		if ((m_array[current_index] & 0xFF00) == 0 && half_size != 1) {
+		if ((m_array[current_index] & 0xFF00) == 0) {
 			uint32_t ptr = (uint32_t)m_array.size() - current_index;
-			if (ptr > (0xFFFE)) puts("ERROR: node index will overflow");
+			if (ptr > (0x7FFF)) puts("ERROR: node index will overflow");
 		
 			m_array[current_index] |= ptr << 17;
 			m_array.resize(m_array.size() + 8, {});
@@ -245,6 +246,7 @@ uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint16_t min_
 		bool child_valid;
 		{ // prevents parent reference usage after array resize
 			uint32_t& parent = m_array[parent_index];
+			uint32_t children_ptr = parent >> 17;
 			// TODO: mask check should be a function
 			// is the child we want to work on next valid?
 			uint32_t valid_mask = 1 << child_offset; 
@@ -252,7 +254,6 @@ uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint16_t min_
 			// we are gonna make the child valid if its not
 			parent |= valid_mask << 8; // assign to valid mask
 			if (half_size == 1) parent |= valid_mask ; // assign to leaf mask, aka set as leaf
-			uint32_t children_ptr = parent >> 17;
 			//if (parent.children_far) children_ptr = m_farpointers[children_ptr];
 			current_index = parent_index + children_ptr + child_offset;
 		}
@@ -270,7 +271,7 @@ uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint16_t min_
 	
 	//if (min_depth == 0)
 	//	m_array[parent_index].leaf_mask = 0;
-	//m_array[current_index] = child_offset;
+	m_array[current_index] = value;
 	if (target_x != x || target_y != y || target_z != z) printf("ERROR: target did not match destination in octree, x: %5i y: %5i z: %5i\n", target_x, target_y, target_z);
 
 	return current_index;
@@ -303,7 +304,7 @@ void Octree::setNode(vec3int pos, vec3 color)
 
 	// call func on chunk
 	//return (chunk->add_node(pos, color));
-	setNode(pos.x, pos.y, pos.z);
+	setNode(pos.x, pos.y, pos.z, 0);
 	
 }
 
@@ -348,7 +349,8 @@ Octree Octree::loadModel(VoxFile& file)
 
 		//if (file.mVoxels[i].x > 50 || file.mVoxels[i].y > 50 || file.mVoxels[i].z > 50) continue;
 		//dont forget to convert to correct space
-		octree.setNode(file.mVoxels[i].x, file.mVoxels[i].y, file.mVoxels[i].z);
+		
+		octree.setNode(file.mVoxels[i].x, file.mVoxels[i].y, file.mVoxels[i].z, color32);
 	}
 
 	printf("\nCOUNT: %u\n", (unsigned int)octree.m_array.size());
@@ -396,6 +398,236 @@ Octree Octree::loadModel(VoxFile& file)
 }
 
 
+struct Triangle {
+	vec3 pos[3];
+};
+
+
+int planeBoxOverlap(vec3 normal,float d, float maxbox)
+{
+
+	vec3 vmin,vmax;
+
+	vmax.x = copysignf(maxbox, normal.x);
+	vmax.y = copysignf(maxbox, normal.y);
+	vmax.z = copysignf(maxbox, normal.z);
+
+	vmin = vmax * -1.0f;
+
+	if(vec3::dot(normal,vmin)+d>0.0f) return 0;
+	if(vec3::dot(normal,vmax)+d>=0.0f) return 1;
+
+	return 0;
+}
+
+/*======================== X-tests ========================*/
+#define AXISTEST_X01(a, b, fa, fb)             \
+    p0 = a*v0.y - b*v0.z;                    \
+    p2 = a*v2.y - b*v2.z;                    \
+        if(p0<p2) {min=p0; max=p2;} else {min=p2; max=p0;} \
+    rad = fa * boxhalfsize + fb * boxhalfsize;   \
+    if(min>rad || max<-rad) return 0;
+
+#define AXISTEST_X2(a, b, fa, fb)              \
+    p0 = a*v0.y - b*v0.z;                    \
+    p1 = a*v1.y - b*v1.z;                    \
+        if(p0<p1) {min=p0; max=p1;} else {min=p1; max=p0;} \
+    rad = fa * boxhalfsize + fb * boxhalfsize;   \
+    if(min>rad || max<-rad) return 0;
+
+/*======================== Y-tests ========================*/
+#define AXISTEST_Y02(a, b, fa, fb)             \
+    p0 = -a*v0.x + b*v0.z;                   \
+    p2 = -a*v2.x + b*v2.z;                       \
+        if(p0<p2) {min=p0; max=p2;} else {min=p2; max=p0;} \
+    rad = fa * boxhalfsize + fb * boxhalfsize;   \
+    if(min>rad || max<-rad) return 0;
+
+#define AXISTEST_Y1(a, b, fa, fb)              \
+    p0 = -a*v0.x + b*v0.z;                   \
+    p1 = -a*v1.x + b*v1.z;                       \
+        if(p0<p1) {min=p0; max=p1;} else {min=p1; max=p0;} \
+    rad = fa * boxhalfsize + fb * boxhalfsize;   \
+    if(min>rad || max<-rad) return 0;
+
+/*======================== Z-tests ========================*/
+
+#define AXISTEST_Z12(a, b, fa, fb)             \
+    p1 = a*v1.x - b*v1.y;                    \
+    p2 = a*v2.x - b*v2.y;                    \
+        if(p2<p1) {min=p2; max=p1;} else {min=p1; max=p2;} \
+    rad = fa * boxhalfsize + fb * boxhalfsize;   \
+    if(min>rad || max<-rad) return 0;
+
+#define AXISTEST_Z0(a, b, fa, fb)              \
+    p0 = a*v0.x - b*v0.y;                \
+    p1 = a*v1.x - b*v1.y;                    \
+        if(p0<p1) {min=p0; max=p1;} else {min=p1; max=p0;} \
+    rad = fa * boxhalfsize + fb * boxhalfsize;   \
+    if(min>rad || max<-rad) return 0;
+
+// src https://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/code/
+int triBoxOverlap(vec3 boxcenter, float boxhalfsize,Triangle tri)
+{
+
+  /*    use separating axis theorem to test overlap between triangle and box */
+  /*    need to test for overlap in these directions: */
+  /*    1) the {x,y,z}-directions (actually, since we use the AABB of the triangle */
+  /*       we do not even need to test these) */
+  /*    2) normal of the triangle */
+  /*    3) crossproduct(edge from tri, {x,y,z}-directin) */
+  /*       this gives 3x3=9 more tests */
+   vec3 v0,v1,v2;
+   float min,max,d,p0,p1,p2,rad,fex,fey,fez;
+   vec3 normal, e0,e1,e2;
+
+   /* This is the fastest branch on Sun */
+   /* move everything so that the boxcenter is in (0,0,0) */
+   v0 = tri.pos[0] - boxcenter;
+   v1 = tri.pos[1] - boxcenter;
+   v2 = tri.pos[2] - boxcenter;
+
+   /* compute triangle edges */
+   e0 = v1 - v0;      /* tri edge 0 */
+   e1 = v2 - v1;      /* tri edge 1 */
+   e2 = v0 - v2;      /* tri edge 2 */
+
+   /* Bullet 3:  */
+   /*  test the 9 tests first (this was faster) */
+   fex = fabs(e0.x);
+   fey = fabs(e0.y);
+   fez = fabs(e0.z);
+/*
+	//   a, b, fa, fb
+   // AXISTEST_X01 e0.z, e0.y, fez, fey 
+    p0 = e0.z*v0.y - e0.y*v0.z;                    
+    p2 = e0.z*v2.y - e0.y*v2.z;                    
+        if(p0<p2) {min=p0; max=p2;} else {min=p2; max=p0;} 
+    rad = fa * boxhalfsize + fb * boxhalfsize;   
+    if(min>rad || max<-rad) return 0;
+
+	//AXISTEST_Y02 e0.z, e0.x, fez, fex
+	    p0 = -a*v0.x + b*v0.z;                   
+    p2 = -a*v2.x + b*v2.z;                       
+        if(p0<p2) {min=p0; max=p2;} else {min=p2; max=p0;} 
+    rad = fa * boxhalfsize + fb * boxhalfsize;   
+    if(min>rad || max<-rad) return 0;
+
+	
+
+	// AXISTEST_Z12 e0.y, e0.x, fey, fex
+	p1 = a*v1.x - b*v1.y;                    
+    p2 = a*v2.x - b*v2.y;                    
+    if(p2<p1) {min=p2; max=p1;} else {min=p1; max=p2;} 
+    rad = fa * boxhalfsize + fb * boxhalfsize;   
+    if(min>rad || max<-rad) return 0;
+	*/
+
+   AXISTEST_X01(e0.z, e0.y, fez, fey);
+   AXISTEST_Y02(e0.z, e0.x, fez, fex);
+   AXISTEST_Z12(e0.y, e0.x, fey, fex);
+   
+
+   fex = fabs(e1.x);
+   fey = fabs(e1.y);
+   fez = fabs(e1.z);
+   AXISTEST_X01(e1.z, e1.y, fez, fey);
+   AXISTEST_Y02(e1.z, e1.x, fez, fex);
+   AXISTEST_Z0(e1.y, e1.x, fey, fex);
+
+   fex = fabs(e2.x);
+   fey = fabs(e2.y);
+   fez = fabs(e2.z);
+   AXISTEST_X2(e2.z, e2.y, fez, fey);
+   AXISTEST_Y1(e2.z, e2.x, fez, fex);
+   AXISTEST_Z12(e2.y, e2.x, fey, fex);
+
+   /* Bullet 1: */
+   /*  first test overlap in the {x,y,z}-directions */
+   /*  find min, max of the triangle each direction, and test for overlap in */
+   /*  that direction -- this is equivalent to testing a minimal AABB around */
+   /*  the triangle against the AABB */
+
+   /* test in X-direction */
+   min = std::min(std::min(v0.x, v1.x), v2.x);
+   max = std::max(std::max(v0.x, v1.x), v2.x);
+   if(min>boxhalfsize || max<-boxhalfsize) return 0;
+
+   /* test in Y-direction */
+   min = std::min(std::min(v0.z, v1.z), v2.z);
+   max = std::max(std::max(v0.z, v1.z), v2.z);
+   if(min>boxhalfsize || max<-boxhalfsize) return 0;
+
+   /* test in Z-direction */
+   min = std::min(std::min(v0.z, v1.z), v2.z);
+   max = std::max(std::max(v0.z, v1.z), v2.z);
+   if(min>boxhalfsize || max<-boxhalfsize) return 0;
+
+   /* Bullet 2: */
+   /*  test if the box intersects the plane of the triangle */
+   /*  compute plane equation of triangle: normal*x+d=0 */
+  
+   normal = vec3::cross(e0, e1);
+   d=-vec3::dot(normal, v0);
+   if(!planeBoxOverlap(normal,d,boxhalfsize)) return 0;
+
+   return 1;   /* box and triangle overlaps */
+}
+
+Octree Octree::fromMesh(std::vector<Face>& faces) {
+	std::vector<Triangle> triangles;
+	triangles.reserve(faces.size());
+	for (const Face &face : faces) {
+		triangles.push_back({face.vertices[0].pos, face.vertices[1].pos, face.vertices[2].pos});
+	}
+
+	// find the bounds of the object
+	
+	vec3 max = {-10000, -10000, -10000};
+	vec3 min = { 10000,  10000,  10000};
+	for (Triangle tri : triangles) {
+	for (size_t i = 0; i < 3; i++) {
+		max.x = std::max(tri.pos[i].x, max.x);
+		max.y = std::max(tri.pos[i].y, max.y);
+		max.z = std::max(tri.pos[i].z, max.z);
+		min.x = std::min(tri.pos[i].x, min.x);
+		min.y = std::min(tri.pos[i].y, min.y);
+		min.z = std::min(tri.pos[i].z, min.z);
+	}
+	}
+
+	// change the object so it goes from 0->1
+	float scale_inv = 1.0f / vec3::largest(max);
+	for(Triangle& tri : triangles) {
+	for (size_t i = 0; i < 3; i++) {
+		tri.pos[i] -= min;
+		tri.pos[i] *= scale_inv;
+	}
+	}
+	size_t size = 64;
+	Octree result(size);
+	
+	float boxhalfsize = 1.0f / (float)size / 2.0f;
+	for (size_t x = 0; x < size; x++) {
+	for (size_t y = 0; y < size; y++)
+	for (size_t z = 0; z < size; z++) {
+		vec3 boxcenter(x/(float)size, y/(float)size, z/(float)size);
+		for(Triangle& tri : triangles) {
+			if (triBoxOverlap(boxcenter, boxhalfsize, tri)) {
+				result.setNode(x, y, z, (uint32_t)-1);
+				break;
+			}
+		}
+	}
+	printf("x = %zu\n", x);
+	}
+
+
+
+	return result;
+}
+
+
 vec2 project_cube(vec3 dT, vec3 bT, vec3 pos, float size) {
 	vec3 cube_min = vec3(size, size, size) + pos;
 	vec3 cube_max = pos;
@@ -437,111 +669,3 @@ vec3 child_cube( uint8_t index, vec3 pos, float scale) {
 
 	return pos + pos_lookup[index] * scale;
 }
-
-/*
-void Octree::raytrace(vec3 origin, vec3 direction) {
-	
-	// ===== INITIALIZE =====
-	vec3 dir = direction;
-	vec3 d = dir;
-	float epsilon = 0.000001;
-	
-	d.x = std::max(abs(d.x), epsilon);
-	d.y = std::max(abs(d.y), epsilon);
-	d.z = std::max(abs(d.z), epsilon);
-
-	vec3 t_coef = vec3(-1.0f, -1.0f, -1.0f) / d;
-	vec3 t_bias = t_coef * origin;
-
-	// all flip positive axis
-	// this way we don't have to calculate which planes are closer to the camera
-	// but we have to also flip our voxel child axis so we don't grab the wrong one (the)
-	int octant_mask = 7;
-	if (dir.x > 0.0) octant_mask ^= 1, t_bias.x = 2.0 * t_coef.x - t_bias.x;
-	if (dir.y > 0.0) octant_mask ^= 2, t_bias.y = 2.0 * t_coef.y - t_bias.y;
-	if (dir.z > 0.0) octant_mask ^= 4, t_bias.z = 2.0 * t_coef.z - t_bias.z;
-
-	//vec2 t_prime = project_cube(dT, bT, cube_far, (float)m_size);
-	//vec2 t = intersect(t_prime, vec2(0.0f, 1.0f)); // intersect
-
-	vec3 far = t_coef * 2.0f - t_bias;
-	float h = vec3::smallest(far);
-
-	float t_min = 0.0;
-	float t_max = 1.0;
-
-	uint64_t parent_index  = 0;
-	//uint32_t idx = select_child(dT, bT, vec3(), (float)m_size, t.x);
-	
-
-	vec3 pos = vec3(idx & 1, idx & 2, idx & 4) * (float)m_size;
-	uint16_t scale = m_depth-1;
-
-	struct StackItem {
-		uint64_t parent;
-		float t_max;
-	};
-
-	StackItem stack[256];
-	while (true) {
-		// project cube
-		float size = (float)(2 << scale);
-
-		OTNode parent = m_array[parent_index];
-
-		vec2 tc = project_cube(t_coef, t_bias, pos, size);
-
-		if ((parent.valid_mask & (1 << idx)) && t.x <= t.y) {
-			// if voxel is small enough 
-			if (parent.leaf_mask & (1 << idx)) {
-				// FOUND VOXEL, RETURN
-			}
-		// ===== INTERSECT =====
-			vec2 tv = intersect(tc, t_prime);
-			
-			// if contour
-
-
-			if (tv.x <= tv.y) {
-					// ===== PUSH =====
-				if (parent.leaf_mask & (1 << idx)) {
-					// FOUND VOXEL, RETURN
-				}
-
-				if (tc.y < h) {
-					stack[scale] = {parent_index, t.y};
-				}
-				h = tc.y;
-				parent_index += parent.children_ptr + idx;
-				idx = select_child(dT, bT, pos, size, tv.x);
-				t = tv;
-				size /= 2;
-				pos = child_cube(idx, pos, size);
-				continue;
-			}
-
-			// ===== ADVANCE =====
-			vec3 oldpos = pos;
-
-
-
-		
-
-
-		}
-
-
-
-
-
-
-	
-
-
-	// ===== POP =====
-
-
-	}
-}
-
-*/

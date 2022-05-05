@@ -39,6 +39,7 @@ struct RayHit{
 	float dist;
 	vec3 pos;
 	vec3 norm;
+	vec3 color;
 	int idx;
 	int parent;
 	float scale;
@@ -51,6 +52,7 @@ RayHit CreateRayHit()
 	hit.pos=vec3(0.f,0.f,0.f);
 	hit.dist=1000000000.;
 	hit.norm=vec3(0.f,0.f,0.f);
+	hit.color=vec3(0.0, 0.0, 0.0);
     hit.idx = -1;
 	hit.parent = -1;
 	hit.scale = 0;
@@ -175,10 +177,7 @@ RayHit traverse_octree(Ray ray) {
 
 			if( t_min <= tv_max ) {	
 				if( (child_masks & 0x80u) != 0 ) { // leaf node 
-					//t_min = max(t_min, );
-					//uint color_index = children[]
-					//norm.color = 
-		
+					parent += (cur >> 17) + 7 - child_shift;
 					break;
 				}	
 					// PUSH
@@ -255,7 +254,8 @@ RayHit traverse_octree(Ray ray) {
 			cur = 0;
 		}
 	}
-		vec3 norm, t_corner = t_coef * (pos + scale_exp2) - t_bias;
+
+	vec3 norm, t_corner = t_coef * (pos + scale_exp2) - t_bias;
 	
 	if ((oct_mask & 1) != 0) pos.x = 3.0f - scale_exp2 - pos.x;
 	if ((oct_mask & 2) != 0) pos.y = 3.0f - scale_exp2 - pos.y;
@@ -274,14 +274,18 @@ RayHit traverse_octree(Ray ray) {
 	if ((oct_mask & 2u) != 0u) norm.y = -norm.y;
 	if ((oct_mask & 4u) != 0u) norm.z = -norm.z;
 	
+
+	uint color = children[parent];
 	// Indicate miss if we are outside the octree.
 	if (scale >= STACK_SIZE) {
-		hit.norm = vec3(0);
+		hit.color = vec3(0);
 	} else {
-		vec3 lightDir = normalize(vec3(0, -1.0, -0.5));
-		float diff = max(dot(norm, lightDir), 0.0);
-		hit.norm = vec3(0.5 + diff * 0.5);
-		//hit.norm = norm + 1.0f / 2.0;//colors[step_mask];
+		vec3 lightDir = normalize(vec3(0.1, -1.0, -0.1));
+		float diff = dot(norm, lightDir);
+		float light = 0.7 + diff * 0.3;
+		
+		hit.color = vec3(  color & 0xffu, (color >> 8u) & 0xffu, (color >> 16u) & 0xffu) * 0.00392156862745098f; // (...) / 255.0f
+		hit.color *= light;
 	}
 
 	
@@ -333,7 +337,7 @@ void main(){
 
 	float s = 0;
 
-	color=vec4(hit.norm, 1.0f);
+	color=vec4(hit.color, 1.0f);
 	return;
 
 	//s = float(bitfieldExtract(texture(texture1, index).r, mask, 1));

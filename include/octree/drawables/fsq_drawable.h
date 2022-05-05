@@ -23,7 +23,6 @@ private:
 
 	GLuint m_texture;
 	Shader m_shader;
-	static GLuint FSQ_VA;
 };
 
 

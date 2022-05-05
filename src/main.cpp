@@ -38,12 +38,18 @@
 
 #include <octree/systems/window.h>
 #include <octree/camera.h>
+
+#include <octree/load_obj.h>
 #include "defines.h"
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_opengl3.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_style.h"
+
+#ifndef ASSET_PATH
+#define ASSET_PATH ""
+#endif
 
 const std::string ASSET_PATH_STR = ASSET_PATH;
 
@@ -356,17 +362,21 @@ int main(void)
 	MeshDrawable octreeDrawable("raytrace octree");
 	drawables.push_back(&octreeDrawable);
 	//octreeDrawable.m_enable = false;
-
+	
+	std::vector<Face> faces;
+	load_obj(ASSET_PATH"/models/hand/hand_00.obj", faces);
 	std::string filepath = filesystem::fileSelect(ASSET_PATH_STR + "/models/", ".vox");
 	file.load(filepath);
 	//file.load("../../assets/box.vox");
-	Octree tree = Octree::loadModel(file);
+	//Octree tree = Octree::loadModel(file);
+
+	Octree tree =Octree::fromMesh(faces);
 
 	window.startup();
 
 	// During init, enable debug output
-	//glEnable              ( GL_DEBUG_OUTPUT );
-	//glDebugMessageCallback( MessageCallback, 0 );
+	glEnable              ( GL_DEBUG_OUTPUT );
+	glDebugMessageCallback( MessageCallback, 0 );
 
 	tinygltf::Model model;
 	filepath = ASSET_PATH_STR + "/models/Duck.gltf";
@@ -398,6 +408,21 @@ int main(void)
 
 	shader.use();
 
+	puts("");
+	for (size_t i = 0; i < tree.m_array.size(); i++) {
+
+		uint32_t node = *(uint32_t*)&tree.m_array[i];
+		uint8_t vm = node >> 8;
+		uint8_t lm = node;
+		printf("%3zu: ptr: %5u valid: %.8s leaf: %.8s full: %08x \n",
+			   i, node >> 17,
+			   bin_digits(vm).str, 
+			   bin_digits(lm).str,
+			   node
+		);
+
+		fflush(stdout);
+	}
 
 	std::vector<Cube> instances;
 	std::vector<Cube> leafInstances;
@@ -435,6 +460,25 @@ int main(void)
 
 	UniformMatrix4f projMatrix(shader, "projMatrix");
 	UniformMatrix4f camMatrix(shader, "camMatrix");
+
+	VertexArray meshVA = VertexArray::Generate();
+	Buffer meshVB = Buffer::Generate();
+
+	meshVA.bind();
+	meshVB.bind(GL_ARRAY_BUFFER);
+	VertexAttributeDiscriptor meshDescriptor;
+	meshDescriptor.add(3, GL_FLOAT); // pos
+	meshDescriptor.add(3, GL_FLOAT); // norm
+	meshDescriptor.add(2, GL_FLOAT); // uv
+	meshDescriptor.apply();
+
+	meshVB.bufferVector(faces, GL_STATIC_DRAW);
+
+
+
+
+	meshVA.unbind();
+	meshVB.unbind();
 
 	shaderDuck.use();
 	UniformMatrix4f duckProjMatrix(shaderDuck, "projMatrix");
@@ -492,21 +536,7 @@ int main(void)
 	cubeStorageBuffer.bind(GL_SHADER_STORAGE_BUFFER);
 	cubeCountU = tree.m_array.size();
 
-	puts("");
-	for (size_t i = 0; i < tree.m_array.size(); i++) {
-
-		uint32_t node = *(uint32_t*)&tree.m_array[i];
-		uint8_t vm = node >> 8;
-		uint8_t lm = node;
-		printf("%3lu: ptr: %5u valid: %.8s leaf: %.8s full: %08x \n",
-			   i, node >> 17,
-			   bin_digits(vm).str, 
-			   bin_digits(lm).str,
-			   node
-		);
-
-		
-	}
+	
 	//cubeCountU = 1;
 	cubeStorageBuffer.bufferVector(tree.m_array, GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, cubeStorageBuffer);
@@ -541,7 +571,10 @@ int main(void)
 			shaderDuck.use();
 			duckProjMatrix = camera.getProjMatrix();
 			duckViewMatrix = camera.getViewMatrix();
-			drawModel(vao, model);
+			//drawModel(vao, model);
+
+			meshVA.bind();
+			glDrawArrays(GL_TRIANGLES, 0, faces.size() * 3);
 		}
 	
 		shader.use();

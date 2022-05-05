@@ -2,6 +2,7 @@
 #ifndef _MATH_VEC3_H
 #define _MATH_VEC3_H
 
+#include <emmintrin.h>
 #include <iostream>
 class vec2;
 
@@ -15,7 +16,10 @@ public:
 	vec3() {};
 
 	vec3(const vec3& v);
-	float x = 0, y = 0, z = 0;
+	union {
+		struct {float x,y,z;};
+		__m128 mm;
+	};
 
 	static vec3 one, left, right, up, down, forwards, backwards;
 

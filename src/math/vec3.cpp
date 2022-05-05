@@ -43,6 +43,91 @@ std::ostream& operator<<(std::ostream& os, const vec3& v)
 	return os;
 }
 
+#ifdef __SSSE3__
+	
+float vec3::magnitude() const
+{
+	return sqrtf(x * x + y * y + z * z);
+}
+
+vec3 vec3::normalized() const
+{
+	float m = magnitude();
+	return (*this) / m;
+}
+
+vec3 vec3::cross(const vec3& a, const vec3& b)
+{
+
+	return vec3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+}
+
+float vec3::dot(const vec3& a, const vec3& b)
+{
+	return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+vec3& vec3::operator*=(const vec3& v)
+{
+	mm = _mm_mul_ps(mm, v.mm);
+	return *this;
+}
+vec3& vec3::operator/=(const vec3& v)
+{
+	mm = _mm_div_ps(mm, v.mm);
+	return *this;
+}
+vec3& vec3::operator+=(const vec3& v)
+{
+	mm = _mm_add_ps(mm, v.mm);
+	return *this;
+}
+vec3& vec3::operator-=(const vec3& v)
+{
+	mm = _mm_sub_ps(mm, v.mm);
+	return *this;
+}
+
+vec3& vec3::operator*=(const float& f)
+{
+	x *= f;
+	y *= f;
+	z *= f;
+	return *this;
+}
+vec3& vec3::operator/=(const float& f)
+{
+	x /= f;
+	y /= f;
+	z /= f;
+	return *this;
+}
+vec3& vec3::operator+=(const float& f)
+{
+	x += f;
+	y += f;
+	z += f;
+	return *this;
+}
+vec3& vec3::operator-=(const float& f)
+{
+	x -= f;
+	y -= f;
+	z -= f;
+	return *this;
+}
+
+
+float vec3::largest(vec3 v) {
+	return std::max(v.x, std::max(v.y, v.z));
+}
+	
+float vec3::smallest(vec3 v) {
+	return std::min(v.x, std::min(v.y, v.z));
+}
+
+#else
+
 float vec3::magnitude() const
 {
 	return sqrtf(x * x + y * y + z * z);
@@ -131,3 +216,5 @@ float vec3::largest(vec3 v) {
 float vec3::smallest(vec3 v) {
 	return std::min(v.x, std::min(v.y, v.z));
 }
+
+#endif
