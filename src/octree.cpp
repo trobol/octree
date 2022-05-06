@@ -8,6 +8,7 @@
 #include <octree/octree_builder.h>
 #include <algorithm>
 #include <pmmintrin.h>
+#include <smmintrin.h>
 
 // https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
 unsigned int next_pow2(unsigned int v) {
@@ -480,7 +481,7 @@ int planeBoxOverlap(vec3 normal,float d, float maxbox)
     if(min>rad || max<-rad) return 0;
 
 // src https://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/code/
-int triBoxOverlap(vec3 boxcenter, float boxhalfsize,Triangle tri)
+int triBoxOverlap(vec3 boxcenter, float boxhalfsize, const Triangle& tri)
 {
 
   /*    use separating axis theorem to test overlap between triangle and box */
@@ -591,6 +592,222 @@ int triBoxOverlap(vec3 boxcenter, float boxhalfsize,Triangle tri)
 
    return 1;   /* box and triangle overlaps */
 }
+/*
+bool IntersectsTriangleAabbSat(float3 v0, float3 v1, float3 v2, float3 aabbExtents, float3 axis)
+{
+    float p0 = dot(v0, axis);
+    float p1 = dot(v1, axis);
+    float p2 = dot(v2, axis);
+
+    float r = aabbExtents.x * abs(dot(float3(1, 0, 0), axis)) +
+        aabbExtents.y * abs(dot(float3(0, 1, 0), axis)) +
+        aabbExtents.z * abs(dot(float3(0, 0, 1), axis));
+
+    float maxP = max(p0, max(p1, p2));
+    float minP = min(p0, min(p1, p2));
+
+    return !(max(-maxP, minP) > r);
+}
+*/
+
+bool IntersectsTriangleAabbSat(__m128 a[3], __m128 v0[3], __m128 v1[3], __m128 v2[3], float halfsize) {
+	
+	// dot product of point and axis
+	__m128 prodx, prody, prodz;
+	__m128 dot0, dot1, dot2;
+
+
+	prodx = _mm_mul_ps(a[0], v0[0]);
+	prody = _mm_mul_ps(a[1], v0[1]);
+	prodz = _mm_mul_ps(a[2], v0[2]);
+	dot0 = _mm_add_ps(prodx, _mm_add_ps(prody, prodz));
+
+	prodx = _mm_mul_ps(a[0], v1[0]);
+	prody = _mm_mul_ps(a[1], v1[1]);
+	prodz = _mm_mul_ps(a[2], v1[2]);
+	dot1 = _mm_add_ps(prodx, _mm_add_ps(prody, prodz));
+
+	prodx = _mm_mul_ps(a[0], v2[0]);
+	prody = _mm_mul_ps(a[1], v2[1]);
+	prodz = _mm_mul_ps(a[2], v2[2]);
+	dot2 = _mm_add_ps(prodx, _mm_add_ps(prody, prodz));
+
+	__m128 min = _mm_min_ps(dot0, _mm_min_ps(dot1, dot2));
+	__m128 max = _mm_max_ps(dot0, _mm_max_ps(dot1, dot2));
+
+
+	// calculate r
+	
+	__m128 r = _mm_add_ps(a[0], _mm_add_ps(a[1], a[2]));
+	static const __m128 sign_mask = _mm_set1_ps(-0.f); // -0.f = 1 << 31
+	r = _mm_andnot_ps(sign_mask, r); // abs(r)
+	r = _mm_mul_ps(_mm_set1_ps(halfsize), r);
+
+	__m128 nmax = _mm_mul_ps(max, _mm_set1_ps(-1.0f));
+
+	__m128 res = _mm_cmpgt_ps(_mm_max_ps(nmax, min), r);
+	if (_mm_movemask_ps(res) != 0) return false;
+
+	return true;
+}
+
+void calculateAxis(__m128 axis_out[3], const Triangle& tri) {
+
+}
+
+bool IntersectsTriangleAabb(vec3 boxcenter, float boxhalfsize, const Triangle& tri) {
+
+	__m128 a = _mm_sub_ps(tri.pos[0].mm, boxcenter.mm); // a
+	__m128 b = _mm_sub_ps(tri.pos[1].mm, boxcenter.mm); // b
+	__m128 c = _mm_sub_ps(tri.pos[2].mm, boxcenter.mm); // c
+
+	__m128 ab = _mm_sub_ps(b, a); // 0
+	__m128 bc = _mm_sub_ps(c, b); // 1
+	__m128 ca = _mm_sub_ps(a, c); // 2
+
+	// calculate reciprocal magnitude
+
+	// pack each components into its own val
+	__m128 x, y, z;
+	{
+	__m128 x0y0x1y1 = _mm_shuffle_ps(ab, bc, _MM_SHUFFLE(1, 0, 1, 0));
+	__m128 z0w0z1w1 = _mm_shuffle_ps(ab, bc, _MM_SHUFFLE(3, 2, 3, 2));
+
+	x = _mm_shuffle_ps(x0y0x1y1, ca, _MM_SHUFFLE(3, 0, 2, 0));
+	y = _mm_shuffle_ps(x0y0x1y1, ca, _MM_SHUFFLE(3, 1, 3, 1));
+	z = _mm_shuffle_ps(z0w0z1w1, ca, _MM_SHUFFLE(3, 2, 2, 0));
+	}
+	// square components
+	__m128 sqrx = _mm_mul_ps(x, x);
+	__m128 sqry = _mm_mul_ps(y, y);
+	__m128 sqrz = _mm_mul_ps(z, z);
+
+	__m128 sum = _mm_add_ps(sqrx, _mm_add_ps(sqry, sqrz));
+	__m128 rsqrt = _mm_rsqrt_ps(sum);
+	
+	//__m128 rsqrt0 = _mm_shuffle_ps(rsqrt, rsqrt, _MM_SHUFFLE(0, 0, 0, 0));
+	//__m128 rsqrt1 = _mm_shuffle_ps(rsqrt, rsqrt, _MM_SHUFFLE(0, 1, 1, 1));
+	//__m128 rsqrt2 = _mm_shuffle_ps(rsqrt, rsqrt, _MM_SHUFFLE(0, 2, 2, 2));
+
+	// normalize vectors
+	//ab = _mm_mul_ps(ab, rsqrt0);
+	//bc = _mm_mul_ps(bc, rsqrt1);
+	//ca = _mm_mul_ps(ca, rsqrt2);
+
+	// normalize
+	x = _mm_mul_ps(x, rsqrt);
+	y = _mm_mul_ps(y, rsqrt);
+	z = _mm_mul_ps(z, rsqrt);
+
+/*
+	__m128 neg = _mm_set_ps(0.0f, -1.0f, -1.0f, -1.0f);
+	__m128 nab = _mm_mul_ps(ab, neg);
+	__m128 nbc = _mm_mul_ps(bc, neg);
+	__m128 nca = _mm_mul_ps(ca, neg);
+
+
+    //Cross ab, bc, and ca with (1, 0, 0)
+    __m128 a00 = _mm_shuffle_ps(nab, ab, _MM_SHUFFLE(3, 2, 1, 3)); // float3(0.0, -ab.z, ab.y);
+    __m128 a01 = _mm_shuffle_ps(nbc, bc, _MM_SHUFFLE(3, 2, 1, 3)); // float3(0.0, -bc.z, bc.y);
+    __m128 a02 = _mm_shuffle_ps(nca, ca, _MM_SHUFFLE(3, 2, 1, 3)); // float3(0.0, -ca.z, ca.y);
+
+    //Cross ab, bc, and ca with (0, 1, 0)
+    __m128 a10 = _mm_shuffle_ps(ab, nab, _MM_SHUFFLE(2, 3, 0, 3)); // float3(ab.z, 0.0, -ab.x);
+    __m128 a11 = _mm_shuffle_ps(bc, nbc, _MM_SHUFFLE(2, 3, 0, 3)); // float3(bc.z, 0.0, -bc.x);
+    __m128 a12 = _mm_shuffle_ps(ca, nca, _MM_SHUFFLE(2, 3, 0, 3)); // float3(ca.z, 0.0, -ca.x);
+
+    //Cross ab, bc, and ca with (0, 0, 1)
+    __m128 a20 = _mm_shuffle_ps(ab, nab, _MM_SHUFFLE(2, 3, 0, 3)); // float3(-ab.y, ab.x, 0.0);
+    __m128 a21;// = // float3(-bc.y, bc.x, 0.0);
+    __m128 a22;// = // float3(-ca.y, ca.x, 0.0);
+*/
+	
+	__m128 v0[3];
+	__m128 v1[3];
+	__m128 v2[3];
+
+	
+	v0[0] = _mm_shuffle_ps(a, a, _MM_SHUFFLE(0, 0, 0, 0));
+	v0[1] = _mm_shuffle_ps(a, a, _MM_SHUFFLE(1, 1, 1, 1));
+	v0[2] = _mm_shuffle_ps(a, a, _MM_SHUFFLE(2, 2, 2, 2));
+
+	v1[0] = _mm_shuffle_ps(b, b, _MM_SHUFFLE(0, 0, 0, 0));
+	v1[1] = _mm_shuffle_ps(b, b, _MM_SHUFFLE(1, 1, 1, 1));
+	v1[2] = _mm_shuffle_ps(b, b, _MM_SHUFFLE(2, 2, 2, 2));
+
+	v2[0] = _mm_shuffle_ps(c, c, _MM_SHUFFLE(0, 0, 0, 0));
+	v2[1] = _mm_shuffle_ps(c, c, _MM_SHUFFLE(1, 1, 1, 1));
+	v2[2] = _mm_shuffle_ps(c, c, _MM_SHUFFLE(2, 2, 2, 2));
+
+
+	__m128 neg1 = _mm_set1_ps(-1.0f);
+	__m128 zero = _mm_set1_ps(0.0f);
+	__m128 axis[3];
+	// for now the 4th component (w) is 0
+	axis[0] = zero; //   0, 0, 0,
+	axis[1] = _mm_mul_ps(z, neg1); // -ab.z, -bc.z, -ca.z
+	axis[2] = y; // ab.y, bc.y, ca.y
+	if (!IntersectsTriangleAabbSat(axis, v0, v1, v2, boxhalfsize)) return false;
+
+	axis[0] = z; //   0, 0, 0,
+	axis[1] = zero; 
+	axis[2] = _mm_mul_ps(x, neg1);
+	if (!IntersectsTriangleAabbSat(axis, v0, v1, v2, boxhalfsize)) return false;
+
+	axis[0] = _mm_mul_ps(y, neg1); //   0, 0, 0,
+	axis[1] = x; // -ab.z, -bc.z, -ca.z
+	axis[2] = zero; // ab.y, bc.y, ca.y
+	if (!IntersectsTriangleAabbSat(axis, v0, v1, v2, boxhalfsize)) return false;
+
+
+
+
+	// TESTS AGAINST BASIC AABB OF TRIANGLE
+	// TODO: move it above for early return ?
+	axis[0] = _mm_set_ps(0.0f, 0.0f, 0.0f, 1.0f); // 1, 0, 0,
+	axis[1] = _mm_set_ps(0.0f, 0.0f, 1.0f, 0.0f); // 0, 1, 0
+	axis[2] = _mm_set_ps(0.0f, 1.0f, 0.0f, 0.0f); // 0, 0, 1
+	if (!IntersectsTriangleAabbSat(axis, v0, v1, v2, boxhalfsize)) return false;
+
+	// TODO: test triangle normal, only 1
+	// cross product of ab, bc
+	vec3 av;
+	vec3 bv;
+	__m128 xxyy = _mm_shuffle_ps(x, y, _MM_SHUFFLE(2, 0, 2, 0));
+	av.mm = _mm_shuffle_ps(xxyy, z, _MM_SHUFFLE(3, 0, 2, 0));
+	bv.mm = _mm_shuffle_ps(xxyy, z, _MM_SHUFFLE(3, 2, 3, 1));
+
+
+	
+	//__m128 norm = vec3::cross(av, bv).mm;
+
+	//axis[0] = _mm_shuffle_ps(norm, norm, _MM_SHUFFLE(0, 0, 0, 0)); // 1, 0, 0,
+	//axis[1] = _mm_shuffle_ps(norm, norm, _MM_SHUFFLE(1, 1, 1, 1)); // 0, 1, 0
+	//axis[2] = _mm_shuffle_ps(norm, norm, _MM_SHUFFLE(2, 2, 2, 2)); // 0, 0, 1
+	//if (!IntersectsTriangleAabbSat(axis, v0, v1, v2, boxhalfsize)) return false;
+/*
+    if (
+        !IntersectsTriangleAabbSat(tri.a, tri.b, tri.c, aabb.extents, a00) ||
+        !IntersectsTriangleAabbSat(tri.a, tri.b, tri.c, aabb.extents, a01) ||
+        !IntersectsTriangleAabbSat(tri.a, tri.b, tri.c, aabb.extents, a02) ||
+        !IntersectsTriangleAabbSat(tri.a, tri.b, tri.c, aabb.extents, a10) ||
+        !IntersectsTriangleAabbSat(tri.a, tri.b, tri.c, aabb.extents, a11) ||
+        !IntersectsTriangleAabbSat(tri.a, tri.b, tri.c, aabb.extents, a12) ||
+        !IntersectsTriangleAabbSat(tri.a, tri.b, tri.c, aabb.extents, a20) ||
+        !IntersectsTriangleAabbSat(tri.a, tri.b, tri.c, aabb.extents, a21) ||
+        !IntersectsTriangleAabbSat(tri.a, tri.b, tri.c, aabb.extents, a22) ||
+        !IntersectsTriangleAabbSat(tri.a, tri.b, tri.c, aabb.extents, float3(1, 0, 0)) ||
+        !IntersectsTriangleAabbSat(tri.a, tri.b, tri.c, aabb.extents, float3(0, 1, 0)) ||
+        !IntersectsTriangleAabbSat(tri.a, tri.b, tri.c, aabb.extents, float3(0, 0, 1)) ||
+        !IntersectsTriangleAabbSat(tri.a, tri.b, tri.c, aabb.extents, cross(ab, bc))
+    )
+    {
+        return false;
+    }
+*/
+    return true;
+}
+
 
 Octree Octree::fromMesh(std::vector<Face>& faces) {
 	std::vector<Triangle> triangles;
@@ -631,38 +848,40 @@ Octree Octree::fromMesh(std::vector<Face>& faces) {
 	vec3int offset = {0, 0, 0};
 	std::vector<vec3int> points;
 	std::vector<Triangle> subset;
+	unsigned int i = 0;
+	for(const Triangle& tri : triangles) {
 	//std::vector<int> offsets(step_count * step_count * step_count);
 	for (size_t stepx = 0; stepx < size; stepx += step_size) 
 	for (size_t stepy = 0; stepy < size; stepy += step_size) 
 	for (size_t stepz = 0; stepz < size; stepz += step_size) {
 		subset.clear();
-	vec3 center((stepx+half_step)/(float)size, (stepy+half_step)/(float)size, (stepz+half_step)/(float)size);
-
-	//	size_t index = (stepz / step_size) + (stepy / step_size) * step_count + (stepz / step_size) * step_count * step_count;
-	//	int start = -1;
-	for(size_t i = 0; i < triangles.size(); i++) {
-		if (triBoxOverlap(center, half_step, triangles[i])) {
-			subset.push_back(triangles[i]);
+		vec3 center((stepx+half_step)/(float)size, (stepy+half_step)/(float)size, (stepz+half_step)/(float)size);
+		if (!IntersectsTriangleAabb(center, half_step, tri)) {
+			break;
 		}
-	}
-	//
-	//}	
-	float boxhalfsize = 1.0f / (float)size / 2.0f;
-	for (size_t x = stepx; x < stepx+step_size; x++) {
-	for (size_t y = stepy; y < stepy+step_size; y++)
-	for (size_t z = stepz; z < stepz+step_size; z++) {
 	
-		vec3int pos = {(int)(x), (int)(y), (int)(z)};
-		vec3 boxcenter(pos.x/(float)size, pos.y/(float)size, pos.z/(float)size);
-		for(size_t i = 0; i < subset.size(); i++) {
-			if (triBoxOverlap(boxcenter, boxhalfsize, subset[i])) {
+		//
+		//}	
+		float boxhalfsize = 1.0f / (float)size / 2.0f;
+		for (size_t x = stepx; x < stepx+step_size; x++) {
+		for (size_t y = stepy; y < stepy+step_size; y++)
+		for (size_t z = stepz; z < stepz+step_size; z++) {
+		
+			vec3int pos = {(int)(x), (int)(y), (int)(z)};
+			vec3 boxcenter(pos.x/(float)size, pos.y/(float)size, pos.z/(float)size);
+
+			if (IntersectsTriangleAabb(boxcenter, boxhalfsize, tri)) {
 				points.push_back(pos);
 				break;
 			}
+			
+		}
+		//printf("x = %zu\n", x);
 		}
 	}
-	printf("x = %zu\n", x);
-	}
+	i++;
+	if (i % 100 == 0)
+		printf("%6u/%zu  %2.1f%%\n", i, triangles.size(), i/(float)triangles.size()*100.0f);
 	}
 
 	for (vec3int p : points) {
