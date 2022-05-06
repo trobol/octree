@@ -404,6 +404,195 @@ struct Triangle {
 };
 
 
+
+int planeBoxOverlap(vec3 normal,float d, float maxbox)
+{
+
+	vec3 vmin,vmax;
+
+	//static const __m128 sign_mask = _mm_set1_ps(-0.f);
+	//__m128 min;
+	//__m128 max = normal.mm;
+
+
+
+	vmax.x = copysignf(maxbox, normal.x);
+	vmax.y = copysignf(maxbox, normal.y);
+	vmax.z = copysignf(maxbox, normal.z);
+
+	vmin = vmax * -1.0f;
+
+
+
+	__m128 prod = _mm_mul_ps(normal.mm, vmin.mm);
+	__m128 sum1 = _mm_hadd_ps(prod, prod);
+    __m128 sum2 = _mm_hadd_ps(sum1, sum1);
+	float dotmin = _mm_cvtss_f32(sum2);
+
+	if(vec3::dot(normal,vmin)+d>0.0f) return 0;
+	if(vec3::dot(normal,vmax)+d>=0.0f) return 1;
+
+	return 0;
+}
+
+/*======================== X-tests ========================*/
+#define AXISTEST_X01(a, b, fa, fb)             \
+    p0 = a*v0.y - b*v0.z;                    \
+    p2 = a*v2.y - b*v2.z;                    \
+        if(p0<p2) {min=p0; max=p2;} else {min=p2; max=p0;} \
+    rad = fa * boxhalfsize + fb * boxhalfsize;   \
+    if(min>rad || max<-rad) return 0;
+
+#define AXISTEST_X2(a, b, fa, fb)              \
+    p0 = a*v0.y - b*v0.z;                    \
+    p1 = a*v1.y - b*v1.z;                    \
+        if(p0<p1) {min=p0; max=p1;} else {min=p1; max=p0;} \
+    rad = fa * boxhalfsize + fb * boxhalfsize;   \
+    if(min>rad || max<-rad) return 0;
+
+/*======================== Y-tests ========================*/
+#define AXISTEST_Y02(a, b, fa, fb)             \
+    p0 = -a*v0.x + b*v0.z;                   \
+    p2 = -a*v2.x + b*v2.z;                       \
+        if(p0<p2) {min=p0; max=p2;} else {min=p2; max=p0;} \
+    rad = fa * boxhalfsize + fb * boxhalfsize;   \
+    if(min>rad || max<-rad) return 0;
+
+#define AXISTEST_Y1(a, b, fa, fb)              \
+    p0 = -a*v0.x + b*v0.z;                   \
+    p1 = -a*v1.x + b*v1.z;                       \
+        if(p0<p1) {min=p0; max=p1;} else {min=p1; max=p0;} \
+    rad = fa * boxhalfsize + fb * boxhalfsize;   \
+    if(min>rad || max<-rad) return 0;
+
+/*======================== Z-tests ========================*/
+
+#define AXISTEST_Z12(a, b, fa, fb)             \
+    p1 = a*v1.x - b*v1.y;                    \
+    p2 = a*v2.x - b*v2.y;                    \
+        if(p2<p1) {min=p2; max=p1;} else {min=p1; max=p2;} \
+    rad = fa * boxhalfsize + fb * boxhalfsize;   \
+    if(min>rad || max<-rad) return 0;
+
+#define AXISTEST_Z0(a, b, fa, fb)              \
+    p0 = a*v0.x - b*v0.y;                \
+    p1 = a*v1.x - b*v1.y;                    \
+        if(p0<p1) {min=p0; max=p1;} else {min=p1; max=p0;} \
+    rad = fa * boxhalfsize + fb * boxhalfsize;   \
+    if(min>rad || max<-rad) return 0;
+
+// src https://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/code/
+int triBoxOverlap(vec3 boxcenter, float boxhalfsize, const Triangle& tri)
+{
+
+  /*    use separating axis theorem to test overlap between triangle and box */
+  /*    need to test for overlap in these directions: */
+  /*    1) the {x,y,z}-directions (actually, since we use the AABB of the triangle */
+  /*       we do not even need to test these) */
+  /*    2) normal of the triangle */
+  /*    3) crossproduct(edge from tri, {x,y,z}-directin) */
+  /*       this gives 3x3=9 more tests */
+   vec3 v0,v1,v2;
+   float min,max,d,p0,p1,p2,rad,fex,fey,fez;
+   vec3 normal, e0,e1,e2;
+
+   /* This is the fastest branch on Sun */
+   /* move everything so that the boxcenter is in (0,0,0) */
+
+   v0.mm = _mm_sub_ps(tri.pos[0].mm, boxcenter.mm);
+   v1.mm = _mm_sub_ps(tri.pos[1].mm, boxcenter.mm);
+   v2.mm = _mm_sub_ps(tri.pos[2].mm, boxcenter.mm);
+
+
+	  /* Bullet 1: */
+   /*  first test overlap in the {x,y,z}-directions */
+   /*  find min, max of the triangle each direction, and test for overlap in */
+   /*  that direction -- this is equivalent to testing a minimal AABB around */
+   /*  the triangle against the AABB */
+
+   /* test in X-direction */
+   __m128 box = _mm_set1_ps(boxhalfsize);
+   __m128 min_v = _mm_min_ps(v0.mm, _mm_min_ps(v1.mm, v2.mm));
+   __m128 max_v = _mm_max_ps(v0.mm, _mm_max_ps(v1.mm, v2.mm));
+
+   __m128 g_min = _mm_cmpgt_ps(min_v, box);
+   __m128 g_max = _mm_cmplt_ps(max_v, _mm_mul_ps(_mm_set1_ps(-1.0f), box));
+
+   if((_mm_movemask_ps(g_min) & 7) != 0 || (_mm_movemask_ps(g_max) & 7) != 0) return 0;
+
+
+   /* compute triangle edges */
+   //e0 = v1 - v0;      /* tri edge 0 */
+   //e1 = v2 - v1;      /* tri edge 1 */
+   //e2 = v0 - v2;      /* tri edge 2 */
+
+	e0.mm = _mm_sub_ps(v1.mm, v0.mm);
+	e1.mm = _mm_sub_ps(v2.mm, v1.mm);
+	e2.mm = _mm_sub_ps(v0.mm, v2.mm);
+
+	static const __m128 sign_mask = _mm_set1_ps(-0.f); // -0.f = 1 << 31
+
+   /* Bullet 3:  */
+   /*  test the 9 tests first (this was faster) */
+   vec3 fe;
+
+
+
+
+	// flip 
+
+
+	//   a, b, fa, fb
+   // AXISTEST_X01 e0.z, e0.y, fez, fey 
+//   p0 = e0.z*v0.y - e0.y*v0.z;                    // cross (e0, v0).x
+//   p2 = e0.z*v2.y - e0.y*v2.z;                    // cross (e0, v2).x
+//   if(p0<p2) {min=p0; max=p2;} else {min=p2; max=p0;} 
+//   rad = fez * boxhalfsize + fey * boxhalfsize;   
+//   if(min>rad || max<-rad) return 0;
+//
+//	//AXISTEST_Y02 e0.z, e0.x, fez, fex
+//	p0 = -e0.z*v0.x + e0.x*v0.z;                   // cross (-e0, v0).y
+//   p2 = -e0.z*v2.x + e0.x*v2.z;                   // cross (-e0, v2).y
+//   if(p0<p2) {min=p0; max=p2;} else {min=p2; max=p0;} 
+//   rad = fez * boxhalfsize + fex * boxhalfsize;   
+//   if(min>rad || max<-rad) return 0;
+//
+//
+//	// AXISTEST_Z12 e0.y, e0.x, fey, fex
+//	p1 = e0.y*v1.x - e0.x*v1.y;                      // cross(e0, v1)
+//   p2 = e0.y*v2.x - e0.x*v2.y;                    	 // cross(e0, v2)
+//   if(p2<p1) {min=p2; max=p1;} else {min=p1; max=p2;} 
+//	
+//   rad = fey * boxhalfsize + fex * boxhalfsize;   
+//   if(min>rad || max<-rad) return 0;
+//	
+ fe.mm = _mm_andnot_ps(sign_mask, e0.mm);
+   AXISTEST_X01(e0.z, e0.y, fe.z, fe.y);
+   AXISTEST_Y02(e0.z, e0.x, fe.z, fe.x);
+   AXISTEST_Z12(e0.y, e0.x, fe.y, fe.x);
+
+     fe.mm = _mm_andnot_ps(sign_mask, e1.mm);
+   AXISTEST_X01(e1.z, e1.y, fe.z, fe.y); // cross (e1, v0).x, cross(e1, v2).x
+   AXISTEST_Y02(e1.z, e1.x, fe.z, fe.x); // cross (-e1, v0).y, cross(-e1, v2).x
+   AXISTEST_Z0(e1.y, e1.x, fe.y, fe.x); // cross (e1, v0).z, cross(e1, v1).x
+
+ fe.mm = _mm_andnot_ps(sign_mask, e2.mm);
+   AXISTEST_X2(e2.z, e2.y, fe.z, fe.y); // cross(e2, v0).x, cross(e2, v1).x
+   AXISTEST_Y1(e2.z, e2.x, fe.z, fe.x);
+   AXISTEST_Z12(e2.y, e2.x, fe.y, fe.x);
+
+
+
+   /* Bullet 2: */
+   /*  test if the box intersects the plane of the triangle */
+   /*  compute plane equation of triangle: normal*x+d=0 */
+
+   normal = vec3::cross(e0, e1);
+   d=-vec3::dot(normal, v0);
+   if(!planeBoxOverlap(normal,d,boxhalfsize)) return 0;
+
+   return 1;   /* box and triangle overlaps */
+}
 static const __m128 sign_mask = _mm_set1_ps(-0.f); // -0.f = 1 << 31
 bool IntersectsTriangleAabbSat(__m128 a[3], __m128 v0[3], __m128 v1[3], __m128 v2[3], float halfsize) {
 	
@@ -665,6 +854,22 @@ Octree Octree::fromMesh(std::vector<Face>& faces) {
 	vec3int offset = {0, 0, 0};
 	std::vector<vec3int> points;
 	unsigned int i = 0;
+	/*
+			float boxhalfsize = 1.0f / (float)size / 2.0f;
+	for (size_t x = 0; x < size; x++) {
+	for (size_t y = 0; y < size; y++)
+	for (size_t z = 0; z < size; z++) {
+	
+		vec3int pos = {(int)(x), (int)(y), (int)(z)};
+		vec3 boxcenter(pos.x/(float)size, pos.y/(float)size, pos.z/(float)size);
+		for(size_t i = 0; i < triangles.size(); i++) {
+			if (triBoxOverlap(boxcenter, boxhalfsize, triangles[i])) {
+				points.push_back(pos);
+				break;
+			}
+		}
+	}
+	*/
 	for(const Triangle& tri : triangles) {
 		__m128 axis[3];
 		calculateAxis(axis, tri);
@@ -682,7 +887,7 @@ Octree Octree::fromMesh(std::vector<Face>& faces) {
 			vec3int pos = {(int)(x), (int)(y), (int)(z)};
 			vec3 boxcenter(pos.x/(float)size, pos.y/(float)size, pos.z/(float)size);
 
-			if (IntersectsTriangleAabb(boxcenter, boxhalfsize, axis, tri)) {
+			if (triBoxOverlap(boxcenter, boxhalfsize, tri)) {
 				points.push_back(pos);
 				break;
 			}

@@ -352,6 +352,8 @@ bin_digit_str bin_digits(uint8_t byte) {
 	return result;
 } 
 
+std::vector<Octree*> octrees;
+
 int main(void)
 {
 	srand((unsigned int)time(nullptr));
@@ -363,14 +365,30 @@ int main(void)
 	drawables.push_back(&octreeDrawable);
 	//octreeDrawable.m_enable = false;
 	
-	std::vector<Face> faces;
-	load_obj(ASSET_PATH"/models/hand/hand_00.obj", faces);
+	std::vector<Face> faces0;
+	std::vector<Face> faces1;
+	std::vector<Face> faces2;
+	std::vector<Face> faces3;
+	load_obj(ASSET_PATH"/models/hand/hand_01.obj", faces0);
+	load_obj(ASSET_PATH"/models/hand/hand_05.obj", faces1);
+	load_obj(ASSET_PATH"/models/hand/hand_10.obj", faces2);
+	load_obj(ASSET_PATH"/models/hand/hand_15.obj", faces3);
+
+
 	std::string filepath = filesystem::fileSelect(ASSET_PATH_STR + "/models/", ".vox");
 	file.load(filepath);
 	//file.load("../../assets/box.vox");
 	//Octree tree = Octree::loadModel(file);
 
-	Octree tree =Octree::fromMesh(faces);
+	Octree tree0 = Octree::fromMesh(faces0);
+	Octree tree1 = Octree::fromMesh(faces1);
+	Octree tree2 = Octree::fromMesh(faces2);
+	Octree tree3 = Octree::fromMesh(faces3);
+
+	octrees.push_back(&tree0);
+	octrees.push_back(&tree1);
+	octrees.push_back(&tree2);
+	octrees.push_back(&tree3);
 
 	window.startup();
 
@@ -407,7 +425,7 @@ int main(void)
 	shader = Shader::Load(vertPath, fragPath);
 
 	shader.use();
-
+/*
 	puts("");
 	for (size_t i = 0; i < tree.m_array.size(); i++) {
 
@@ -423,12 +441,13 @@ int main(void)
 
 		fflush(stdout);
 	}
+	*/
 
 	std::vector<Cube> instances;
 	std::vector<Cube> leafInstances;
 
 
-	tree.drawNodes(instances, leafInstances);
+	//tree.drawNodes(instances, leafInstances);
 
 	VoxelMeshDrawable branch_drawable("branch_drawable", true);
 	VoxelMeshDrawable leaf_drawable("leaf_drawable", false);
@@ -473,7 +492,7 @@ int main(void)
 	meshDescriptor.add(2, GL_FLOAT); // padding
 	meshDescriptor.apply();
 
-	meshVB.bufferVector(faces, GL_STATIC_DRAW);
+	meshVB.bufferVector(faces0, GL_STATIC_DRAW);
 
 
 
@@ -495,16 +514,16 @@ int main(void)
 	Uniform<int> cubeCountU(rayShader, "cubeCount");
 	Uniform<float> otsizeU(rayShader, "size");
 
-	otsizeU.set((float)tree.m_size);
+	otsizeU.set((float)tree0.m_size);
 
-	GLuint tex;
-	glGenTextures(1, &tex);
-	glBindTexture(GL_TEXTURE_1D, tex);
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_R32UI, tree.m_array.size(), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &tree.m_array[0]);
-	glTexParameteri(GL_TEXTURE_1D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_1D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_1D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_1D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+	//GLuint tex;
+	//glGenTextures(1, &tex);
+	//glBindTexture(GL_TEXTURE_1D, tex);
+	//glTexImage1D(GL_TEXTURE_1D, 0, GL_R32UI, tree0.m_array.size(), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &tree.m_array[0]);
+	//glTexParameteri(GL_TEXTURE_1D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_1D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_1D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+	//glTexParameteri(GL_TEXTURE_1D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
 
 
 
@@ -535,11 +554,11 @@ int main(void)
 	}
 
 	cubeStorageBuffer.bind(GL_SHADER_STORAGE_BUFFER);
-	cubeCountU = tree.m_array.size();
+	cubeCountU = tree0.m_array.size();
 
 	
 	//cubeCountU = 1;
-	cubeStorageBuffer.bufferVector(tree.m_array, GL_STATIC_DRAW);
+	cubeStorageBuffer.bufferVector(tree0.m_array, GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, cubeStorageBuffer);
 
 	quadVertexArray.unbind();
@@ -555,10 +574,11 @@ int main(void)
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	//glEnable(GL_BLEND);
 	glCheckError();
+	size_t i = 0;
 	// MAIN LOOP
 	while (!window.shouldClose())
 	{
-
+		i++;
 		glEnable(GL_DEPTH_TEST);
 		// UPDATE
 		camera.bCanCaptureMouse = !io.WantCaptureMouse;
@@ -575,7 +595,7 @@ int main(void)
 			//drawModel(vao, model);
 
 			meshVA.bind();
-			glDrawArrays(GL_TRIANGLES, 0, faces.size() * 3);
+			glDrawArrays(GL_TRIANGLES, 0, faces0.size() * 3);
 		}
 	
 		shader.use();
@@ -587,15 +607,20 @@ int main(void)
 		}
 		glDisable(GL_DEPTH_TEST);
 		if (octreeDrawable.m_enable) {
-			glActiveTexture(GL_TEXTURE0); // activate the texture unit first before binding texture
-			glBindTexture(GL_TEXTURE_1D, tex);
+			size_t index = (i / 50) % 4;
+			Octree* oct = octrees[index];
+			//glActiveTexture(GL_TEXTURE0); // activate the texture unit first before binding texture
+			//glBindTexture(GL_TEXTURE_1D, tex);
 			rayShader.use();
-			otsizeU.set((float)tree.m_size);
-			cubeCountU = tree.m_array.size();
+			otsizeU.set((float)oct->m_size);
+			cubeCountU = oct->m_array.size();
+	
+			
 			rayProjMatrix = camera.getProjMatrix();
 			rayViewMatrix = camera.getViewMatrix();
 			quadVertexArray.bind();
 			cubeStorageBuffer.bind(GL_SHADER_STORAGE_BUFFER);
+			cubeStorageBuffer.bufferVector(oct->m_array, GL_STATIC_DRAW);
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, cubeStorageBuffer);
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		}
