@@ -10,7 +10,6 @@ struct Vertex {
 	vec3 norm;
 	vec2 uv;
 };
-
 struct Face {
 	Vertex vertices[3];
 };

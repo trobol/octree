@@ -25,7 +25,7 @@ void VoxelMeshDrawable::Initialize() {
 	elementBuffer.bufferArray(indices_ptr, indices_count, GL_STATIC_DRAW);
 
 	VertexAttributeDiscriptor discriptor;
-	discriptor.add(3, GL_FLOAT); // position attribute
+	discriptor.add(4, GL_FLOAT); // position attribute
 	//discriptor.add(3, GL_FLOAT); moved to instance
 	discriptor.apply();
 
@@ -35,11 +35,11 @@ void VoxelMeshDrawable::Initialize() {
 	glEnableVertexAttribArray(3);
 	m_instanceBuffer.bind(GL_ARRAY_BUFFER);
 
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)0);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)0);
 
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(3 * sizeof(float)));
+	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(4 * sizeof(float)));
 
-	glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(6 * sizeof(float)));
+	glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(8 * sizeof(float)));
 	m_instanceBuffer.unbind();
 	glVertexAttribDivisor(1, 1);
 	glVertexAttribDivisor(2, 1);
