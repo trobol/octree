@@ -427,7 +427,7 @@ int planeBoxOverlap(vec3 normal,float d, float maxbox)
     __m128 sum2 = _mm_hadd_ps(sum1, sum1);
 	float dotmin = _mm_cvtss_f32(sum2);
 
-	if(dotmin+d>0.0f) return 0;
+	if(vec3::dot(normal,vmin)+d>0.0f) return 0;
 	if(vec3::dot(normal,vmax)+d>=0.0f) return 1;
 
 	return 0;
@@ -622,7 +622,7 @@ Octree Octree::fromMesh(std::vector<Face>& faces) {
 		tri.pos[i] *= scale_inv;
 	}
 	}
-	size_t size = 64;
+	size_t size = 128;
 	size_t step_size = 16;
 	size_t step_count = size/16;
 	float half_step = step_size/2.0f;
@@ -630,32 +630,32 @@ Octree Octree::fromMesh(std::vector<Face>& faces) {
 	
 	vec3int offset = {0, 0, 0};
 	std::vector<vec3int> points;
-	//std::vector<Triangle> subset;
+	std::vector<Triangle> subset;
 	//std::vector<int> offsets(step_count * step_count * step_count);
-	//for (size_t stepx = 0; stepx < size; stepx += step_size) 
-	//for (size_t stepy = 0; stepy < size; stepy += step_size) 
-	//for (size_t stepz = 0; stepz < size; stepz += step_size) {
-	//	vec3 center((stepx+half_step)/(float)size, (stepy+half_step)/(float)size, (stepz+half_step)/(float)size);
-//
+	for (size_t stepx = 0; stepx < size; stepx += step_size) 
+	for (size_t stepy = 0; stepy < size; stepy += step_size) 
+	for (size_t stepz = 0; stepz < size; stepz += step_size) {
+		subset.clear();
+	vec3 center((stepx+half_step)/(float)size, (stepy+half_step)/(float)size, (stepz+half_step)/(float)size);
+
 	//	size_t index = (stepz / step_size) + (stepy / step_size) * step_count + (stepz / step_size) * step_count * step_count;
 	//	int start = -1;
-	//	for(size_t i = 0; i < triangles.size(); i++) {
-	//		if (triBoxOverlap(center, half_step, triangles[i])) {
-	//			start = i;
-	//			break;
-	//		}
-	//	}
+	for(size_t i = 0; i < triangles.size(); i++) {
+		if (triBoxOverlap(center, half_step, triangles[i])) {
+			subset.push_back(triangles[i]);
+		}
+	}
 	//
 	//}	
 	float boxhalfsize = 1.0f / (float)size / 2.0f;
-	for (size_t x = 0; x < size; x++) {
-	for (size_t y = 0; y < size; y++)
-	for (size_t z = 0; z < size; z++) {
+	for (size_t x = stepx; x < stepx+step_size; x++) {
+	for (size_t y = stepy; y < stepy+step_size; y++)
+	for (size_t z = stepz; z < stepz+step_size; z++) {
 	
 		vec3int pos = {(int)(x), (int)(y), (int)(z)};
 		vec3 boxcenter(pos.x/(float)size, pos.y/(float)size, pos.z/(float)size);
-		for(size_t i = 0; i < triangles.size(); i++) {
-			if (triBoxOverlap(boxcenter, boxhalfsize, triangles[i])) {
+		for(size_t i = 0; i < subset.size(); i++) {
+			if (triBoxOverlap(boxcenter, boxhalfsize, subset[i])) {
 				points.push_back(pos);
 				break;
 			}
@@ -663,7 +663,7 @@ Octree Octree::fromMesh(std::vector<Face>& faces) {
 	}
 	printf("x = %zu\n", x);
 	}
-	//}
+	}
 
 	for (vec3int p : points) {
 		result.setNode(p.x, p.y, p.z, (uint32_t)-1);

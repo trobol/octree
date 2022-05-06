@@ -364,7 +364,7 @@ int main(void)
 	//octreeDrawable.m_enable = false;
 	
 	std::vector<Face> faces;
-	load_obj(ASSET_PATH"/models/hand/hand_00.obj", faces);
+	load_obj(ASSET_PATH"/models/obj/wooddoll/wooddoll_00.obj", faces);
 	std::string filepath = filesystem::fileSelect(ASSET_PATH_STR + "/models/", ".vox");
 	file.load(filepath);
 	//file.load("../../assets/box.vox");

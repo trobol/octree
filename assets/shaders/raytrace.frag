@@ -174,7 +174,11 @@ RayHit traverse_octree(Ray ray) {
 			float half_scale_exp2 = scale_exp2 * 0.5f;
 			vec3 t_center = (half_scale_exp2 * t_coef) + t_corner;
 
-
+			//if ( (child_masks & 0x80u) != 0 ) {
+			//	float cdirx = (float)(value << 14) * d.x; // nx
+			//	float cdiry = (float)(value << 20) * d.y; // ny
+			//	float cdirz = (float)(value << 26) * d.z; // nz
+			//}
 			if( t_min <= tv_max ) {	
 				if( (child_masks & 0x80u) != 0 ) { // leaf node 
 					parent += (cur >> 17) + 7 - child_shift;
