@@ -239,7 +239,7 @@ uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint32_t valu
 		if ((m_array[current_index] & 0xFF00) == 0) {
 			uint32_t ptr = (uint32_t)m_array.size() - current_index;
 			if (ptr > (0x7FFF)) puts("ERROR: node index will overflow");
-			printf("alloc %i\n", current_index);
+			
 			m_array[current_index] |= ptr << 17;
 			m_array.resize(m_array.size() + 8, {});
 		}

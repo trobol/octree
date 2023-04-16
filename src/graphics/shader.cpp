@@ -22,19 +22,22 @@ std::string LoadFile(std::string path)
 	return std::string();
 }
 
-void printErrorMessage(GLuint id)
+bool printErrorMessage(GLuint id, const char* shader_path)
 {
 	GLsizei infoLogLength;
 	glGetShaderiv(id, GL_INFO_LOG_LENGTH, &infoLogLength);
 	glCheckError();
 	if (infoLogLength > 0)
 	{
+		printf("error while loading shader: %s\n", shader_path);
 		char *errorMessage = new char[(size_t)infoLogLength + 1];
 		glGetShaderInfoLog(id, infoLogLength, NULL, errorMessage);
 		glCheckError();
 		puts(errorMessage);
 		delete[] errorMessage;
+		return true;
 	}
+	return false;
 }
 
 void LoadSingleShader(GLuint shaderID, const char* path) {
@@ -66,9 +69,7 @@ void LoadSingleShader(GLuint shaderID, const char* path) {
 
 	GLint result = GL_FALSE;
 	glGetShaderiv(shaderID, GL_COMPILE_STATUS, &result);
-	printErrorMessage(shaderID);
-
-
+	if ( printErrorMessage(shaderID, path) ) exit(1);
 }
 
 
@@ -101,30 +102,38 @@ Shader Shader::Load(std::string vertex_file_path, std::string frag_file_path) {
 	return Load(vertex_file_path.c_str(), frag_file_path.c_str());
 }
 
-Shader Shader::Load(const char* vertex_file_path, const char* fragment_file_path)
+
+Shader Shader::Load(const char* vertex_file_path, const char* fragment_file_path, const char* geometry_file_path )
 {
 	// Create the shaders
 	GLuint vertexShaderId = glCreateShader(GL_VERTEX_SHADER);
 	GLuint fragmentShaderId = glCreateShader(GL_FRAGMENT_SHADER);
+	GLuint geometryShaderId = 0;
+	if (geometry_file_path) geometryShaderId = glCreateShader(GL_GEOMETRY_SHADER);
 
 	LoadSingleShader(vertexShaderId, vertex_file_path);
 	LoadSingleShader(fragmentShaderId, fragment_file_path);
-	glCheckError();
+	if (geometry_file_path) LoadSingleShader(geometryShaderId, geometry_file_path);
+
+	if ( glCheckError() ) exit( 1 );
 	// Link the program
 	//printf("Linking program\n");
 	GLuint programId = glCreateProgram();
+	if (geometry_file_path) glAttachShader(programId, geometryShaderId);
 	glAttachShader(programId, vertexShaderId);
 	glAttachShader(programId, fragmentShaderId);
 	glLinkProgram(programId);
-	glCheckError();
+	if ( glCheckError() ) exit( 1 );
 	// Check the program
 	GLint result = GL_FALSE;
 	glGetProgramiv(programId, GL_LINK_STATUS, &result);
 
-	
+	if (geometry_file_path) glDetachShader(programId, geometryShaderId);
 	glDetachShader(programId, vertexShaderId);
 	glDetachShader(programId, fragmentShaderId);
+	if (geometry_file_path) glDeleteShader( geometryShaderId );
 	glDeleteShader(vertexShaderId);
 	glDeleteShader(fragmentShaderId);
+	
 	return Shader(programId);
 }
