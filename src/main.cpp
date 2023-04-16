@@ -418,8 +418,9 @@ int main(void)
 	std::string vertDuckPath = ASSET_PATH_STR + "/shaders/duck.vert";
 	std::string fragDuckPath = ASSET_PATH_STR + "/shaders/duck.frag";
 
-	std::string vertWireframePath = ASSET_PATH_STR + "/shaders/wireframe.vert";
-	std::string fragWireframePath = ASSET_PATH_STR + "/shaders/wireframe.frag";
+	const char* vertWireframePath = ASSET_PATH"/shaders/wireframe.vert";
+	const char* fragWireframePath = ASSET_PATH"/shaders/wireframe.frag";
+	const char* geoWireframePath = ASSET_PATH"/shaders/wireframe.geo";
 
 	shaderDuck = Shader::Load(vertDuckPath, fragDuckPath);
 	shaderDuck.use();
@@ -438,8 +439,11 @@ int main(void)
 		for ( const Face& face : faces0 ) {
 			points.push_back(face.vertices[0].pos);
 			points.push_back(face.vertices[1].pos);
+			points.push_back(face.vertices[1].pos);
 			points.push_back(face.vertices[2].pos);
-			testPointCount += 3;
+			points.push_back(face.vertices[2].pos);
+			points.push_back(face.vertices[0].pos);
+			testPointCount += 6;
 		}
 
 		testVertexBuffer.bufferVector(points, GL_STATIC_DRAW);
@@ -452,6 +456,7 @@ int main(void)
 
 	UniformMatrix4f wireframeProjMatrix(shaderWireframe, "projMatrix");
 	UniformMatrix4f wireframeViewMatrix(shaderWireframe, "viewMatrix");
+	Uniform<vec2> wireframeWindowScale( shaderWireframe, "WIN_SCALE");
 /*
 	puts("");
 	for (size_t i = 0; i < tree.m_array.size(); i++) {
@@ -626,14 +631,15 @@ int main(void)
 			meshVA.unbind();
 		}
 
-//		{
-//			testVA.bind();
-//			shaderWireframe.use();
-//			wireframeProjMatrix = camera.getProjMatrix();
-//			wireframeViewMatrix = camera.getViewMatrix();
-//			
-//			glDrawArrays(GL_TRIANGLES, 0, testPointCount);
-//		}
+		{
+			testVA.bind();
+			shaderWireframe.use();
+			wireframeProjMatrix = camera.getProjMatrix();
+			wireframeViewMatrix = camera.getViewMatrix();
+			wireframeWindowScale = vec2(0.1f, 0.1f);
+			
+			glDrawArrays(GL_LINES, 0, testPointCount);
+		}
 	
 		shader.use();
 		projMatrix = camera.getProjMatrix();

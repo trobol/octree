@@ -11,7 +11,7 @@ class Shader
 public:
 	Shader(){};
 	static Shader Load(std::string vertex_file_path, std::string fragment_file_path);
-	static Shader Load(const char* vertex_file_path, const char* fragment_file_path);
+	static Shader Load(const char* vertex_file_path, const char* fragment_file_path, const char* geometry_file_path = nullptr);
 	static Shader LoadCompute(std::string path);
 	static Shader LoadCompute(const char* path);
 	operator GLuint()
