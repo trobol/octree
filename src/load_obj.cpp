@@ -97,9 +97,10 @@ bool load_obj(const char* path, std::vector<Face>& faces) {
 		
 		// indices
 		if (hdr0 == 'f' && hdr1 == ' ') {
-			Face face;
+			
+			Vertex vertices[4] = {};
 			unsigned int count = 0;
-			while (*ptr != '\n') {
+			for (;*ptr != '\n' && *ptr != 0; count++) {
 				
 				int pos = 0, uv = 0, norm = 0;
 				pos = read_int(&ptr);
@@ -110,23 +111,33 @@ bool load_obj(const char* path, std::vector<Face>& faces) {
 				if (uv < 0) uv = (int)uvs.size() + uv + 1;
 				if (norm < 0) norm = (int)normals.size() + norm + 1;
 
-				if (count >= 3) {
-					faces.push_back(face);
-					face.vertices[1] = face.vertices[2];
-					//face.vertices[1] = face.vertices[2];
-				}
 
-				unsigned int i = count < 3 ? count : 2;
-				face.vertices[i].pos = positions[pos];
-				face.vertices[i].uv = uvs[uv];
-				face.vertices[i].norm = normals[norm];
+				vertices[count].pos = positions[pos];
+				vertices[count].uv = uvs[uv];
+				vertices[count].norm = normals[norm];
 
 					
-				
-				
-				count++;
+				if (count > 4) {
+					puts("ERROR: vertex count greater than 4 encountered");
+					break;
+				}
 			}
-			faces.push_back(face);
+			
+			Face face0;
+			face0.vertices[0] = vertices[0];
+			face0.vertices[1] = vertices[1];
+			face0.vertices[2] = vertices[2];
+			faces.push_back(face0);
+
+			// if quad, we are splitting it into two triangles
+			if ( count > 3 ) {
+				// add the other triangle
+				Face face1;
+				face1.vertices[0] = vertices[2];
+				face1.vertices[1] = vertices[3];
+				face1.vertices[2] = vertices[0];
+				faces.push_back(face1);
+			}
 			
 			continue;
 		}
