@@ -86,12 +86,12 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 	while (!traversal_stack.empty()) {
 
 		uint8_t child_offset;
-		uint32_t index;
+		uint32_t parent_index;
 		vec3 parent_pos; 
 		{
 			NodeStackEntry& entry = traversal_stack.top();
 			child_offset = entry.child_offset;
-			index = entry.index;
+			parent_index = entry.index;
 			entry.child_offset++;
 			parent_pos = entry.pos;
 			//current_depth = entry.depth;
@@ -104,7 +104,7 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 			// draw branch
 			Cube c;
 			c.pos = parent_pos + vec3(1.0, 1.0, 1.0);
-			c.color = random_colors[index % 256];
+			c.color = random_colors[parent_index % 256];
 			c.size = size;
 			traversal_stack.pop();
 			size = size * 2.0;
@@ -114,12 +114,12 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 			continue;
 		}
 		
-		uint32_t parent = m_array[index];
+		uint32_t parent = m_array[parent_index];
 		
 
 		uint32_t children_ptr = parent >> 17;
 		//if (parent.children_far) children_ptr = m_farpointers[children_ptr];
-		uint32_t child_index = index + children_ptr + child_offset;
+		uint32_t child_index = parent_index + children_ptr + child_offset;
 		
 		vec3 pos_table[8] = {
 			{0.0f, 0.0f, 0.0f },
@@ -134,26 +134,25 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 
 		vec3 pos = parent_pos + pos_table[child_offset] * half_size;	
 
-		// is valid node
-		if (!((parent >> 8) & (1 << child_offset))) continue;
+		const uint32_t child_mask = 1 << child_offset;
+		const uint32_t valid_mask = parent >> 8;
+		// isn't valid node
+		if ((valid_mask & child_mask) == 0) continue;
 		// is leaf node
-		if (parent & (1 << child_offset)) {
+		if ((parent & child_mask) != 0) {
 			Cube c;
 			c.pos = pos + vec3(1.0, 1.0, 1.0);
 			c.size = half_size;
 			c.color = random_colors[child_index % 256];
 			leafElements.push_back(c);
-			continue;
-		} 
-
-		{
+		} else {
 			// if non-leaf, add to elements and push to traversal_stack
 			uint8_t of = child_offset;	
 			parent_pos = pos;
 			current_depth--;
 			size = half_size;
 			traversal_stack.push({child_index, 0, pos});
-		}	
+		}
 	}
 
 	printf("drew %llu branches and %llu leaves", elements.size(), leafElements.size());
@@ -240,7 +239,7 @@ uint32_t Octree::setNode(int target_x, int target_y, int target_z, uint32_t valu
 		if ((m_array[current_index] & 0xFF00) == 0) {
 			uint32_t ptr = (uint32_t)m_array.size() - current_index;
 			if (ptr > (0x7FFF)) puts("ERROR: node index will overflow");
-		
+			printf("alloc %i\n", current_index);
 			m_array[current_index] |= ptr << 17;
 			m_array.resize(m_array.size() + 8, {});
 		}
@@ -385,18 +384,19 @@ Octree Octree::loadModel(VoxFile& file)
 	/*
 	for (unsigned int i = 0; i < octree.m_array.size(); i++) {
 		printf("[%u]: {\n", i);
-		OTNode node = octree.m_array[i];
+		uint32_t node = octree.m_array[i];
 		char tmp[9];
-		bitArrayToStr(node.valid_mask, tmp);
+		bitArrayToStr(node>>8, tmp);
 		printf(" valid: %s\n", tmp);
 
-		bitArrayToStr(node.leaf_mask, tmp);
+		bitArrayToStr(node, tmp);
 		printf(" leaf:  %s\n", tmp);
 
-		printf(" children: %hu", node.children_ptr);
+		printf(" children: %hu", node >> 17);
 		printf("\n}\n");
 	}
 	*/
+	
 	return octree;
 }
 
@@ -1159,7 +1159,7 @@ Octree Octree::fromMesh(std::vector<Face>& faces) {
 	auto end = std::chrono::high_resolution_clock::now();
 
 	for (vec3int p : points) {
-		result.setNode(p.x, p.y, p.z, (uint32_t)-1);
+		result.setNode(p.x, p.y, p.z, (uint16_t)-1);
 	}
 
 

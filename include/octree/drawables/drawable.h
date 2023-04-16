@@ -15,4 +15,8 @@ public:
 };
 
 
+class PointCloudDrawable {
+
+};
+
 #endif

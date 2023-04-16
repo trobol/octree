@@ -11,14 +11,16 @@
 #include <octree/core/files/vox_file.h>
 #include <octree/load_obj.h>
 
-
+#pragma pack(push, 1)
 struct Cube
 {
 	vec3 pos{0, 0, 0};
 	vec3 color{0, 0, 0};
 	float size;
 };
+#pragma pack(pop)
 
+const size_t s = sizeof(Cube);
 struct Point {
 	vec3 pos;
 	vec3 color;

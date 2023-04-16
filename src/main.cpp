@@ -370,7 +370,7 @@ int main(void)
 	std::vector<Face> faces1;
 	std::vector<Face> faces2;
 	std::vector<Face> faces3;
-	load_obj(ASSET_PATH"/models/hand/hand_01.obj", faces0);
+	load_obj(ASSET_PATH"/models/teapot.obj", faces0);
 	load_obj(ASSET_PATH"/models/hand/hand_05.obj", faces1);
 	load_obj(ASSET_PATH"/models/hand/hand_10.obj", faces2);
 	load_obj(ASSET_PATH"/models/hand/hand_15.obj", faces3);
@@ -378,8 +378,8 @@ int main(void)
 
 	std::string filepath = filesystem::fileSelect(ASSET_PATH_STR + "/models/", ".vox");
 	file.load(filepath);
-	//file.load("../../assets/box.vox");
-	//Octree tree = Octree::loadModel(file);
+	//file.load(ASSET_PATH"/models/small_cube.vox");
+	//Octree tree0 = Octree::loadModel(file);
 
 	Octree tree0 = Octree::fromMesh(faces0);
 	//Octree tree1 = Octree::fromMesh(faces1);
@@ -474,10 +474,10 @@ int main(void)
 	std::vector<Cube> leafInstances;
 
 
-	//tree.drawNodes(instances, leafInstances);
-
+	tree0.drawNodes(instances, leafInstances);
+	
 	VoxelMeshDrawable branch_drawable("branch_drawable", true);
-	VoxelMeshDrawable leaf_drawable("leaf_drawable", false);
+	VoxelMeshDrawable leaf_drawable("leaf_drawable", true);
 
 	branch_drawable.Initialize();
 	branch_drawable.SetInstances(instances);
@@ -626,14 +626,14 @@ int main(void)
 			meshVA.unbind();
 		}
 
-		{
-			testVA.bind();
-			shaderWireframe.use();
-			wireframeProjMatrix = camera.getProjMatrix();
-			wireframeViewMatrix = camera.getViewMatrix();
-			
-			glDrawArrays(GL_TRIANGLES, 0, testPointCount);
-		}
+//		{
+//			testVA.bind();
+//			shaderWireframe.use();
+//			wireframeProjMatrix = camera.getProjMatrix();
+//			wireframeViewMatrix = camera.getViewMatrix();
+//			
+//			glDrawArrays(GL_TRIANGLES, 0, testPointCount);
+//		}
 	
 		shader.use();
 		projMatrix = camera.getProjMatrix();

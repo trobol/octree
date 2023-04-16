@@ -30,21 +30,23 @@ void VoxelMeshDrawable::Initialize() {
 	discriptor.apply();
 
 	//instanced attributes
+	
 	glEnableVertexAttribArray(1);
 	glEnableVertexAttribArray(2);
 	glEnableVertexAttribArray(3);
+
 	m_instanceBuffer.bind(GL_ARRAY_BUFFER);
+	
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Cube), (void*)0);
+	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Cube), (void*)(4 * sizeof(float)));
+	glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Cube), (void*)(8 * sizeof(float)));
 
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)0);
-
-	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(4 * sizeof(float)));
-
-	glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(8 * sizeof(float)));
 	m_instanceBuffer.unbind();
 	glVertexAttribDivisor(1, 1);
 	glVertexAttribDivisor(2, 1);
 	glVertexAttribDivisor(3, 1); // tell OpenGL this is an instanced vertex attribute.
 
+	
 	m_vertexArray.unbind();
 	vertexBuffer.unbind();
 	elementBuffer.unbind();
