@@ -8,11 +8,11 @@
 struct vec3int
 {
 public:
-	vec3int(int x, int y, int z);
+	__forceinline vec3int(int x, int y, int z) : x{ x }, y{ y }, z{ z } {};
 
 	//vec3(vec2 v2, float z1);
 
-	vec3int(){};
+	__forceinline vec3int(){};
 
 	vec3int(const vec3int &v);
 	int x = 0, y = 0, z = 0;

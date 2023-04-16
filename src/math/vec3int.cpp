@@ -2,7 +2,7 @@
 
 #include <math.h>
 
-vec3int::vec3int(int x, int y, int z) : x{ x }, y{ y }, z{ z } {};
+
 
 vec3 vec3int::toFloat()
 {

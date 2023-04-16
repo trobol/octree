@@ -2,12 +2,6 @@
 #include <algorithm>
 #include <math.h>
 
-vec3::vec3(float x1, float y1, float z1)
-{
-	x = x1;
-	y = y1;
-	z = z1;
-}
 
 /*
 vec3::vec3(vec2 v1, float z1)
@@ -23,12 +17,6 @@ bool vec3::operator!=(const vec3& v)
 	return x != v.x || y != v.y || z != v.z;
 }
 
-vec3::vec3(const vec3& v1)
-{
-	x = v1.x;
-	y = v1.y;
-	z = v1.z;
-}
 vec3 vec3::one = vec3(1, 1, 1);
 vec3 vec3::down = vec3(0, -1, 0);
 vec3 vec3::up = vec3(0, 1, 0);
@@ -72,11 +60,11 @@ vec3& vec3::operator*=(const vec3& v)
 	mm = _mm_mul_ps(mm, v.mm);
 	return *this;
 }
-vec3& vec3::operator/=(const vec3& v)
-{
-	mm = _mm_div_ps(mm, v.mm);
-	return *this;
-}
+//vec3& vec3::operator/=(const vec3& v)
+//{
+//	mm = _mm_div_ps(mm, v.mm);
+//	return *this;
+//}
 vec3& vec3::operator+=(const vec3& v)
 {
 	mm = _mm_add_ps(mm, v.mm);
@@ -95,13 +83,13 @@ vec3& vec3::operator*=(const float& f)
 	z *= f;
 	return *this;
 }
-vec3& vec3::operator/=(const float& f)
-{
-	x /= f;
-	y /= f;
-	z /= f;
-	return *this;
-}
+//vec3& vec3::operator/=(const float& f)
+//{
+//	x /= f;
+//	y /= f;
+//	z /= f;
+//	return *this;
+//}
 vec3& vec3::operator+=(const float& f)
 {
 	x += f;
@@ -136,7 +124,7 @@ float vec3::magnitude() const
 vec3 vec3::normalized() const
 {
 	float m = magnitude();
-	return (*this) / m;
+	return (*this) * (1.0f / m);
 }
 
 vec3 vec3::cross(const vec3& a, const vec3& b)
@@ -157,13 +145,13 @@ vec3& vec3::operator*=(const vec3& v)
 	z *= v.z;
 	return *this;
 }
-vec3& vec3::operator/=(const vec3& v)
-{
-	x /= v.x;
-	y /= v.y;
-	z /= v.z;
-	return *this;
-}
+//vec3& vec3::operator/=(const vec3& v)
+//{
+//	x /= v.x;
+//	y /= v.y;
+//	z /= v.z;
+//	return *this;
+//}
 vec3& vec3::operator+=(const vec3& v)
 {
 	x += v.x;
@@ -186,13 +174,13 @@ vec3& vec3::operator*=(const float& f)
 	z *= f;
 	return *this;
 }
-vec3& vec3::operator/=(const float& f)
-{
-	x /= f;
-	y /= f;
-	z /= f;
-	return *this;
-}
+//vec3& vec3::operator/=(const float& f)
+//{
+//	x /= f;
+//	y /= f;
+//	z /= f;
+//	return *this;
+//}
 vec3& vec3::operator+=(const float& f)
 {
 	x += f;
