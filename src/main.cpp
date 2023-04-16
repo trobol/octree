@@ -1,4 +1,5 @@
 #ifdef WIN32
+#define NOMINMAX // why windows
 #include <Windows.h>
 #endif
 #include <GL/glu.h>
@@ -381,17 +382,15 @@ int main(void)
 	//Octree tree = Octree::loadModel(file);
 
 	Octree tree0 = Octree::fromMesh(faces0);
-	Octree tree1 = Octree::fromMesh(faces1);
-	Octree tree2 = Octree::fromMesh(faces2);
-	Octree tree3 = Octree::fromMesh(faces3);
+	//Octree tree1 = Octree::fromMesh(faces1);
+	//Octree tree2 = Octree::fromMesh(faces2);
+	//Octree tree3 = Octree::fromMesh(faces3);
 
 	octrees.push_back(&tree0);
-	octrees.push_back(&tree1);
-	octrees.push_back(&tree2);
-	octrees.push_back(&tree3);
-
+	//octrees.push_back(&tree1);
+	//octrees.push_back(&tree2);
+	//octrees.push_back(&tree3);
 	window.startup();
-
 	// During init, enable debug output
 	glEnable              ( GL_DEBUG_OUTPUT );
 	glDebugMessageCallback( MessageCallback, 0 );
@@ -419,12 +418,40 @@ int main(void)
 	std::string vertDuckPath = ASSET_PATH_STR + "/shaders/duck.vert";
 	std::string fragDuckPath = ASSET_PATH_STR + "/shaders/duck.frag";
 
+	std::string vertWireframePath = ASSET_PATH_STR + "/shaders/wireframe.vert";
+	std::string fragWireframePath = ASSET_PATH_STR + "/shaders/wireframe.frag";
+
 	shaderDuck = Shader::Load(vertDuckPath, fragDuckPath);
 	shaderDuck.use();
 
 	shader = Shader::Load(vertPath, fragPath);
 
 	shader.use();
+
+	VertexArray testVA = VertexArray::Generate();
+	Buffer testVertexBuffer = Buffer::Generate();
+	testVA.bind();
+	testVertexBuffer.bind(GL_ARRAY_BUFFER);
+	uint32_t testPointCount = 0;
+	{
+		std::vector<vec3> points;
+		for ( const Face& face : faces0 ) {
+			points.push_back(face.vertices[0].pos);
+			points.push_back(face.vertices[1].pos);
+			points.push_back(face.vertices[2].pos);
+			testPointCount += 3;
+		}
+
+		testVertexBuffer.bufferVector(points, GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(0);  
+	}
+	testVA.unbind();
+
+	Shader shaderWireframe = Shader::Load( vertWireframePath, fragWireframePath);
+
+	UniformMatrix4f wireframeProjMatrix(shaderWireframe, "projMatrix");
+	UniformMatrix4f wireframeViewMatrix(shaderWireframe, "viewMatrix");
 /*
 	puts("");
 	for (size_t i = 0; i < tree.m_array.size(); i++) {
@@ -596,6 +623,16 @@ int main(void)
 
 			meshVA.bind();
 			glDrawArrays(GL_TRIANGLES, 0, faces0.size() * 3);
+			meshVA.unbind();
+		}
+
+		{
+			testVA.bind();
+			shaderWireframe.use();
+			wireframeProjMatrix = camera.getProjMatrix();
+			wireframeViewMatrix = camera.getViewMatrix();
+			
+			glDrawArrays(GL_TRIANGLES, 0, testPointCount);
 		}
 	
 		shader.use();
@@ -605,10 +642,13 @@ int main(void)
 			if (drble->m_enable)
 				drble->Draw();
 		}
+
+
+
 		glDisable(GL_DEPTH_TEST);
 		if (octreeDrawable.m_enable) {
 			size_t index = (i / 50) % 4;
-			Octree* oct = octrees[index];
+			Octree* oct = octrees[0];
 			//glActiveTexture(GL_TEXTURE0); // activate the texture unit first before binding texture
 			//glBindTexture(GL_TEXTURE_1D, tex);
 			rayShader.use();

@@ -132,6 +132,7 @@ bool load_obj(const char* path, std::vector<Face>& faces) {
 			// if quad, we are splitting it into two triangles
 			if ( count > 3 ) {
 				// add the other triangle
+				// TODO: check that this is the right way around, that the triangle is faceing the right way
 				Face face1;
 				face1.vertices[0] = vertices[2];
 				face1.vertices[1] = vertices[3];

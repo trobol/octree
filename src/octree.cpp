@@ -10,6 +10,8 @@
 #include <pmmintrin.h>
 #include <smmintrin.h>
 
+#include <chrono>
+
 // https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
 unsigned int next_pow2(unsigned int v) {
 	v--;
@@ -346,7 +348,7 @@ Octree Octree::loadModel(VoxFile& file)
 	for (int i = 0; i < file.getNumVoxels(); i++)
 	{
 		color32 = palette[file.mVoxels[i].colorIndex - 1];
-		vec3 color = vec3(color32split[0], color32split[1], color32split[2]) / 255;
+		vec3 color = vec3(color32split[0], color32split[1], color32split[2]) * ( 1.0f / 255.0f );
 
 		//if (file.mVoxels[i].x > 50 || file.mVoxels[i].y > 50 || file.mVoxels[i].z > 50) continue;
 		//dont forget to convert to correct space
@@ -435,11 +437,19 @@ int planeBoxOverlap(vec3 normal,float d, float maxbox)
 	return 0;
 }
 
+#define FINDMINMAX(x0,x1,x2,min,max) \
+  min = max = x0;   \
+  if(x1<min) min=x1;\
+  if(x1>max) max=x1;\
+  if(x2<min) min=x2;\
+  if(x2>max) max=x2;
+
+
 /*======================== X-tests ========================*/
 #define AXISTEST_X01(a, b, fa, fb)             \
     p0 = a*v0.y - b*v0.z;                    \
     p2 = a*v2.y - b*v2.z;                    \
-        if(p0<p2) {min=p0; max=p2;} else {min=p2; max=p0;} \
+    if(p0<p2) {min=p0; max=p2;} else {min=p2; max=p0;} \
     rad = fa * boxhalfsize + fb * boxhalfsize;   \
     if(min>rad || max<-rad) return 0;
 
@@ -481,6 +491,26 @@ int planeBoxOverlap(vec3 normal,float d, float maxbox)
     rad = fa * boxhalfsize + fb * boxhalfsize;   \
     if(min>rad || max<-rad) return 0;
 
+
+// test the axis aligned bounding box against the bounds of the triangle
+// expects the triangles points to be relative to the AABB's center
+bool AABB_vs_triangleBounds_centered( vec3 v0, vec3 v1, vec3 v2, float boxhalfsize ) {
+
+	// create the bounds of the triangle
+	vec3 tri_min = vec3::min( v0, vec3::min(v1, v2));
+	vec3 tri_max = vec3::max( v0, vec3::max(v1, v2));
+	vec3 aabb_max( boxhalfsize, boxhalfsize, boxhalfsize );
+	vec3 aabb_min( -boxhalfsize, -boxhalfsize, -boxhalfsize);
+
+	// test if the triangle min is larger than the aabb max
+	__m128 g_min = _mm_cmpgt_ps(tri_min.mm, aabb_max.mm);
+
+	//or the triangle max is smaller than aabb min
+	__m128 g_max = _mm_cmplt_ps(tri_max.mm, aabb_min.mm);
+
+	return (_mm_movemask_ps(g_min) & 7) == 0 && (_mm_movemask_ps(g_max) & 7) == 0;
+}
+
 // src https://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/code/
 int triBoxOverlap(vec3 boxcenter, float boxhalfsize, const Triangle& tri)
 {
@@ -519,7 +549,7 @@ int triBoxOverlap(vec3 boxcenter, float boxhalfsize, const Triangle& tri)
    __m128 g_max = _mm_cmplt_ps(max_v, _mm_mul_ps(_mm_set1_ps(-1.0f), box));
 
    if((_mm_movemask_ps(g_min) & 7) != 0 || (_mm_movemask_ps(g_max) & 7) != 0) return 0;
-
+	return 1;
 
    /* compute triangle edges */
    //e0 = v1 - v0;      /* tri edge 0 */
@@ -593,6 +623,8 @@ int triBoxOverlap(vec3 boxcenter, float boxhalfsize, const Triangle& tri)
 
    return 1;   /* box and triangle overlaps */
 }
+
+
 static const __m128 sign_mask = _mm_set1_ps(-0.f); // -0.f = 1 << 31
 bool IntersectsTriangleAabbSat(__m128 a[3], __m128 v0[3], __m128 v1[3], __m128 v2[3], float halfsize) {
 	
@@ -668,6 +700,192 @@ void calculateAxis(__m128 axis_out[3], const Triangle& tri) {
 	axis_out[2] = _mm_mul_ps(z, rsqrt);
 
 }
+
+
+
+int triBoxOverlapFaster(vec3 boxcenter, float boxhalfsize, const Triangle& tri) {
+	
+
+  /*    use separating axis theorem to test overlap between triangle and box */
+
+  /*    need to test for overlap in these directions: */
+
+  /*    1) the {x,y,z}-directions (actually, since we use the AABB of the triangle */
+
+  /*       we do not even need to test these) */
+
+  /*    2) normal of the triangle */
+
+  /*    3) crossproduct(edge from tri, {x,y,z}-directin) */
+
+  /*       this gives 3x3=9 more tests */
+
+	vec3 v0,v1,v2;
+	float min,max,d,p0,p1,p2,rad,fex,fey,fez;
+	vec3 normal, e0,e1,e2;
+
+   /* This is the fastest branch on Sun */
+
+   /* move everything so that the boxcenter is in (0,0,0) */
+
+	v0 = tri.pos[0] - boxcenter;
+	v1 = tri.pos[1] - boxcenter;
+	v2 = tri.pos[2] - boxcenter;
+
+
+
+
+   /* compute triangle edges */
+
+	e0 = v1 - v0; /* tri edge 0 */
+	e1 = v2 - v1; /* tri edge 1 */
+	e2 = v0 - v2; /* tri edge 2 */
+
+   /* Bullet 3:  */
+
+   /*  test the 9 tests first (this was faster) */
+
+   fex = fabsf(e0.x);
+   fey = fabsf(e0.y);
+   fez = fabsf(e0.z);
+
+   vec3 fe = vec3::abs( e0 );
+
+	// AXISTEST_X01 AXISTEST_X01(e0[Z], e0[Y], fez, fey);
+	p0 = e0.z*v0.y - e0.y*v0.z;
+    p2 = e0.z*v2.y - e0.y*v2.z;
+	min = std::min( p0, p2 );
+	max = std::max( p0, p2 );
+    rad = fez * boxhalfsize + fey * boxhalfsize; 
+    if(min>rad || max<-rad) return 0;
+
+	// AXISTEST_Y02 AXISTEST_Y02(e0[Z], e0[X], fez, fex);
+	p0 = -e0.z*v0.x + e0.x*v0.z;
+    p2 = -e0.z*v2.x + e0.x*v2.z;
+    min = std::min( p0, p2 );
+	max = std::max( p0, p2 );
+    rad = fez * boxhalfsize + fex * boxhalfsize; 
+    if(min>rad || max<-rad) return 0;
+
+
+	// AXISTEST_Z12 AXISTEST_Z12(e0[Y], e0[X], fey, fex);
+	p1 = e0.y*v1.x - e0.x*v1.y;
+    p2 = e0.y*v2.x - e0.x*v2.y;
+    min = std::min( p0, p2 );
+	max = std::max( p0, p2 );
+    rad = fey * boxhalfsize + fex * boxhalfsize;
+    if(min>rad || max<-rad) return 0;
+
+
+/*
+	{
+	//
+	// a * b + c * d   
+	// b * d + f * h
+	//  [ a c e g ]
+	//  [ b d f h ]
+	//  
+	vec3 r0 = vec3( e0.z, -e0.z, e0.y );
+	vec3 r2 = vec3( -e0.y, e0.x, -e0.x );
+
+	vec3 a = vec3( v0.y, v0.x, v1.x );
+	vec3 b = vec3( v0.z, v0.z, v1.y );
+	vec3 s0 = r0 * a + r2 * b;
+
+	vec3 c = vec3( v2.y, v2.x, v2.x ); 
+	vec3 d = vec3( v2.z, v2.z, v2.y );
+	vec3 s2 = r0 * c + r2 * d;
+
+	vec3 vmin = vec3::min( s0, s2 );
+	vec3 vmax = vec3::max( s0, s2 );
+
+	vec3 fe0 = vec3( fe.z, fe.z, fe.y );
+	vec3 fe1 = vec3( fe.y, fe.x, fe.x );
+	vec3 vblockhalfsize = vec3( boxhalfsize, boxhalfsize, boxhalfsize );
+
+	vec3 vrad = fe0 + fe1 * vblockhalfsize;
+
+	//if (vmin.x>vrad.x || vmax.x<-vrad.x) return 0;
+	//if (vmin.y>vrad.y || vmax.y<-vrad.y) return 0;
+	//if (vmin.z>vrad.z || vmax.z<-vrad.z) return 0;
+	
+	}
+*/
+	fex = fabsf(e1.x);
+	fey = fabsf(e1.y);
+	fez = fabsf(e1.z);
+
+	AXISTEST_X01(e1.z, e1.y, fez, fey);
+	AXISTEST_Y02(e1.z, e1.x, fez, fex);
+	AXISTEST_Z0(e1.y, e1.x, fey, fex);
+
+
+
+	fex = fabsf(e2.x);
+	fey = fabsf(e2.y);
+	fez = fabsf(e2.z);
+
+	AXISTEST_X2(e2.z, e2.y, fez, fey);
+	AXISTEST_Y1(e2.z, e2.x, fez, fex);
+	AXISTEST_Z12(e2.y, e2.x, fey, fex);
+
+
+
+   /* Bullet 1: */
+
+   /*  first test overlap in the {x,y,z}-directions */
+
+   /*  find min, max of the triangle each direction, and test for overlap in */
+
+   /*  that direction -- this is equivalent to testing a minimal AABB around */
+
+   /*  the triangle against the AABB */
+
+
+
+   /* test in X-direction */
+
+
+
+   FINDMINMAX(v0.x,v1.x,v2.x,min,max);
+
+   if(min>boxhalfsize || max<-boxhalfsize) return 0;
+
+
+
+   /* test in Y-direction */
+
+   FINDMINMAX(v0.y,v1.y,v2.y,min,max);
+
+   if(min>boxhalfsize || max<-boxhalfsize) return 0;
+
+
+
+   /* test in Z-direction */
+
+   FINDMINMAX(v0.z,v1.z,v2.z,min,max);
+
+   if(min>boxhalfsize || max<-boxhalfsize) return 0;
+
+
+
+   /* Bullet 2: */
+
+   /*  test if the box intersects the plane of the triangle */
+
+   /*  compute plane equation of triangle: normal*x+d=0 */
+
+   normal = vec3::cross( e0, e1 );
+
+   // -NJMP- (line removed here)
+	  d=-vec3::dot(normal, v0);
+   if(!planeBoxOverlap(normal,d,boxhalfsize)) return 0;	// -NJMP-
+
+
+
+   return 1;   /* box and triangle overlaps */
+}
+
 
 bool IntersectsTriangleAabb(vec3 boxcenter, float boxhalfsize, __m128 axis_in[3], const Triangle& tri) {
 
@@ -815,6 +1033,33 @@ bool contains_triangle(std::vector<vec3int>& points, size_t x, size_t y, size_t 
 }
 
 
+void add_points( std::vector<vec3int>& points, vec3int pos, size_t size, const Triangle& tri) {
+	float invsize = 1.0f / (float)size;
+	vec3 boxcenter((float)pos.x*invsize, (float)pos.y*invsize, (float)pos.z*invsize);
+	//printf("hit %i %i %i\n", pos.x, pos.y, pos.z);
+	if ( triBoxOverlap( boxcenter, invsize * 0.5f, tri) == 0) {
+		return;
+	}
+
+	
+
+	if ( size == 1 ) {
+		
+		points.push_back( pos );
+	} else {
+		size = size / 2;
+		int i_size = size;
+		add_points( points, { pos.x + i_size, pos.y + i_size, pos.z + i_size}, size, tri);
+		add_points( points, { pos.x - i_size, pos.y + i_size, pos.z + i_size}, size, tri);
+		add_points( points, { pos.x + i_size, pos.y - i_size, pos.z + i_size}, size, tri);
+		add_points( points, { pos.x + i_size, pos.y + i_size, pos.z - i_size}, size, tri);
+		add_points( points, { pos.x - i_size, pos.y - i_size, pos.z + i_size}, size, tri);
+		add_points( points, { pos.x + i_size, pos.y - i_size, pos.z - i_size}, size, tri);
+		add_points( points, { pos.x - i_size, pos.y + i_size, pos.z - i_size}, size, tri);
+		add_points( points, { pos.x - i_size, pos.y - i_size, pos.z - i_size}, size, tri);
+	}
+}
+
 Octree Octree::fromMesh(std::vector<Face>& faces) {
 	std::vector<Triangle> triangles;
 	triangles.reserve(faces.size());
@@ -824,26 +1069,22 @@ Octree Octree::fromMesh(std::vector<Face>& faces) {
 
 	// find the bounds of the object
 	
-	vec3 max = {-10000, -10000, -10000};
-	vec3 min = { 10000,  10000,  10000};
+	vec3 max = triangles[0].pos[0];
+	vec3 min = triangles[0].pos[0];
 	for (Triangle tri : triangles) {
-	for (size_t i = 0; i < 3; i++) {
-		max.x = std::max(tri.pos[i].x, max.x);
-		max.y = std::max(tri.pos[i].y, max.y);
-		max.z = std::max(tri.pos[i].z, max.z);
-		min.x = std::min(tri.pos[i].x, min.x);
-		min.y = std::min(tri.pos[i].y, min.y);
-		min.z = std::min(tri.pos[i].z, min.z);
-	}
+		for (size_t i = 0; i < 3; i++) {
+			max = vec3::max( tri.pos[i], max);
+			min = vec3::min( tri.pos[i], min);
+		}
 	}
 
 	// change the object so it goes from 0->1
 	float scale_inv = 1.0f / vec3::largest(max);
 	for(Triangle& tri : triangles) {
-	for (size_t i = 0; i < 3; i++) {
-		tri.pos[i] -= min;
-		tri.pos[i] *= scale_inv;
-	}
+		for (size_t i = 0; i < 3; i++) {
+			tri.pos[i] -= min;
+			tri.pos[i] *= scale_inv;
+		}
 	}
 	size_t size = 64;
 	size_t step_size = 16;
@@ -870,21 +1111,29 @@ Octree Octree::fromMesh(std::vector<Face>& faces) {
 		}
 	}
 	*/
+
+  	auto start = std::chrono::high_resolution_clock::now();
+	auto step_start = std::chrono::high_resolution_clock::now();
+	float invsize = 1.0f / (float)size;
+	vec3int pos = {(int)(size/2), (int)(size/2), (int)(size/2)};
 	for(const Triangle& tri : triangles) {
 		__m128 axis[3];
-		calculateAxis(axis, tri);
-	//std::vector<int> offsets(step_count * step_count * step_count);
+		//calculateAxis(axis, tri);
+		//std::vector<int> offsets(step_count * step_count * step_count);
 		//const float boxhalfsize = 1.0f / (float)size / 2.0f;
-
 	
-		//
-		//}	
+
+		//add_points( points, pos, size, tri);
+			
+		//float boxhalfsize = invsize * 0.5f;
 		float boxhalfsize = 1.0f / (float)size / 2.0f;
+		
 		for (size_t x = 0; x < size; x++) {
 		for (size_t y = 0; y < size; y++)
 		for (size_t z = 0; z < size; z++) {
 		
 			vec3int pos = {(int)(x), (int)(y), (int)(z)};
+			//vec3 boxcenter(pos.x*invsize, pos.y*invsize, pos.z*invsize);
 			vec3 boxcenter(pos.x/(float)size, pos.y/(float)size, pos.z/(float)size);
 
 			if (triBoxOverlap(boxcenter, boxhalfsize, tri)) {
@@ -893,14 +1142,21 @@ Octree Octree::fromMesh(std::vector<Face>& faces) {
 			}
 			
 		}
-		//printf("x = %zu\n", x);
+
 		}
 	
 	i++;
-	if (i % 100 == 0)
-		printf("%6u/%zu  %2.1f%%\n", i, triangles.size(), i/(float)triangles.size()*100.0f);
+	if (i % 100 == 0) {
+		auto step = std::chrono::high_resolution_clock::now();
+		auto diff = step - step_start;
+		int64_t ms = std::chrono::duration_cast< std::chrono::milliseconds >( diff ).count();
+		printf("%6u/%zu  %2.1f%% %6ims\n", i, triangles.size(), i/(float)triangles.size()*100.0f, ms);
+		step_start = std::chrono::high_resolution_clock::now();
+	}
 
 	}
+
+	auto end = std::chrono::high_resolution_clock::now();
 
 	for (vec3int p : points) {
 		result.setNode(p.x, p.y, p.z, (uint32_t)-1);
@@ -929,7 +1185,7 @@ vec2 intersect(vec2 a, vec2 b) {
 
 uint8_t select_child(vec3 dT, vec3 bT, vec3 pos, float size, float t_min) {
 
-	vec3 center = pos + vec3::one * size / 2.0;
+	vec3 center = pos + vec3::one * size * 0.5f;
 
 	vec3 p = dT * center + bT;
 	uint8_t idx;
