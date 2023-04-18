@@ -334,9 +334,6 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 	camera.speed = maxf(0.0f, camera.speed + (float)yoffset * 0.05f);
 }
 
-Shader shader;
-Shader shaderDuck;
-
 Window& window = Window::getInstance();
 
 std::vector<Drawable*> drawables;
@@ -354,9 +351,10 @@ bin_digit_str bin_digits(uint8_t byte) {
 } 
 
 std::vector<Octree*> octrees;
-
+ShaderLoader shaderLoader;
 int main(void)
 {
+	
 	srand((unsigned int)time(nullptr));
 	VoxFile file;
 	MeshDrawable duckDrawable("duck");
@@ -412,23 +410,23 @@ int main(void)
 	window.setScrollCallback(scroll_callback);
 	window.setMouseButtonCallback(mouse_btn_callback);
 
-	std::string vertPath = ASSET_PATH_STR + "/shaders/shader.vert";
-	std::string fragPath = ASSET_PATH_STR + "/shaders/shader.frag";
+	const char* vertPath = ASSET_PATH"/shaders/shader.vert";
+	const char* fragPath = ASSET_PATH"/shaders/shader.frag";
 
-	std::string vertDuckPath = ASSET_PATH_STR + "/shaders/duck.vert";
-	std::string fragDuckPath = ASSET_PATH_STR + "/shaders/duck.frag";
+	const char* vertDuckPath = ASSET_PATH"/shaders/duck.vert";
+	const char* fragDuckPath = ASSET_PATH"/shaders/duck.frag";
 
 	const char* vertWireframePath = ASSET_PATH"/shaders/wireframe.vert";
 	const char* fragWireframePath = ASSET_PATH"/shaders/wireframe.frag";
 	const char* geoWireframePath = ASSET_PATH"/shaders/wireframe.geo";
-
-	shaderDuck = Shader::Load(vertDuckPath, fragDuckPath);
+	glCheckError();
+	Shader shaderDuck = shaderLoader.add(vertDuckPath, fragDuckPath);
 	shaderDuck.use();
-
-	shader = Shader::Load(vertPath, fragPath);
+	glCheckError();
+	Shader shader = shaderLoader.add(vertPath, fragPath);
 
 	shader.use();
-
+	glCheckError();
 	VertexArray testVA = VertexArray::Generate();
 	Buffer testVertexBuffer = Buffer::Generate();
 	testVA.bind();
@@ -451,12 +449,12 @@ int main(void)
 		glEnableVertexAttribArray(0);  
 	}
 	testVA.unbind();
+	glCheckError();
+	Shader shaderWireframe = shaderLoader.add( vertWireframePath, fragWireframePath);
 
-	Shader shaderWireframe = Shader::Load( vertWireframePath, fragWireframePath);
-
-	UniformMatrix4f wireframeProjMatrix(shaderWireframe, "projMatrix");
-	UniformMatrix4f wireframeViewMatrix(shaderWireframe, "viewMatrix");
-	Uniform<vec2> wireframeWindowScale( shaderWireframe, "WIN_SCALE");
+	UniformMatrix4f wireframeProjMatrix = shaderWireframe.getUniform<mat4>("projMatrix");
+	UniformMatrix4f wireframeViewMatrix = shaderWireframe.getUniform<mat4>("viewMatrix");
+	Uniform<vec2> wireframeWindowScale = shaderWireframe.getUniform<vec2>("WIN_SCALE");
 /*
 	puts("");
 	for (size_t i = 0; i < tree.m_array.size(); i++) {
@@ -509,8 +507,8 @@ int main(void)
 
 	center = vec3(0, 0, 0);
 
-	UniformMatrix4f projMatrix(shader, "projMatrix");
-	UniformMatrix4f camMatrix(shader, "camMatrix");
+	UniformMatrix4f projMatrix = shader.getUniform<mat4>("projMatrix");
+	UniformMatrix4f camMatrix = shader.getUniform<mat4>("camMatrix");
 
 	VertexArray meshVA = VertexArray::Generate();
 	Buffer meshVB = Buffer::Generate();
@@ -523,7 +521,26 @@ int main(void)
 	meshDescriptor.add(2, GL_FLOAT); // uv
 	meshDescriptor.add(2, GL_FLOAT); // padding
 	meshDescriptor.apply();
+	{
+		vec3 max = faces0[0].vertices[0].pos;
+		vec3 min = faces0[0].vertices[0].pos;
+		for( Face& f : faces0 ) {
+			for (size_t i = 0; i < 3; i++) {
+				max = vec3::max( f.vertices[i].pos, max);
+				min = vec3::min( f.vertices[i].pos, min);
+			}
+		}
+		for( Face& f : faces0 ) {
+		// change the object so it goes from 0->1
+			float scale_inv = 1.0f / vec3::largest(max);
+			for (size_t i = 0; i < 3; i++) {
+				f.vertices[i].pos -= min;
+				f.vertices[i].pos *= scale_inv;
+				f.vertices[i].pos += vec3( 1, 1, 1);
+			}
+		}
 
+	}
 	meshVB.bufferVector(faces0, GL_STATIC_DRAW);
 
 
@@ -533,18 +550,20 @@ int main(void)
 	meshVB.unbind();
 
 	shaderDuck.use();
-	UniformMatrix4f duckProjMatrix(shaderDuck, "projMatrix");
-	UniformMatrix4f duckViewMatrix(shaderDuck, "viewMatrix");
+	UniformMatrix4f duckProjMatrix = shaderDuck.getUniform<mat4>("projMatrix");
+	UniformMatrix4f duckViewMatrix = shaderDuck.getUniform<mat4>("viewMatrix");
 	ImGuiIO& io = ImGui::GetIO();
 
-	Shader rayShader = Shader::Load(ASSET_PATH_STR + "/shaders/quad.vert", ASSET_PATH_STR + "/shaders/raytrace.frag");
+	Shader rayShader = shaderLoader.add( ASSET_PATH"/shaders/quad.vert", ASSET_PATH"/shaders/raytrace.frag" );
 	rayShader.use();
+	puts("## LOADING SHADERS##");
+	//shaderLoader.load();
 	glCheckError();
-	UniformMatrix4f rayProjMatrix(rayShader, "projMatrix");
-	UniformMatrix4f rayViewMatrix(rayShader, "viewMatrix");
-	Uniform<vec2> rayViewPlanes(rayShader, "viewPlanes");
-	Uniform<int> cubeCountU(rayShader, "cubeCount");
-	Uniform<float> otsizeU(rayShader, "size");
+	UniformMatrix4f rayProjMatrix = rayShader.getUniform<mat4>("projMatrix");
+	UniformMatrix4f rayViewMatrix = rayShader.getUniform<mat4>("viewMatrix");
+	Uniform<vec2> rayViewPlanes = rayShader.getUniform<vec2>("viewPlanes");
+	Uniform<int> cubeCountU = rayShader.getUniform<int>("cubeCount");
+	Uniform<float> otsizeU = rayShader.getUniform<float>("size");
 
 	otsizeU.set((float)tree0.m_size);
 
@@ -598,10 +617,12 @@ int main(void)
 	cubeStorageBuffer.unbind();
 	//shader.use();
 	
+
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 
 	glDisable(GL_CULL_FACE);
+	shaderLoader.load();
 
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	//glEnable(GL_BLEND);
@@ -610,6 +631,7 @@ int main(void)
 	// MAIN LOOP
 	while (!window.shouldClose())
 	{
+		glCheckError();
 		i++;
 		glEnable(GL_DEPTH_TEST);
 		// UPDATE
@@ -631,17 +653,18 @@ int main(void)
 			meshVA.unbind();
 		}
 
-		{
-			testVA.bind();
-			shaderWireframe.use();
-			wireframeProjMatrix = camera.getProjMatrix();
-			wireframeViewMatrix = camera.getViewMatrix();
-			wireframeWindowScale = vec2(0.1f, 0.1f);
-			
-			glDrawArrays(GL_LINES, 0, testPointCount);
-		}
+//		{
+//			testVA.bind();
+//			shaderWireframe.use();
+//			wireframeProjMatrix = camera.getProjMatrix();
+//			wireframeViewMatrix = camera.getViewMatrix();
+//			wireframeWindowScale = vec2(0.1f, 0.1f);
+//			
+//			glDrawArrays(GL_LINES, 0, testPointCount);
+//		}
 	
 		shader.use();
+		glCheckError();
 		projMatrix = camera.getProjMatrix();
 		camMatrix = camera.getViewMatrix();
 		for (Drawable* drble : drawables) {
@@ -671,12 +694,13 @@ int main(void)
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		}
 
-		
+		glCheckError();
 
 		draw_ui();
-
+		glCheckError();
 		window.swapBuffers();
 		glfwPollEvents();
+		glCheckError();
 	}
 
 	
@@ -730,10 +754,19 @@ void draw_ui() {
 		}
 	}
 
-	ImGui::End();
+	bool reload = false;
+	if (ImGui::Button("Reload Shaders"))
+	{
+		reload = true;
+	}
 
+	ImGui::End();
+	glCheckError();
 
 	ImGui::Render();
+	glCheckError();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+	glCheckError();
 
+	if (reload) shaderLoader.load();
 }

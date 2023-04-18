@@ -14,9 +14,4 @@ public:
 
 };
 
-
-class PointCloudDrawable {
-
-};
-
 #endif

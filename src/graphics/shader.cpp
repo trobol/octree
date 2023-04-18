@@ -40,7 +40,7 @@ bool printErrorMessage(GLuint id, const char* shader_path)
 	return false;
 }
 
-void LoadSingleShader(GLuint shaderID, const char* path) {
+bool LoadSingleShader(GLuint shaderID, const char* path) {
 	char first_section[2048] = { 0 };
 	char* pointers[256] = { first_section };
 	GLint lens[256] = { 0 };
@@ -48,7 +48,7 @@ void LoadSingleShader(GLuint shaderID, const char* path) {
 	FILE* fp = fopen(path, "r");
 	if (fp == nullptr) {
 		printf("SHADER ERROR: Unable to open \"%s\"\n", path);
-		return;
+		return true;
 	}
 	size_t bytes;
 	do {
@@ -62,18 +62,21 @@ void LoadSingleShader(GLuint shaderID, const char* path) {
 	fclose(fp);
 
 	glShaderSource(shaderID, section_count, pointers, lens);
+	glCheckError();
 	glCompileShader(shaderID);
+	glCheckError();
 
 	for (size_t i = 1; i < section_count; i++)
 		delete[] pointers[i];
 
 	GLint result = GL_FALSE;
 	glGetShaderiv(shaderID, GL_COMPILE_STATUS, &result);
-	if ( printErrorMessage(shaderID, path) ) exit(1);
+	printErrorMessage(shaderID, path);
+	return result == GL_FALSE;
 }
 
 
-
+/*
 Shader Shader::LoadCompute(std::string path) {
 	return LoadCompute(path.c_str());
 }
@@ -101,8 +104,62 @@ Shader Shader::LoadCompute(const char* path) {
 Shader Shader::Load(std::string vertex_file_path, std::string frag_file_path) {
 	return Load(vertex_file_path.c_str(), frag_file_path.c_str());
 }
+*/
+GLuint loadshader( const char* vertex_path, const char* frag_path )
+{
+	// Create the shaders
+	glCheckError();
+	GLuint vertexShaderId = glCreateShader(GL_VERTEX_SHADER);
+	glCheckError();
+	GLuint fragmentShaderId = glCreateShader(GL_FRAGMENT_SHADER);
+	glCheckError();
+	bool vert_fail = LoadSingleShader(vertexShaderId, vertex_path);
+	bool frag_fail = LoadSingleShader(fragmentShaderId, frag_path);
 
+	if ( vert_fail || frag_fail ) 
+		return 0;
 
+	glCheckError();
+	// Link the program
+	//printf("Linking program\n");
+	GLuint programId = glCreateProgram();
+
+	glAttachShader(programId, vertexShaderId);
+	glAttachShader(programId, fragmentShaderId);
+	glLinkProgram(programId);
+	glCheckError();
+	// Check the program
+	GLint result = GL_FALSE;
+	glGetProgramiv(programId, GL_LINK_STATUS, &result);
+
+	glDetachShader(programId, vertexShaderId);
+	glDetachShader(programId, fragmentShaderId);
+	
+	glDeleteShader(vertexShaderId);
+	glDeleteShader(fragmentShaderId);
+
+	if ( result == GL_FALSE ) {
+		glDeleteProgram(programId);
+		return 0;
+	}
+
+	return programId;
+}
+
+UniformInfo* Shader::getUniformInfo(const char* name) {
+	const size_t name_len = strlen(name)+1;
+	UniformInfo* info = (UniformInfo*)::operator new(sizeof(UniformInfo) + name_len);
+	memcpy((void*)info->name, name, name_len);
+	UniformInfo* lastinfo = entry->uniform_info;
+	info->next = lastinfo;
+	entry->uniform_info = info;
+	if (entry->id) info->location = glGetUniformLocation( entry->id, info->name );
+	glCheckError();
+	entry->uniform_info = info;
+	return info;
+}
+
+/*
 Shader Shader::Load(const char* vertex_file_path, const char* fragment_file_path, const char* geometry_file_path )
 {
 	// Create the shaders
@@ -137,3 +194,44 @@ Shader Shader::Load(const char* vertex_file_path, const char* fragment_file_path
 	
 	return Shader(programId);
 }
+*/
+
+Shader ShaderLoader::add( const char* vertex_path, const char* frag_path )
+{
+	size_t vertex_path_len = strlen(vertex_path)+1;
+	size_t frag_path_len = strlen(frag_path)+1;
+	ShaderLoaderEntry* entry = (ShaderLoaderEntry*) ::operator new( sizeof(ShaderLoaderEntry) + vertex_path_len + frag_path_len );
+	entry->frag_path = entry->str_buf + vertex_path_len;
+	entry->vertex_path = entry->str_buf;
+	entry->next = first;
+	first = entry;
+	entry->uniform_info = nullptr;
+	memcpy( (void*)entry->vertex_path, vertex_path, vertex_path_len );
+	memcpy( (void*)entry->frag_path, frag_path, frag_path_len );
+	glCheckError();
+	GLuint newprogram = loadshader(entry->vertex_path, entry->frag_path);
+	glCheckError();
+	if ( newprogram != 0 ) entry->id = newprogram;
+	return Shader(entry);
+}
+
+
+void ShaderLoader::load()
+{
+	for( ShaderLoaderEntry* entry = first; entry != nullptr; entry = entry->next ) {
+		glCheckError();
+		GLuint newprogram = loadshader(entry->vertex_path, entry->frag_path);
+		glCheckError();
+		if ( newprogram != 0 ) {
+			GLuint oldprogram = entry->id;
+			entry->id = newprogram;
+			if (oldprogram != 0) glDeleteProgram( oldprogram );
+			for( UniformInfo* info = entry->uniform_info; info != nullptr; info = info->next ) {
+				info->location = glGetUniformLocation( newprogram, info->name );
+				glCheckError();
+			}
+		}
+	}
+}
+
+

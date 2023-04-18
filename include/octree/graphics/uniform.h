@@ -5,23 +5,26 @@
 #include <octree/graphics/shader.h>
 #include "../math/vec2.h"
 
+struct UniformInfo {
+	GLint location;
+	UniformInfo* next;
+	const char name[];
+};
 template <typename T>
 class Uniform
 {
 public:
-	Uniform(Shader& shader, const char* name)
-	{
-		mLocation = glGetUniformLocation((GLuint)shader, name);
-	}
 	void set(const T& value, GLboolean transpose = GL_FALSE);
 	Uniform& operator=(const T& value)
 	{
 		set(value);
 		return *this;
 	}
-
+private:
+	Uniform(UniformInfo* _info) : info{_info} {}
 protected:
-	GLint mLocation;
+	UniformInfo* info;
+friend class Shader;
 };
 
 /*
@@ -32,24 +35,24 @@ using UniformMatrix4f = Uniform<mat4>;
 
 template<>
 inline void Uniform<mat4>::set(const mat4& value, GLboolean transpose) {
-	glUniformMatrix4fv(mLocation, 1, GL_FALSE, value.matrix);
+	glUniformMatrix4fv(info->location, 1, GL_FALSE, value.matrix);
 }
 
 
 template <>
 inline void Uniform<int>::set(const int& value, GLboolean transpose)
 {
-	glUniform1i(mLocation, value);
+	glUniform1i(info->location, value);
 }
 
 template <>
 inline void Uniform<vec2>::set(const vec2& value, GLboolean transpose) {
-	glUniform2f(mLocation, value.x, value.y);
+	glUniform2f(info->location, value.x, value.y);
 }
 
 template <>
 inline void Uniform<float>::set(const float& value, GLboolean transpose) {
-	glUniform1f(mLocation, value);
+	glUniform1f(info->location, value);
 }
 
 #endif

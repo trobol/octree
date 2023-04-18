@@ -88,6 +88,7 @@ GLenum glCheckError_(const char *file, int line);
 	GLE(GLuint, CreateProgram, void)                                                                                                                                                                  \
 	GLE(GLuint, CreateShader, GLenum type)                                                                                                                                                            \
 	GLE(void, DeleteShader, GLuint shader)                                                                                                                                                            \
+	GLE(void, DeleteProgram, GLuint program)                                                                                                                                                            \
 	GLE(void, DeleteBuffers, GLsizei n, const GLuint *buffers)                                                                                                                                        \
 	GLE(void, DeleteFramebuffers, GLsizei n, const GLuint *framebuffers)                                                                                                                              \
 	GLE(void, DrawBuffers, GLsizei n, const GLenum *bufs)                                                                                                                                             \

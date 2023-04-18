@@ -107,12 +107,14 @@ RayHit traverse_octree(Ray ray) {
 	d.y = abs(d.y) > EPS ? d.y : (d.y >= 0 ? EPS : -EPS);
 	d.z = abs(d.z) > EPS ? d.z : (d.z >= 0 ? EPS : -EPS);
 
+	// precompute ray bias and coefficient, we will use these for all ray calculations
 	vec3 t_coef = 1.0f / -abs(d);
 	vec3 t_bias = t_coef * o;
 
 	// all flip positive axis
 	// this way we don't have to calculate which planes are closer to the camera
-	// but we have to also flip our voxel child axis so we don't grab the wrong one (the)
+	// this allows us to do one test per cube instead of two
+	// but we have to also flip our voxel child axis so we don't grab the wrong one
 	uint oct_mask = 7u;
 	if(d.x > 0.0f) oct_mask ^= 1u, t_bias.x = 3.0f * t_coef.x - t_bias.x;
 	if(d.y > 0.0f) oct_mask ^= 2u, t_bias.y = 3.0f * t_coef.y - t_bias.y;
@@ -238,7 +240,6 @@ RayHit traverse_octree(Ray ray) {
 			scale_exp2 = uintBitsToFloat((scale - STACK_SIZE + 127u) << 23u); // exp2f(scale - s_max)
 
 			
-			// Restore parent voxel from the stack.
 			// Restore parent voxel from the stack.
 			parent = stack[scale].offset;
 			t_max  = stack[scale].t_max;

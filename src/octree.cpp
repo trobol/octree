@@ -103,7 +103,7 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 
 			// draw branch
 			Cube c;
-			c.pos = parent_pos + vec3(1.0, 1.0, 1.0);
+			c.pos = parent_pos;
 			c.color = random_colors[parent_index % 256];
 			c.size = size;
 			traversal_stack.pop();
@@ -141,7 +141,7 @@ void Octree::drawNodes(std::vector<Cube>& elements, std::vector<Cube>& leafEleme
 		// is leaf node
 		if ((parent & child_mask) != 0) {
 			Cube c;
-			c.pos = pos + vec3(1.0, 1.0, 1.0);
+			c.pos = pos;
 			c.size = half_size;
 			c.color = random_colors[child_index % 256];
 			leafElements.push_back(c);
@@ -1059,6 +1059,8 @@ void add_points( std::vector<vec3int>& points, vec3int pos, size_t size, const T
 		add_points( points, { pos.x - i_size, pos.y - i_size, pos.z - i_size}, size, tri);
 	}
 }
+
+
 
 Octree Octree::fromMesh(std::vector<Face>& faces) {
 	std::vector<Triangle> triangles;
